@@ -240,10 +240,10 @@ class GitHubStorageBackend(StorageBackend):
         logger.warning("HTML reports are not supported by GitHub storage backend")
         pass
     
-    def save_txt_snapshot(self, txt_content: str, filename: str) -> None:
+    def save_txt_snapshot(self, data) -> bool:
         """Save TXT snapshot (not supported for GitHub backend)"""
         logger.warning("TXT snapshots are not supported by GitHub storage backend")
-        pass
+        return False
     
     def detect_new_rss_items(self, current_data) -> dict:
         """Detect new RSS items (not supported for GitHub backend)"""
