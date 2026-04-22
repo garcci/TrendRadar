@@ -278,3 +278,34 @@ class GitHubStorageBackend(StorageBackend):
         """Save RSS data (not supported for GitHub backend)"""
         logger.warning("RSS data saving is not supported by GitHub storage backend")
         return False
+    
+    # Delegate read operations to local storage
+    def get_today_all_data(self, date=None):
+        """Get today's data by delegating to local storage"""
+        try:
+            from .local import LocalStorageBackend
+            local_backend = LocalStorageBackend()
+            return local_backend.get_today_all_data(date)
+        except Exception as e:
+            logger.warning(f"Failed to get today's data from local storage: {e}")
+            return None
+    
+    def get_latest_crawl_data(self, date=None):
+        """Get latest crawl data by delegating to local storage"""
+        try:
+            from .local import LocalStorageBackend
+            local_backend = LocalStorageBackend()
+            return local_backend.get_latest_crawl_data(date)
+        except Exception as e:
+            logger.warning(f"Failed to get latest crawl data from local storage: {e}")
+            return None
+    
+    def detect_new_titles(self, current_data):
+        """Detect new titles by delegating to local storage"""
+        try:
+            from .local import LocalStorageBackend
+            local_backend = LocalStorageBackend()
+            return local_backend.detect_new_titles(current_data)
+        except Exception as e:
+            logger.warning(f"Failed to detect new titles from local storage: {e}")
+            return {}
