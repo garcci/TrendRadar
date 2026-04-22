@@ -135,20 +135,21 @@ class GitHubStorageBackend(StorageBackend):
         ]
         
         # Add news items
-        for i, item in enumerate(data.items, 1):
-            lines.append(f"## {i}. {item.title}")
-            lines.append("")
-            
-            if item.summary:
-                lines.append(item.summary)
+        for source_id, items_list in data.items.items():
+            for i, item in enumerate(items_list, 1):
+                lines.append(f"## {i}. {item.title}")
                 lines.append("")
-            
-            if item.url:
-                lines.append(f"[阅读原文]({item.url})")
+                
+                if item.summary:
+                    lines.append(item.summary)
+                    lines.append("")
+                
+                if item.url:
+                    lines.append(f"[阅读原文]({item.url})")
+                    lines.append("")
+                
+                lines.append("---")
                 lines.append("")
-            
-            lines.append("---")
-            lines.append("")
         
         return "\n".join(lines)
     
