@@ -11,9 +11,12 @@ GitHub Issues Memory Backend - 使用 GitHub Issues 存储记忆数据
 
 import json
 import os
+import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 class GitHubIssuesMemory:
@@ -60,12 +63,13 @@ class GitHubIssuesMemory:
             )
             
             if response.status_code == 201:
+                logger.warning(f"Issue created successfully: {response.json().get('html_url')}")
                 return True
             else:
-                print(f"Failed to create issue: {response.status_code} - {response.text}")
+                logger.warning(f"Failed to create issue: {response.status_code} - {response.text[:200]}")
                 return False
         except Exception as e:
-            print(f"Error saving to GitHub Issues: {e}")
+            logger.warning(f"Error saving to GitHub Issues: {e}")
             return False
     
     def get_recent_articles(self, days: int = 7) -> List[Dict]:
