@@ -328,7 +328,8 @@ class GitHubStorageBackend(StorageBackend):
 - 多方观点对比
 - 潜在影响分析
 - 个人独到见解
-- **必须嵌入相关视频**：如果该热点在 Bilibili/YouTube/抖音有相关内容，嵌入 1 个高质量视频
+- **🎥 必须嵌入相关视频**：如果该热点在 Bilibili/YouTube/抖音有相关内容，嵌入 1 个高质量视频
+- **🖼️ 建议配图**：如果有相关新闻图片或示意图，可以嵌入增强视觉效果
 
 #### 平台热点精选（简洁有力）
 每个平台只选Top 5，用一句话点评：
@@ -359,21 +360,31 @@ class GitHubStorageBackend(StorageBackend):
   tags: [news, trendradar, hot, daily-digest]
   category: news
   draft: false
+  cover: /images/trendradar-cover.jpg
   excerpt: "一句话概括文章核心价值"
   ---
   ```
   **⚠️ 重要：Frontmatter 必须在文章最开头，以 `---` 开始和结束！这是 Astro 的要求！**
   
+- **🎥 视频嵌入（重点！）**
+  - 每个深度分析板块**必须**嵌入至少 1 个相关视频
+  - 优先使用 Bilibili 视频（中国用户友好）
+  - 如果热点来自抖音/YouTube，也尽量嵌入
+  - 使用响应式容器：<div class="video-container"><iframe src="..." allowfullscreen></iframe></div>
+  - Bilibili 示例：`//player.bilibili.com/player.html?bvid=BVxxx&p=1`
+  - YouTube 示例：`https://www.youtube-nocookie.com/embed/VIDEO_ID`
+  - 如果无法确定具体视频 ID，可以使用搜索链接或推荐关键词
+  
+- **🖼️ 图片增强**
+  - 在开篇引言后添加一张主题相关的封面图或示意图
+  - 使用 Astro Image 组件或标准 Markdown 图片语法
+  - 示例：`![描述](图片URL)` 或使用网络图片
+  - 如果没有具体图片，可以使用占位符或推荐搜索关键词
+  
 - 使用 Emoji 增强视觉效果（但不要滥用）
 - 合理使用引用块 `>` 突出金句
 - 用加粗 `**text**` 强调重点
 - 列表清晰，层级分明
-- **重要：嵌入相关视频！**
-  - 如果热点涉及 Bilibili、YouTube、抖音等平台，尽量嵌入相关视频
-  - 使用响应式容器：<div class="video-container"><iframe src="..." allowfullscreen></iframe></div>
-  - Bilibili 示例：`//player.bilibili.com/player.html?bvid=BVxxx&p=1`
-  - YouTube 示例：`https://www.youtube-nocookie.com/embed/VIDEO_ID`
-  - 每个深度分析板块至少嵌入 1 个相关视频
 
 ### 6. 禁忌
 - ❌ 不要重复同一事件多次
@@ -399,7 +410,9 @@ class GitHubStorageBackend(StorageBackend):
 2. 然后才是文章内容
 3. 严格按照系统提示中的结构和要求创作
 4. 不要简单罗列，要提供深度分析和独到见解
-5. 如果有相关视频，务必嵌入
+5. **🎥 视频嵌入**：每个深度分析板块至少嵌入 1 个相关视频（Bilibili 优先）
+6. **🖼️ 图片增强**：开篇后添加主题相关图片，各板块适当配图
+7. 如果无法确定具体视频 ID，可以推荐搜索关键词或使用占位符
 
 请立即开始输出完整的 Markdown 文章！"""
         
