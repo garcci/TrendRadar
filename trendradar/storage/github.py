@@ -426,7 +426,7 @@ class GitHubStorageBackend(StorageBackend):
   tags: [新闻, 热点, 趋势雷达]  # 使用中文标签，3-5个
   category: news
   draft: false
-  image: https://picsum.photos/seed/news/1600/900  # 或使用具体图片URL
+  image: https://picsum.photos/seed/diplomacy-tension/1600/900  # 使用与主题相关的英文关键词
   description: "一句话概括文章核心价值"
   ---
   ```
@@ -440,18 +440,19 @@ class GitHubStorageBackend(StorageBackend):
   
 - **🖼️ 图片增强（重点！）**
   - **开篇必须有一张主题相关的封面图**，紧跟在 Frontmatter 之后
-  - 使用可靠的免费图库：
-    - **Picsum Photos**: `https://picsum.photos/seed/关键词/1200/600`
-    - **Lorem Picsum**: `https://picsum.photos/1200/600?random=1`
-    - 或直接使用具体的网络图片 URL
-  - 每个深度分析板块至少配 1 张相关图片
-  - 图片格式：`![描述](图片URL)`
-  - **推荐示例**：
-    ```markdown
-    ![美伊谈判紧张局势](https://picsum.photos/seed/diplomacy/1200/600)
-    ![中国制造供应链](https://picsum.photos/seed/factory/1200/600)
-    ```
-  - **注意**：避免使用已停用的 Unsplash Source API
+  - 使用 Picsum Photos 免费图库，**必须使用与内容相关的英文关键词作为 seed**：
+    - **格式**：`https://picsum.photos/seed/英文关键词/1200/600`
+    - **要求**：seed 必须是与图片内容相关的英文单词或短语（2-4个词），用连字符连接
+    - **示例**：
+      ```markdown
+      ![美伊谈判紧张局势](https://picsum.photos/seed/us-iran-negotiation/1200/600)
+      ![中国制造业供应链](https://picsum.photos/seed/china-factory-supply/1200/600)
+      ![芯片科技股上涨](https://picsum.photos/seed/tech-stock-chip/1200/600)
+      ![英雄烈士归国仪式](https://picsum.photos/seed/hero-memorial-ceremony/1200/600)
+      ```
+  - **封面图 seed 规则**：使用文章核心主题的英文关键词，如 `diplomacy-tension`、`china-economy`、`tech-innovation`
+  - **分析配图 seed 规则**：每个深度分析板块的图片 seed 必须与该板块内容直接相关
+  - **禁止使用通用 seed**：如 `news`、`image`、`photo` 等，必须使用具体内容相关的 seed
   
 - **🎥 视频嵌入（重点！）**
   - 每个深度分析板块**必须**嵌入至少 1 个相关视频
@@ -527,14 +528,18 @@ class GitHubStorageBackend(StorageBackend):
 1. **首先输出完整的 Frontmatter**，以 `---` 开始和结束
 2. **使用中文标签**：tags 必须是中文，如 `[新闻, 热点, 国际局势]`
 3. **开篇配图**：Frontmatter 后立即添加一张主题相关的封面图
-4. 然后才是文章内容
-5. 严格按照系统提示中的结构和要求创作
-6. 不要简单罗列，要提供深度分析和独到见解
-7. **🎥 视频嵌入**：每个深度分析板块至少嵌入 1 个相关视频（Bilibili 优先，使用正确的 iframe 格式）
-8. **🖼️ 图片增强**：每个深度分析板块配 1 张相关图片（Unsplash 或网络图片）
-9. 如果无法确定具体视频 ID，可以推荐搜索关键词或使用占位符
-10. **📚 利用历史上下文**：如果有持续关注的热点，请在文章中体现其演变和延续性
-11. **💰 成本控制**：文章精炼有力，控制在 {optimized_params['max_tokens']//4} 字以内
+4. **🖼️ 图片 seed 必须与内容相关**：
+   - 封面图：使用文章核心主题的英文关键词（如 `diplomacy-tension`、`china-economy`）
+   - 分析配图：每个板块的图片 seed 必须与该板块内容直接相关
+   - 禁止使用通用 seed（如 `news`、`image`），必须使用具体内容关键词
+5. 然后才是文章内容
+6. 严格按照系统提示中的结构和要求创作
+7. 不要简单罗列，要提供深度分析和独到见解
+8. **🎥 视频嵌入**：每个深度分析板块至少嵌入 1 个相关视频（Bilibili 优先，使用正确的 iframe 格式）
+9. **🖼️ 图片增强**：每个深度分析板块配 1 张相关图片（Picsum Photos，seed 与内容相关）
+10. 如果无法确定具体视频 ID，可以推荐搜索关键词或使用占位符
+11. **📚 利用历史上下文**：如果有持续关注的热点，请在文章中体现其演变和延续性
+12. **💰 成本控制**：文章精炼有力，控制在 {optimized_params['max_tokens']//4} 字以内
 
 请立即开始输出完整的 Markdown 文章！"""
         
