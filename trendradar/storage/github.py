@@ -249,3 +249,18 @@ class GitHubStorageBackend(StorageBackend):
         """Save TXT snapshot (not supported for GitHub backend)"""
         logger.warning("TXT snapshots are not supported by GitHub storage backend")
         pass
+    
+    def detect_new_rss_items(self, current_data) -> dict:
+        """Detect new RSS items (not supported for GitHub backend)"""
+        logger.warning("RSS detection is not supported by GitHub storage backend")
+        return {}
+    
+    def get_latest_rss_data(self, date=None):
+        """Get latest RSS data (not supported for GitHub backend)"""
+        logger.warning("RSS data retrieval is not supported by GitHub storage backend")
+        return None
+    
+    def get_rss_data(self, date=None):
+        """Get RSS data (not supported for GitHub backend)"""
+        logger.warning("RSS data retrieval is not supported by GitHub storage backend")
+        return None
