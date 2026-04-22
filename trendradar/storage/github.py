@@ -245,6 +245,7 @@ class GitHubStorageBackend(StorageBackend):
     def _generate_ai_article(self, data: NewsData, title: str) -> str:
         """
         Use AI to generate a professional, beautiful, and valuable article.
+        Integrates history context for better continuity.
         
         Args:
             data: NewsData object
@@ -255,6 +256,7 @@ class GitHubStorageBackend(StorageBackend):
         """
         from ..ai.client import AIClient
         from ..core.loader import load_config
+        from .history_manager import ArticleHistoryManager
         
         # Load AI configuration
         try:
@@ -285,6 +287,20 @@ class GitHubStorageBackend(StorageBackend):
             total_count += len(items_list)
         
         news_text = "\n".join(news_summary)
+        
+        # Get historical context for continuity
+        try:
+            history_mgr = ArticleHistoryManager()
+            context_summary = history_mgr.generate_context_summary(days=3)
+            trending_topics = history_mgr.get_trending_topics(window_days=7, min_mentions=2)
+            
+            if trending_topics:
+                trending_info = f"\n\n### 🔥 当前 Trending 话题（连续多日关注）\n"
+                trending_info += "\n".join([f"- {topic}" for topic in trending_topics[:5]])
+                context_summary += trending_info
+        except Exception as e:
+            logger.warning(f"Failed to load history context: {e}")
+            context_summary = "（无历史记录）"
         
         # Create AI prompt
         date_obj = datetime.strptime(data.date, "%Y-%m-%d") if data.date else datetime.now()
@@ -405,6 +421,8 @@ class GitHubStorageBackend(StorageBackend):
 **热点数据**：
 {news_text}
 
+{context_summary}
+
 **⚠️ 输出要求（必须遵守）：**
 1. **首先输出完整的 Frontmatter**，以 `---` 开始和结束
 2. 然后才是文章内容
@@ -413,6 +431,7 @@ class GitHubStorageBackend(StorageBackend):
 5. **🎥 视频嵌入**：每个深度分析板块至少嵌入 1 个相关视频（Bilibili 优先）
 6. **🖼️ 图片增强**：开篇后添加主题相关图片，各板块适当配图
 7. 如果无法确定具体视频 ID，可以推荐搜索关键词或使用占位符
+8. **📚 利用历史上下文**：如果有持续关注的热点，请在文章中体现其演变和延续性
 
 请立即开始输出完整的 Markdown 文章！"""
         
@@ -429,6 +448,37 @@ class GitHubStorageBackend(StorageBackend):
             raise ValueError("AI generated content is too short or empty")
         
         logger.info(f"AI generated {len(ai_content)} characters")
+        
+        # Save article metadata to history for future context
+        try:
+            history_mgr = ArticleHistoryManager()
+            
+            # Extract keywords from title and content (simple extraction)
+            import re
+            keywords = re.findall(r'[\u4e00-\u9fa5]{2,6}', ai_content[:500])  # First 500 chars
+            # Filter common words
+            stop_words = {'今日', '热点', '分析', '深度', '平台', '趋势'}
+            keywords = list(set([kw for kw in keywords if kw not in stop_words]))[:10]
+            
+            # Extract hot topics from content (hashtags or bold text)
+            hot_topics_match = re.findall(r'\*\*(.+?)\*\*', ai_content[:1000])
+            hot_topics = [t for t in hot_topics_match if len(t) > 2][:5]
+            
+            metadata = {
+                'date': data.date,
+                'title': title,
+                'excerpt': ai_content[200:400] if len(ai_content) > 400 else '',
+                'keywords': keywords,
+                'hot_topics': hot_topics,
+                'platforms': list(data.id_to_name.values()),
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            history_mgr.save_article_metadata(metadata)
+            logger.info("Article metadata saved to history")
+        except Exception as e:
+            logger.warning(f"Failed to save article metadata: {e}")
+        
         return ai_content
     
     def _push_to_github(self, filepath: str, content: str, commit_message: str) -> None:
