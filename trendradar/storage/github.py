@@ -79,6 +79,7 @@ class GitHubStorageBackend(StorageBackend):
     def save_news_data(self, data: NewsData) -> bool:
         """
         Save news data by pushing Markdown files to Astro repository.
+        Uses AI to generate professional article content.
         Also saves to local SQLite for TrendRadar's own analysis.
         
         Args:
@@ -108,8 +109,13 @@ class GitHubStorageBackend(StorageBackend):
         filename = f"{date_str}-trendradar-{timestamp}.md"
         filepath = f"src/content/posts/news/{filename}"
         
-        # Generate Markdown content
-        markdown_content = self._generate_markdown(data, article_title)
+        # Generate Markdown content using AI
+        try:
+            markdown_content = self._generate_ai_article(data, article_title)
+            logger.info("AI-generated article created successfully")
+        except Exception as e:
+            logger.warning(f"AI generation failed, falling back to template: {e}")
+            markdown_content = self._generate_markdown(data, article_title)
         
         # Push to GitHub
         try:
@@ -123,6 +129,7 @@ class GitHubStorageBackend(StorageBackend):
     def _generate_markdown(self, data: NewsData, title: str) -> str:
         """
         Generate professional Markdown content for the article with Astro features.
+        Fallback method when AI generation fails.
         
         Args:
             data: NewsData object
@@ -142,7 +149,7 @@ class GitHubStorageBackend(StorageBackend):
             "tags: [news, trendradar, hot, daily-digest]",
             "category: news",
             "draft: false",
-            "cover: /images/trendradar-cover.jpg",  # You can add a cover image
+            "cover: /images/trendradar-cover.jpg",
             "excerpt: \"每日热点聚合 | TrendRadar 智能监控 11+ 平台，AI 筛选高价值资讯\"",
             "---",
             "",
@@ -234,6 +241,94 @@ class GitHubStorageBackend(StorageBackend):
         lines.append("")
         
         return "\n".join(lines)
+    
+    def _generate_ai_article(self, data: NewsData, title: str) -> str:
+        """
+        Use AI to generate a professional, beautiful, and valuable article.
+        
+        Args:
+            data: NewsData object
+            title: Article title
+            
+        Returns:
+            AI-generated Markdown formatted string
+        """
+        from ..ai.client import AIClient
+        from ..config_loader import load_config
+        
+        # Load AI configuration
+        try:
+            config = load_config()
+            ai_config = config.get("ai", {})
+            ai_client = AIClient(ai_config)
+            
+            # Validate AI configuration
+            is_valid, error_msg = ai_client.validate_config()
+            if not is_valid:
+                raise ValueError(f"AI configuration invalid: {error_msg}")
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize AI client: {e}")
+        
+        # Prepare news data for AI
+        news_summary = []
+        for source_id, items_list in data.items.items():
+            source_name = data.id_to_name.get(source_id, source_id)
+            news_summary.append(f"\n### {source_name}")
+            for i, item in enumerate(items_list[:15], 1):  # Top 15 per platform
+                news_summary.append(f"{i}. {item.title}")
+        
+        news_text = "\n".join(news_summary)
+        
+        # Create AI prompt
+        date_obj = datetime.strptime(data.date, "%Y-%m-%d") if data.date else datetime.now()
+        weekday_cn = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"][date_obj.weekday()]
+        
+        system_prompt = """你是一个专业的新闻编辑和内容创作者，擅长将热点资讯转化为高质量、有深度、美观的文章。
+
+请根据提供的热点数据，创作一篇专业的 Markdown 格式文章，要求：
+
+1. **结构清晰**：使用合适的标题层级（# ## ###）
+2. **内容丰富**：不仅列出热点，还要提供简要分析和洞察
+3. **视觉美观**：善用 Emoji、引用块、列表等 Markdown 特性
+4. **价值导向**：突出最有价值的信息，帮助读者快速了解今日重点
+5. **Astro 友好**：包含完整的 Frontmatter（title, published, tags, category, draft, cover, excerpt）
+6. **中文输出**：所有内容使用简体中文
+
+文章结构建议：
+- 开头：引言和概览
+- 主体：按平台分类展示热点，每个平台精选 Top 10，附带简短点评
+- 结尾：总结和思考
+
+注意：
+- 保持客观中立
+- 避免重复内容
+- 语言生动但不夸张
+- 适当使用加粗强调重点"""
+        
+        user_prompt = f"""请为以下日期生成一篇专业的热点聚合文章：
+
+**日期**：{data.date} ({weekday_cn})
+**标题**：{title}
+
+**热点数据**：
+{news_text}
+
+请生成完整的 Markdown 文章，包含 Frontmatter 和正文内容。"""
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        # Call AI API
+        logger.info("Calling AI API to generate article...")
+        ai_content = ai_client.chat(messages, temperature=0.7, max_tokens=8000)
+        
+        if not ai_content or len(ai_content.strip()) < 100:
+            raise ValueError("AI generated content is too short or empty")
+        
+        logger.info(f"AI generated {len(ai_content)} characters")
+        return ai_content
     
     def _push_to_github(self, filepath: str, content: str, commit_message: str) -> None:
         """
