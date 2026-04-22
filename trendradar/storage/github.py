@@ -283,7 +283,7 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             raise RuntimeError(f"Failed to initialize AI client: {e}")
         
-        # Prepare news data for AI - provide structured summary with video hints
+        # Prepare news data for AI - provide structured summary with video URLs
         news_summary = []
         total_count = 0
         video_platforms = ["bilibili", "douyin", "youtube"]  # Platforms that may have videos
@@ -291,11 +291,17 @@ class GitHubStorageBackend(StorageBackend):
         for source_id, items_list in data.items.items():
             source_name = data.id_to_name.get(source_id, source_id)
             has_video_potential = any(vp in source_id.lower() for vp in video_platforms)
-            video_hint = " 🎥 可能含视频" if has_video_potential else ""
             
-            news_summary.append(f"\n**{source_name}** (Top 8){video_hint}:")
-            for i, item in enumerate(items_list[:8], 1):
-                news_summary.append(f"  {i}. {item.title}")
+            if has_video_potential:
+                news_summary.append(f"\n**{source_name}** (Top 8) 🎥 含视频链接:")
+                for i, item in enumerate(items_list[:8], 1):
+                    # Include URL for video platforms
+                    url_info = f" [URL: {item.url}]" if hasattr(item, 'url') and item.url else ""
+                    news_summary.append(f"  {i}. {item.title}{url_info}")
+            else:
+                news_summary.append(f"\n**{source_name}** (Top 8):")
+                for i, item in enumerate(items_list[:8], 1):
+                    news_summary.append(f"  {i}. {item.title}")
             total_count += len(items_list)
         
         news_text = "\n".join(news_summary)
