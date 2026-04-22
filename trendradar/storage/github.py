@@ -254,7 +254,7 @@ class GitHubStorageBackend(StorageBackend):
             AI-generated Markdown formatted string
         """
         from ..ai.client import AIClient
-        from ..config_loader import load_config
+        from ..core.loader import load_config
         
         # Load AI configuration
         try:
@@ -269,13 +269,15 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             raise RuntimeError(f"Failed to initialize AI client: {e}")
         
-        # Prepare news data for AI
+        # Prepare news data for AI - provide structured summary
         news_summary = []
+        total_count = 0
         for source_id, items_list in data.items.items():
             source_name = data.id_to_name.get(source_id, source_id)
-            news_summary.append(f"\n### {source_name}")
-            for i, item in enumerate(items_list[:15], 1):  # Top 15 per platform
-                news_summary.append(f"{i}. {item.title}")
+            news_summary.append(f"\n**{source_name}** (Top 8):")
+            for i, item in enumerate(items_list[:8], 1):
+                news_summary.append(f"  {i}. {item.title}")
+            total_count += len(items_list)
         
         news_text = "\n".join(news_summary)
         
@@ -283,37 +285,82 @@ class GitHubStorageBackend(StorageBackend):
         date_obj = datetime.strptime(data.date, "%Y-%m-%d") if data.date else datetime.now()
         weekday_cn = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"][date_obj.weekday()]
         
-        system_prompt = """你是一个专业的新闻编辑和内容创作者，擅长将热点资讯转化为高质量、有深度、美观的文章。
+        system_prompt = """你是一位资深的新闻主编和深度内容创作者，拥有10年以上的媒体经验。你的任务是将热点资讯转化为一篇**有深度、有洞察、有价值**的专业文章。
 
-请根据提供的热点数据，创作一篇专业的 Markdown 格式文章，要求：
+## 核心要求
 
-1. **结构清晰**：使用合适的标题层级（# ## ###）
-2. **内容丰富**：不仅列出热点，还要提供简要分析和洞察
-3. **视觉美观**：善用 Emoji、引用块、列表等 Markdown 特性
-4. **价值导向**：突出最有价值的信息，帮助读者快速了解今日重点
-5. **Astro 友好**：包含完整的 Frontmatter（title, published, tags, category, draft, cover, excerpt）
-6. **中文输出**：所有内容使用简体中文
+### 1. 不要简单罗列！
+- ❌ 错误做法：只是把标题搬过来
+- ✅ 正确做法：分析热点背后的逻辑、趋势、影响
 
-文章结构建议：
-- 开头：引言和概览
-- 主体：按平台分类展示热点，每个平台精选 Top 10，附带简短点评
-- 结尾：总结和思考
+### 2. 提供独特价值
+- **深度解读**：为什么这个热点重要？背后有什么深层原因？
+- **横向对比**：不同平台的热点有什么关联？反映了什么社会现象？
+- **纵向分析**：这个事件的发展趋势如何？未来可能怎样演变？
+- **实用建议**：读者应该关注什么？如何应对？
 
-注意：
-- 保持客观中立
-- 避免重复内容
-- 语言生动但不夸张
-- 适当使用加粗强调重点"""
+### 3. 文章结构（必须包含）
+
+#### 开篇引言（150-200字）
+- 今日热点的整体态势
+- 最值得关注的3-5个核心事件
+- 一句话总结今日舆情特点
+
+#### 深度分析板块（重点！800-1000字）
+选择3-5个最有价值的热点，每个进行深度分析：
+- 事件背景简述
+- 关键信息提炼
+- 多方观点对比
+- 潜在影响分析
+- 个人独到见解
+
+#### 平台热点精选（简洁有力）
+每个平台只选Top 5，用一句话点评：
+- 格式：**[标题](链接)** - 点评（20-30字）
+- 点评要有态度、有角度，不是复述标题
+
+#### 趋势观察（200-300字）
+- 今日热点反映的社会趋势
+- 值得持续关注的信号
+- 可能的后续发展
+
+#### 结语思考（100-150字）
+- 今日热点的共性特征
+- 给读者的思考题或建议
+
+### 4. 写作风格
+- **专业但不枯燥**：用生动的语言，避免官话套话
+- **客观但有立场**：基于事实，但可以有独到观点
+- **简洁但有深度**：每句话都要有价值，不废话
+- **善用修辞**：比喻、对比、排比等手法增强可读性
+
+### 5. Markdown 格式规范
+- 使用 Emoji 增强视觉效果（但不要滥用）
+- 合理使用引用块 `>` 突出金句
+- 用加粗 `**text**` 强调重点
+- 列表清晰，层级分明
+- 包含完整的 Frontmatter
+
+### 6. 禁忌
+- ❌ 不要重复同一事件多次
+- ❌ 不要使用"据悉""据报道"等模糊表述
+- ❌ 不要写流水账
+- ❌ 不要没有观点
+- ❌ 不要超过2000字（精炼胜过冗长）
+
+记住：读者时间宝贵，你要提供的是**经过筛选、分析、提炼的高价值内容**，而不是信息的简单搬运工！"""
         
         user_prompt = f"""请为以下日期生成一篇专业的热点聚合文章：
 
 **日期**：{data.date} ({weekday_cn})
 **标题**：{title}
+**监测平台数**：{len(data.items)} 个
+**热点总数**：{total_count} 条
 
 **热点数据**：
 {news_text}
 
-请生成完整的 Markdown 文章，包含 Frontmatter 和正文内容。"""
+请严格按照系统提示中的要求，创作一篇有深度、有洞察、有价值的专业文章。记住：不要简单罗列，要提供深度分析和独到见解！"""
         
         messages = [
             {"role": "system", "content": system_prompt},
