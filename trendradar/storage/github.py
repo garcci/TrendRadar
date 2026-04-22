@@ -259,6 +259,7 @@ class GitHubStorageBackend(StorageBackend):
         from ..core.loader import load_config
         from .history_manager import ArticleHistoryManager
         from .cost_optimizer import AICostOptimizer
+        import os
         
         # Initialize cost optimizer
         cost_optimizer = AICostOptimizer()
@@ -301,9 +302,29 @@ class GitHubStorageBackend(StorageBackend):
         
         # Get historical context for continuity
         try:
-            history_mgr = ArticleHistoryManager()
-            context_summary = history_mgr.generate_context_summary(days=3)
-            trending_topics = history_mgr.get_trending_topics(window_days=7, min_mentions=2)
+            # Try GitHub Issues Memory first (persistent)
+            gh_token = os.environ.get("GH_MEMORY_TOKEN")
+            astro_owner = os.environ.get("ASTRO_REPO_OWNER", "garcci")
+            astro_repo = os.environ.get("ASTRO_REPO_NAME", "Astro")
+            
+            if gh_token:
+                from .github_issues_memory import GitHubIssuesMemory
+                memory_backend = GitHubIssuesMemory(astro_owner, astro_repo, gh_token)
+                context_summary = memory_backend.generate_context_summary(days=3)
+                logger.info("Using GitHub Issues Memory backend")
+            else:
+                # Fallback to local history manager
+                history_mgr = ArticleHistoryManager()
+                context_summary = history_mgr.generate_context_summary(days=3)
+                logger.info("Using local history manager (non-persistent)")
+            
+            # Get trending topics
+            if gh_token and 'memory_backend' in locals():
+                # TODO: Implement trending topics in GitHubIssuesMemory
+                trending_topics = []
+            else:
+                history_mgr = ArticleHistoryManager()
+                trending_topics = history_mgr.get_trending_topics(window_days=7, min_mentions=2)
             
             if trending_topics:
                 trending_info = f"\n\n### 🔥 当前 Trending 话题（连续多日关注）\n"
@@ -527,7 +548,9 @@ class GitHubStorageBackend(StorageBackend):
         
         # Save article metadata to history for future context
         try:
-            history_mgr = ArticleHistoryManager()
+            gh_token = os.environ.get("GH_MEMORY_TOKEN")
+            astro_owner = os.environ.get("ASTRO_REPO_OWNER", "garcci")
+            astro_repo = os.environ.get("ASTRO_REPO_NAME", "Astro")
             
             # Extract keywords from title and content (simple extraction)
             import re
@@ -550,12 +573,20 @@ class GitHubStorageBackend(StorageBackend):
                 'timestamp': datetime.now().isoformat()
             }
             
-            history_mgr.save_article_metadata(metadata)
-            logger.info("Article metadata saved to history")
-            
-            # TODO: Push history data to GitHub for persistence
-            # For now, history is local-only in GitHub Actions (will be lost)
-            # Future: Commit data/article_history/ to Astro repo
+            # Save to GitHub Issues Memory (persistent)
+            if gh_token:
+                from .github_issues_memory import GitHubIssuesMemory
+                memory_backend = GitHubIssuesMemory(astro_owner, astro_repo, gh_token)
+                success = memory_backend.save_article_metadata(metadata)
+                if success:
+                    logger.info("Article metadata saved to GitHub Issues (persistent)")
+                else:
+                    logger.warning("Failed to save to GitHub Issues")
+            else:
+                # Fallback to local history manager (non-persistent)
+                history_mgr = ArticleHistoryManager()
+                history_mgr.save_article_metadata(metadata)
+                logger.info("Article metadata saved to local history (will be lost)")
         except Exception as e:
             logger.warning(f"Failed to save article metadata: {e}")
         
