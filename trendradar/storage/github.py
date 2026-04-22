@@ -246,6 +246,7 @@ class GitHubStorageBackend(StorageBackend):
         """
         Use AI to generate a professional, beautiful, and valuable article.
         Integrates history context for better continuity.
+        Includes cost optimization strategies.
         
         Args:
             data: NewsData object
@@ -257,6 +258,16 @@ class GitHubStorageBackend(StorageBackend):
         from ..ai.client import AIClient
         from ..core.loader import load_config
         from .history_manager import ArticleHistoryManager
+        from .cost_optimizer import AICostOptimizer
+        
+        # Initialize cost optimizer
+        cost_optimizer = AICostOptimizer()
+        
+        # Check daily budget
+        within_budget, budget_stats = cost_optimizer.check_daily_budget()
+        if not within_budget:
+            logger.warning(f"Daily token budget exceeded: {budget_stats}")
+            raise RuntimeError("AI daily budget exceeded, falling back to template")
         
         # Load AI configuration
         try:
@@ -301,6 +312,22 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             logger.warning(f"Failed to load history context: {e}")
             context_summary = "（无历史记录）"
+        
+        # Check cache before generating
+        cache_key = cost_optimizer.generate_cache_key(news_text, context_summary)
+        cached_response = cost_optimizer.get_cached_response(cache_key)
+        
+        if cached_response:
+            logger.info("Using cached AI response (cost saved!)")
+            return cached_response
+        
+        # Assess content importance and get optimized parameters
+        importance_level = cost_optimizer.assess_content_importance(data)
+        optimized_params = cost_optimizer.get_optimized_params(importance_level)
+        logger.info(f"Content importance: {importance_level}, using params: {optimized_params}")
+        
+        # Compress input data to save tokens
+        compressed_news_text = cost_optimizer.compress_input_data(data, max_items_per_source=5)
         
         # Create AI prompt
         date_obj = datetime.strptime(data.date, "%Y-%m-%d") if data.date else datetime.now()
@@ -418,8 +445,8 @@ class GitHubStorageBackend(StorageBackend):
 **监测平台数**：{len(data.items)} 个
 **热点总数**：{total_count} 条
 
-**热点数据**：
-{news_text}
+**热点数据（精选 Top 5/平台）**：
+{compressed_news_text}
 
 {context_summary}
 
@@ -432,6 +459,7 @@ class GitHubStorageBackend(StorageBackend):
 6. **🖼️ 图片增强**：开篇后添加主题相关图片，各板块适当配图
 7. 如果无法确定具体视频 ID，可以推荐搜索关键词或使用占位符
 8. **📚 利用历史上下文**：如果有持续关注的热点，请在文章中体现其演变和延续性
+9. **💰 成本控制**：文章精炼有力，控制在 {optimized_params['max_tokens']//4} 字以内
 
 请立即开始输出完整的 Markdown 文章！"""
         
@@ -440,14 +468,23 @@ class GitHubStorageBackend(StorageBackend):
             {"role": "user", "content": user_prompt}
         ]
         
-        # Call AI API
+        # Call AI API with optimized parameters
         logger.info("Calling AI API to generate article...")
-        ai_content = ai_client.chat(messages, temperature=0.7, max_tokens=8000)
+        ai_content = ai_client.chat(
+            messages, 
+            temperature=optimized_params['temperature'],
+            max_tokens=optimized_params['max_tokens']
+        )
         
         if not ai_content or len(ai_content.strip()) < 100:
             raise ValueError("AI generated content is too short or empty")
         
-        logger.info(f"AI generated {len(ai_content)} characters")
+        # Estimate token usage (rough estimate: 1 Chinese char ≈ 1.5 tokens)
+        estimated_tokens = int(len(ai_content) * 1.5 + len(str(messages)) * 0.5)
+        logger.info(f"AI generated {len(ai_content)} characters (~{estimated_tokens} tokens)")
+        
+        # Cache the response
+        cost_optimizer.cache_response(cache_key, ai_content, estimated_tokens)
         
         # Save article metadata to history for future context
         try:
