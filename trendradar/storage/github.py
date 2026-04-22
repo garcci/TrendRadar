@@ -593,10 +593,11 @@ class GitHubStorageBackend(StorageBackend):
                 from .github_issues_memory import GitHubIssuesMemory
                 memory_backend = GitHubIssuesMemory(astro_owner, astro_repo, gh_token)
                 success = memory_backend.save_article_metadata(metadata)
+                logger.warning(f"Save to GitHub Issues result: {success}")
                 if success:
                     logger.warning("Article metadata saved to GitHub Issues (persistent)")
                 else:
-                    logger.warning("Failed to save to GitHub Issues")
+                    logger.warning("Failed to save to GitHub Issues - check API response")
             else:
                 # Fallback to local history manager (non-persistent)
                 history_mgr = ArticleHistoryManager()
