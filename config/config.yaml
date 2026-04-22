@@ -113,15 +113,66 @@ rss:
   # - 正整数：覆盖全局设置，只推送此天数内的文章
   # - 0：禁用此频道的新鲜度过滤，推送所有文章
   feeds:
+    # ===== 科技与开源 =====
     - id: "hacker-news"
       name: "Hacker News"
       url: "https://hnrss.org/frontpage"
 
+    - id: "github-trending"
+      name: "GitHub Trending"
+      url: "https://github.com/trending.atom"
+      max_age_days: 2                 # GitHub 趋势项目保留 2 天
+
+    - id: "lobsters"
+      name: "Lobsters"
+      url: "https://lobste.rs/rss"
+
+    # ===== AI 与机器学习 =====
+    - id: "ai-news"
+      name: "AI News (The Batch)"
+      url: "https://www.deeplearning.ai/the-batch/feed/"
+      max_age_days: 3
+
+    - id: "arxiv-ai"
+      name: "arXiv AI Papers"
+      url: "http://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=15&sortBy=submittedDate&sortOrder=descending"
+      max_age_days: 7                 # 论文保留时间更长
+
+    # ===== 技术博客 =====
     - id: "ruanyifeng"
       name: "阮一峰的网络日志"
       url: "http://www.ruanyifeng.com/blog/atom.xml"
-      enabled: false                  # 禁用
-      # max_age_days: 3               # 示例：推送 3 天内的文章（更新较慢的博客）
+      enabled: true                   # 启用（之前是禁用）
+      max_age_days: 3
+
+    - id: "overreacted"
+      name: "Overreacted (Dan Abramov)"
+      url: "https://overreacted.io/zh-hans/rss.xml"
+      max_age_days: 7
+
+    - id: "css-tricks"
+      name: "CSS-Tricks"
+      url: "https://css-tricks.com/feed/"
+
+    # ===== 产品与技术新闻 =====
+    - id: "product-hunt"
+      name: "Product Hunt"
+      url: "https://www.producthunt.com/feed"
+      max_age_days: 2
+
+    - id: "techcrunch"
+      name: "TechCrunch"
+      url: "https://techcrunch.com/feed/"
+
+    # ===== 中文科技媒体 =====
+    - id: "36kr"
+      name: "36氪"
+      url: "https://36kr.com/feed"
+
+    - id: "infoq-cn"
+      name: "InfoQ 中文"
+      url: "https://www.infoq.cn/feed"
+      max_age_days: 2
      
     - id: "yahoo-finance"
       name: "雅虎财经"

@@ -227,32 +227,109 @@
 #                         科技领域
 # ═══════════════════════════════════════════════════════════════
 
-[AI 相关]
+[AI 与机器学习]
 /(?<![a-zA-Z])ai(?![a-zA-Z])/
 人工智能
+大模型
+LLM
+生成式 AI
+深度学习
+神经网络
+Transformer
+GPT
+Claude
+Gemini
 
-[芯片]
+[开源项目]
+GitHub
+开源
+/\bOSS\b/
+Apache
+MIT License
+GPL
+
+[编程语言与框架]
+Python
+JavaScript
+TypeScript
+Rust
+Go
+React
+Vue
+Svelte
+Next.js
+Astro
+Node.js
+
+[芯片与硬件]
 芯片
 光刻机
 半导体
+CPU
+GPU
+ARM
+RISC-V
+FPGA
 
-/水电|雅鲁藏布江/ => 水电
-/光伏|太阳能/ => 光伏
+[前沿科技]
+量子计算
+脑机接口
+基因编辑
+CRISPR
+元宇宙
+Web3
+区块链
+NFT
+DeFi
+
+[航天与太空]
+月球
+登月
+火星
+宇宙
+飞船
+航天
+空间站
+卫星
+SpaceX
+Starship
+
+[新能源]
+水电
+雅鲁藏布江
+光伏
+太阳能
 核能
 能源
+电动车
+电池
+固态电池
+氢能
 
-/自动驾驶|无人驾驶|智驾/ => 自动驾驶
-
+[自动驾驶与机器人]
+自动驾驶
+无人驾驶
+智驾
 机器人
-/机械狗|四足/ => 机器狗
+机械狗
+四足
 具身智能
+人形机器人
+波士顿动力
 
-/月球|登月|火星|宇宙|飞船|航天|空间站|卫星/ => 航天
-
-# 前沿科技
-量子
-脑机
-基因
+[数码产品]
+iPhone
+iPad
+MacBook
+Android
+智能手机
+折叠屏
+VR
+AR
+MR
+Vision Pro
+Apple Watch
+AirPods
 
 # 产业政策
 生产力
