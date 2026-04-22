@@ -10,8 +10,7 @@ from datetime import datetime, timezone
 from typing import Optional, Dict, List
 from pathlib import Path
 
-from .base import StorageBackend
-from ..models.news_data import NewsData
+from .base import StorageBackend, NewsData
 
 logger = logging.getLogger(__name__)
 
