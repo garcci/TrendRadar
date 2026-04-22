@@ -424,7 +424,7 @@ class GitHubStorageBackend(StorageBackend):
   tags: [新闻, 热点, 趋势雷达]  # 使用中文标签，3-5个
   category: news
   draft: false
-  image: https://source.unsplash.com/1600x900/?news,trending  # 或使用具体图片URL
+  image: https://picsum.photos/seed/news/1600/900  # 或使用具体图片URL
   description: "一句话概括文章核心价值"
   ---
   ```
@@ -438,21 +438,22 @@ class GitHubStorageBackend(StorageBackend):
   
 - **🖼️ 图片增强（重点！）**
   - **开篇必须有一张主题相关的封面图**，紧跟在 Frontmatter 之后
-  - 使用 Unsplash、Pexels 等免费图库的高质量图片
+  - 使用可靠的免费图库：
+    - **Picsum Photos**: `https://picsum.photos/seed/关键词/1200/600`
+    - **Lorem Picsum**: `https://picsum.photos/1200/600?random=1`
+    - 或直接使用具体的网络图片 URL
   - 每个深度分析板块至少配 1 张相关图片
   - 图片格式：`![描述](图片URL)`
-  - 推荐图源：
-    - Unsplash: `https://source.unsplash.com/1200x600/?关键词`
-    - 或直接使用网络图片 URL
-  - 示例：
+  - **推荐示例**：
     ```markdown
-    ![美伊谈判紧张局势](https://source.unsplash.com/1200x600/?diplomacy,tension)
+    ![美伊谈判紧张局势](https://picsum.photos/seed/diplomacy/1200/600)
+    ![中国制造供应链](https://picsum.photos/seed/factory/1200/600)
     ```
+  - **注意**：避免使用已停用的 Unsplash Source API
   
 - **🎥 视频嵌入（重点！）**
   - 每个深度分析板块**必须**嵌入至少 1 个相关视频
   - 优先使用 Bilibili 视频（中国用户友好）
-  - 如果热点来自抖音/YouTube，也尽量嵌入
   - **正确的视频嵌入格式**：
     ```html
     <div class="video-container">
@@ -466,10 +467,25 @@ class GitHubStorageBackend(StorageBackend):
     </div>
     ```
   - **关键参数**：
-    - `bvid`: B站视频ID（从URL中提取）
+    - `bvid`: B站视频ID（从URL中提取，如 BV1xx411c7mD）
     - `high_quality=1`: 高清播放
     - `danmaku=0`: 关闭弹幕（更清爽）
-  - YouTube 示例：
+  - **如果无法确定具体视频 ID，请使用以下方案之一**：
+    1. **推荐搜索链接**（最实用）：
+       ```markdown
+       📺 [在B站搜索相关视频](https://search.bilibili.com/all?keyword=美伊谈判)
+       ```
+    2. **使用占位符并说明**：
+       ```html
+       <!-- 此处可嵌入相关视频，建议搜索关键词：美伊谈判 -->
+       <div class="video-container">
+         <iframe src="//player.bilibili.com/player.html?bvid=BV1xx411c7mD&p=1&high_quality=1&danmaku=0" 
+                 scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true">
+         </iframe>
+       </div>
+       *注：请替换为实际相关的视频ID*
+       ```
+  - YouTube 示例（备用）：
     ```html
     <div class="video-container">
       <iframe src="https://www.youtube-nocookie.com/embed/VIDEO_ID" 
@@ -478,9 +494,6 @@ class GitHubStorageBackend(StorageBackend):
       </iframe>
     </div>
     ```
-  - 如果无法确定具体视频 ID，可以：
-    1. 使用占位符并说明“此处可嵌入相关视频”
-    2. 提供 B站搜索链接：`[在B站搜索相关视频](https://search.bilibili.com/all?keyword=关键词)`
   
 - 使用 Emoji 增强视觉效果（但不要滥用）
 - 合理使用引用块 `>` 突出金句
