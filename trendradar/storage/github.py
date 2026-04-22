@@ -456,24 +456,19 @@ class GitHubStorageBackend(StorageBackend):
   
 - **🎥 视频嵌入（重点！）**
   - 每个深度分析板块**必须**嵌入至少 1 个相关视频
-  - 优先使用 Bilibili 视频（中国用户友好）
-  - **正确的视频嵌入格式**：
-    ```html
-    <div class="video-container">
-      <iframe src="//player.bilibili.com/player.html?bvid=BVxxx&p=1&high_quality=1&danmaku=0" 
-              scrolling="no" 
-              border="0" 
-              frameborder="no" 
-              framespacing="0" 
-              allowfullscreen="true">
-      </iframe>
-    </div>
-    ```
-  - **关键参数**：
-    - `bvid`: B站视频ID（从URL中提取，如 BV1xx411c7mD）
-    - `high_quality=1`: 高清播放
-    - `danmaku=0`: 关闭弹幕（更清爽）
-  - **如果无法确定具体视频 ID，请使用以下方案之一**：
+  - **优先使用 Bilibili 热榜中的真实视频 URL**：
+    - 从提供的热点数据中提取 Bilibili 相关条目的 URL
+    - 如果热点数据中有 Bilibili 条目，直接使用其 URL
+    - 示例：如果数据中有 `{"title": "xxx", "url": "https://www.bilibili.com/video/BV1xx411c7mD"}`
+    - 则提取 bvid 并生成 iframe：
+      ```html
+      <div class="video-container">
+        <iframe src="//player.bilibili.com/player.html?bvid=BV1xx411c7mD&p=1&high_quality=1&danmaku=0" 
+                scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true">
+        </iframe>
+      </div>
+      ```
+  - **如果没有合适的 Bilibili 视频 URL，使用以下方案**：
     1. **推荐搜索链接**（最实用）：
        ```markdown
        📺 [在B站搜索相关视频](https://search.bilibili.com/all?keyword=美伊谈判)
@@ -488,15 +483,6 @@ class GitHubStorageBackend(StorageBackend):
        </div>
        *注：请替换为实际相关的视频ID*
        ```
-  - YouTube 示例（备用）：
-    ```html
-    <div class="video-container">
-      <iframe src="https://www.youtube-nocookie.com/embed/VIDEO_ID" 
-              frameborder="0" 
-              allowfullscreen>
-      </iframe>
-    </div>
-    ```
   
 - 使用 Emoji 增强视觉效果（但不要滥用）
 - 合理使用引用块 `>` 突出金句
@@ -535,7 +521,10 @@ class GitHubStorageBackend(StorageBackend):
 5. 然后才是文章内容
 6. 严格按照系统提示中的结构和要求创作
 7. 不要简单罗列，要提供深度分析和独到见解
-8. **🎥 视频嵌入**：每个深度分析板块至少嵌入 1 个相关视频（Bilibili 优先，使用正确的 iframe 格式）
+8. **🎥 视频嵌入**：
+   - **优先使用 Bilibili 热榜中的真实视频 URL**（从提供的数据中提取）
+   - 如果数据中有 Bilibili 条目，提取其 bvid 并生成 iframe
+   - 如果没有合适的视频，使用搜索链接或占位符
 9. **🖼️ 图片增强**：每个深度分析板块配 1 张相关图片（Picsum Photos，seed 与内容相关）
 10. 如果无法确定具体视频 ID，可以推荐搜索关键词或使用占位符
 11. **📚 利用历史上下文**：如果有持续关注的热点，请在文章中体现其演变和延续性
