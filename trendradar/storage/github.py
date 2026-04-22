@@ -311,6 +311,16 @@ class GitHubStorageBackend(StorageBackend):
 - 最值得关注的3-5个核心事件
 - 一句话总结今日舆情特点
 
+#### 文章标题要求
+- **禁止**使用 "TrendRadar Report - 日期" 这种机械标题
+- 标题要有**吸引力、悬念感、观点性**
+- 可以是对今日热点的精准概括、金句提炼、或引发思考的反问
+- 示例好标题：
+  - "俄乌冲突500天：世界学到了什么？"
+  - "当'报复性消费'变成'报复性存钱'"
+  - "ChatGPT抢不走的工作，正在被另一种AI取代"
+  - "一场颁奖典礼，照出了中国电影的体面与尴尬"
+
 #### 深度分析板块（重点！800-1000字）
 选择3-5个最有价值的热点，每个进行深度分析：
 - 事件背景简述
@@ -345,7 +355,17 @@ class GitHubStorageBackend(StorageBackend):
 - 合理使用引用块 `>` 突出金句
 - 用加粗 `**text**` 强调重点
 - 列表清晰，层级分明
-- 包含完整的 Frontmatter
+- **Frontmatter 必须包含：**
+  ```yaml
+  ---
+  title: "你创作的有吸引力的标题"  # 不要用机械的日期标题
+  published: {data.date}T08:00:00+08:00
+  tags: [news, trendradar, hot, daily-digest]
+  category: news
+  draft: false
+  excerpt: "一句话概括文章核心价值"
+  ---
+  ```
 - **重要：嵌入相关视频！**
   - 如果热点涉及 Bilibili、YouTube、抖音等平台，尽量嵌入相关视频
   - 使用响应式容器：<div class="video-container"><iframe src="..." allowfullscreen></iframe></div>
