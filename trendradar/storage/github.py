@@ -403,8 +403,8 @@ class GitHubStorageBackend(StorageBackend):
   tags: [新闻, 热点, 趋势雷达]  # 使用中文标签，3-5个
   category: news
   draft: false
-  cover: /images/trendradar-cover.jpg
-  excerpt: "一句话概括文章核心价值"
+  image: https://source.unsplash.com/1600x900/?news,trending  # 或使用具体图片URL
+  description: "一句话概括文章核心价值"
   ---
   ```
   **⚠️ 重要：Frontmatter 必须在文章最开头，以 `---` 开始和结束！这是 Astro 的要求！**
@@ -415,20 +415,51 @@ class GitHubStorageBackend(StorageBackend):
   - 根据内容添加相关中文标签，如：`国际局势`, `科技`, `财经`, `社会观察` 等
   - 标签数量控制在 3-6 个
   
+- **🖼️ 图片增强（重点！）**
+  - **开篇必须有一张主题相关的封面图**，紧跟在 Frontmatter 之后
+  - 使用 Unsplash、Pexels 等免费图库的高质量图片
+  - 每个深度分析板块至少配 1 张相关图片
+  - 图片格式：`![描述](图片URL)`
+  - 推荐图源：
+    - Unsplash: `https://source.unsplash.com/1200x600/?关键词`
+    - 或直接使用网络图片 URL
+  - 示例：
+    ```markdown
+    ![美伊谈判紧张局势](https://source.unsplash.com/1200x600/?diplomacy,tension)
+    ```
+  
 - **🎥 视频嵌入（重点！）**
   - 每个深度分析板块**必须**嵌入至少 1 个相关视频
   - 优先使用 Bilibili 视频（中国用户友好）
   - 如果热点来自抖音/YouTube，也尽量嵌入
-  - 使用响应式容器：<div class="video-container"><iframe src="..." allowfullscreen></iframe></div>
-  - Bilibili 示例：`//player.bilibili.com/player.html?bvid=BVxxx&p=1`
-  - YouTube 示例：`https://www.youtube-nocookie.com/embed/VIDEO_ID`
-  - 如果无法确定具体视频 ID，可以使用搜索链接或推荐关键词
-  
-- **🖼️ 图片增强**
-  - 在开篇引言后添加一张主题相关的封面图或示意图
-  - 使用 Astro Image 组件或标准 Markdown 图片语法
-  - 示例：`![描述](图片URL)` 或使用网络图片
-  - 如果没有具体图片，可以使用占位符或推荐搜索关键词
+  - **正确的视频嵌入格式**：
+    ```html
+    <div class="video-container">
+      <iframe src="//player.bilibili.com/player.html?bvid=BVxxx&p=1&high_quality=1&danmaku=0" 
+              scrolling="no" 
+              border="0" 
+              frameborder="no" 
+              framespacing="0" 
+              allowfullscreen="true">
+      </iframe>
+    </div>
+    ```
+  - **关键参数**：
+    - `bvid`: B站视频ID（从URL中提取）
+    - `high_quality=1`: 高清播放
+    - `danmaku=0`: 关闭弹幕（更清爽）
+  - YouTube 示例：
+    ```html
+    <div class="video-container">
+      <iframe src="https://www.youtube-nocookie.com/embed/VIDEO_ID" 
+              frameborder="0" 
+              allowfullscreen>
+      </iframe>
+    </div>
+    ```
+  - 如果无法确定具体视频 ID，可以：
+    1. 使用占位符并说明“此处可嵌入相关视频”
+    2. 提供 B站搜索链接：`[在B站搜索相关视频](https://search.bilibili.com/all?keyword=关键词)`
   
 - 使用 Emoji 增强视觉效果（但不要滥用）
 - 合理使用引用块 `>` 突出金句
@@ -459,14 +490,15 @@ class GitHubStorageBackend(StorageBackend):
 **⚠️ 输出要求（必须遵守）：**
 1. **首先输出完整的 Frontmatter**，以 `---` 开始和结束
 2. **使用中文标签**：tags 必须是中文，如 `[新闻, 热点, 国际局势]`
-3. 然后才是文章内容
-4. 严格按照系统提示中的结构和要求创作
-5. 不要简单罗列，要提供深度分析和独到见解
-6. **🎥 视频嵌入**：每个深度分析板块至少嵌入 1 个相关视频（Bilibili 优先）
-7. **🖼️ 图片增强**：开篇后添加主题相关图片，各板块适当配图
-8. 如果无法确定具体视频 ID，可以推荐搜索关键词或使用占位符
-9. **📚 利用历史上下文**：如果有持续关注的热点，请在文章中体现其演变和延续性
-10. **💰 成本控制**：文章精炼有力，控制在 {optimized_params['max_tokens']//4} 字以内
+3. **开篇配图**：Frontmatter 后立即添加一张主题相关的封面图
+4. 然后才是文章内容
+5. 严格按照系统提示中的结构和要求创作
+6. 不要简单罗列，要提供深度分析和独到见解
+7. **🎥 视频嵌入**：每个深度分析板块至少嵌入 1 个相关视频（Bilibili 优先，使用正确的 iframe 格式）
+8. **🖼️ 图片增强**：每个深度分析板块配 1 张相关图片（Unsplash 或网络图片）
+9. 如果无法确定具体视频 ID，可以推荐搜索关键词或使用占位符
+10. **📚 利用历史上下文**：如果有持续关注的热点，请在文章中体现其演变和延续性
+11. **💰 成本控制**：文章精炼有力，控制在 {optimized_params['max_tokens']//4} 字以内
 
 请立即开始输出完整的 Markdown 文章！"""
         
