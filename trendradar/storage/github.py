@@ -406,7 +406,7 @@ class GitHubStorageBackend(StorageBackend):
 - 个人独到见解
 - **📝 使用 Admonition 引用块**：至少使用 1 个 `:::note` 或 `:::tip` 突出关键洞察
   ```markdown
-  :::note{title="💡 关键洞察"}
+  :::note[💡 关键洞察]
   这里是重要的观点或总结，会以蓝色边框+图标的形式展示
   :::
   ```
@@ -475,17 +475,17 @@ class GitHubStorageBackend(StorageBackend):
   - **⚠️ 重要：开篇配图不能与封面图使用相同的 seed**，必须为每个板块选择不同的相关关键词
   
 - **📝 Astro 博客特性利用（重点！）**
-  - **Admonition 引用块**：使用 `:::note{title="标题"}` 语法创建漂亮的提示框
+  - **Admonition 引用块**：使用 `:::note[标题]` 语法创建漂亮的提示框
     ```markdown
-    :::note{title="💡 关键洞察"}
+    :::note[💡 关键洞察]
     这里是重要的观点或总结，会以蓝色边框+图标的形式展示
     :::
     
-    :::tip{title="🔍 深度观察"}
+    :::tip[🔍 深度观察]
     这里是值得注意的趋势或现象
     :::
     
-    :::warning{title="⚠️ 风险提示"}
+    :::warning[⚠️ 风险提示]
     这里是潜在的风险或问题
     :::
     ```
@@ -540,7 +540,7 @@ class GitHubStorageBackend(StorageBackend):
    - 分析配图：每个板块的图片 seed 必须与该板块内容直接相关
    - 禁止使用通用 seed（如 `news`、`image`），必须使用具体内容关键词
 5. **📝 Astro 博客特性利用**：
-   - 每个深度分析板块至少使用 1 个 Admonition 引用块（`:::note` 或 `:::tip`）
+   - 每个深度分析板块至少使用 1 个 Admonition 引用块（`:::note[...]` 或 `:::tip[...]`，使用方括号）
    - 使用引用块 `>` 突出金句
    - 使用表格进行对比分析
 6. 然后才是文章内容
