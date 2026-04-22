@@ -76,16 +76,29 @@ class GitHubStorageBackend(StorageBackend):
         """Detect new titles (not supported for GitHub backend)"""
         return {}
     
-    def save_news_data(self, data: NewsData) -> None:
+    def save_news_data(self, data: NewsData) -> bool:
         """
         Save news data by pushing Markdown files to Astro repository.
+        Also saves to local SQLite for TrendRadar's own analysis.
         
         Args:
             data: NewsData object containing crawled news items
+            
+        Returns:
+            True if successfully pushed to GitHub
         """
         if not data.items:
             logger.warning("No news items to save")
-            return
+            return False
+        
+        # First, save to local SQLite for TrendRadar's analysis
+        try:
+            from .local import LocalStorageBackend
+            local_backend = LocalStorageBackend()
+            local_backend.save_news_data(data)
+            logger.info("Data saved to local SQLite for analysis")
+        except Exception as e:
+            logger.warning(f"Failed to save to local SQLite: {e}")
         
         timestamp = int(datetime.now(timezone.utc).timestamp())
         date_str = data.date or datetime.now().strftime("%Y-%m-%d")
@@ -102,9 +115,10 @@ class GitHubStorageBackend(StorageBackend):
         try:
             self._push_to_github(filepath, markdown_content, f"feat: add TrendRadar report - {article_title}")
             logger.info(f"Successfully pushed article to GitHub: {filepath}")
+            return True
         except Exception as e:
             logger.error(f"Failed to push to GitHub: {e}")
-            raise
+            return False
     
     def _generate_markdown(self, data: NewsData, title: str) -> str:
         """
