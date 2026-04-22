@@ -149,7 +149,7 @@ class StorageManager:
         try:
             from trendradar.storage.github import GitHubStorageBackend
 
-            return GitHubStorageBackend({})
+            return GitHubStorageBackend()
         except ImportError as e:
             print(f"[存储管理器] GitHub 后端导入失败: {e}")
             return None

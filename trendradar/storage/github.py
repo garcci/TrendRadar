@@ -25,9 +25,7 @@ class GitHubStorageBackend(StorageBackend):
     3. Triggers Cloudflare Pages auto-deployment via Git integration
     """
     
-    def __init__(self, config: dict):
-        super().__init__(config)
-        
+    def __init__(self):
         # GitHub configuration
         self.token = os.getenv("ASTRO_GITHUB_TOKEN")
         self.owner = os.getenv("ASTRO_REPO_OWNER", "garcci")
