@@ -264,3 +264,8 @@ class GitHubStorageBackend(StorageBackend):
         """Get RSS data (not supported for GitHub backend)"""
         logger.warning("RSS data retrieval is not supported by GitHub storage backend")
         return None
+    
+    def save_rss_data(self, data) -> bool:
+        """Save RSS data (not supported for GitHub backend)"""
+        logger.warning("RSS data saving is not supported by GitHub storage backend")
+        return False
