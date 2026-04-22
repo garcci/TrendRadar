@@ -241,3 +241,13 @@ class GitHubStorageBackend(StorageBackend):
     def cleanup_old_data(self, retention_days: int) -> int:
         """Cleanup old data (not applicable for GitHub backend)"""
         return 0
+    
+    def save_html_report(self, html_content: str, filename: str) -> None:
+        """Save HTML report (not supported for GitHub backend)"""
+        logger.warning("HTML reports are not supported by GitHub storage backend")
+        pass
+    
+    def save_txt_snapshot(self, txt_content: str, filename: str) -> None:
+        """Save TXT snapshot (not supported for GitHub backend)"""
+        logger.warning("TXT snapshots are not supported by GitHub storage backend")
+        pass
