@@ -307,18 +307,18 @@ class GitHubStorageBackend(StorageBackend):
             astro_owner = os.environ.get("ASTRO_REPO_OWNER", "garcci")
             astro_repo = os.environ.get("ASTRO_REPO_NAME", "Astro")
             
-            logger.info(f"Checking memory system: GH_TOKEN={'present' if gh_token else 'missing'}, Owner={astro_owner}, Repo={astro_repo}")
+            logger.warning(f"Checking memory system: GH_TOKEN={'present' if gh_token else 'missing'}, Owner={astro_owner}, Repo={astro_repo}")
             
             if gh_token:
                 from .github_issues_memory import GitHubIssuesMemory
                 memory_backend = GitHubIssuesMemory(astro_owner, astro_repo, gh_token)
                 context_summary = memory_backend.generate_context_summary(days=3)
-                logger.info("Using GitHub Issues Memory backend")
+                logger.warning("Using GitHub Issues Memory backend")
             else:
                 # Fallback to local history manager
                 history_mgr = ArticleHistoryManager()
                 context_summary = history_mgr.generate_context_summary(days=3)
-                logger.info("Using local history manager (non-persistent)")
+                logger.warning("Using local history manager (non-persistent)")
             
             # Get trending topics
             if gh_token and 'memory_backend' in locals():
@@ -594,14 +594,14 @@ class GitHubStorageBackend(StorageBackend):
                 memory_backend = GitHubIssuesMemory(astro_owner, astro_repo, gh_token)
                 success = memory_backend.save_article_metadata(metadata)
                 if success:
-                    logger.info("Article metadata saved to GitHub Issues (persistent)")
+                    logger.warning("Article metadata saved to GitHub Issues (persistent)")
                 else:
                     logger.warning("Failed to save to GitHub Issues")
             else:
                 # Fallback to local history manager (non-persistent)
                 history_mgr = ArticleHistoryManager()
                 history_mgr.save_article_metadata(metadata)
-                logger.info("Article metadata saved to local history (will be lost)")
+                logger.warning("Article metadata saved to local history (will be lost)")
         except Exception as e:
             logger.warning(f"Failed to save article metadata: {e}")
         
