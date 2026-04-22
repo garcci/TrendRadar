@@ -95,15 +95,35 @@ class StorageManager:
         """解析实际使用的后端类型"""
         if self.backend_type == "auto":
             if self.is_github_actions():
-                # GitHub Actions 环境，检查是否配置了远程存储
-                if self._has_remote_config():
+                # GitHub Actions 环境，优先检查 GitHub 存储
+                if self._has_github_config():
+                    return "github"
+                # 其次检查远程存储
+                elif self._has_remote_config():
                     return "remote"
                 else:
-                    print("[存储管理器] GitHub Actions 环境但未配置远程存储，使用本地存储")
+                    print("[存储管理器] GitHub Actions 环境但未配置 GitHub/远程存储，使用本地存储")
                     return "local"
             else:
                 return "local"
         return self.backend_type
+
+    def _has_github_config(self) -> bool:
+        """检查是否有有效的 GitHub 存储配置"""
+        github_token = os.environ.get("ASTRO_GITHUB_TOKEN")
+        repo_owner = os.environ.get("ASTRO_REPO_OWNER")
+        repo_name = os.environ.get("ASTRO_REPO_NAME")
+
+        has_config = bool(github_token and repo_owner and repo_name)
+        if has_config:
+            print(f"[存储管理器] GitHub 存储配置检查通过: {repo_owner}/{repo_name}")
+        else:
+            print(f"[存储管理器] GitHub 存储配置检查失败:")
+            print(f"  - ASTRO_GITHUB_TOKEN: {'已配置' if github_token else '未配置'}")
+            print(f"  - ASTRO_REPO_OWNER: {'已配置' if repo_owner else '未配置'}")
+            print(f"  - ASTRO_REPO_NAME: {'已配置' if repo_name else '未配置'}")
+
+        return has_config
 
     def _has_remote_config(self) -> bool:
         """检查是否有有效的远程存储配置"""
@@ -123,6 +143,19 @@ class StorageManager:
             print(f"  - endpoint_url: {'已配置' if endpoint else '未配置'}")
 
         return has_config
+
+    def _create_github_backend(self) -> Optional[StorageBackend]:
+        """创建 GitHub 存储后端"""
+        try:
+            from trendradar.storage.github import GitHubStorageBackend
+
+            return GitHubStorageBackend({})
+        except ImportError as e:
+            print(f"[存储管理器] GitHub 后端导入失败: {e}")
+            return None
+        except Exception as e:
+            print(f"[存储管理器] GitHub 后端初始化失败: {e}")
+            return None
 
     def _create_remote_backend(self) -> Optional[StorageBackend]:
         """创建远程存储后端"""
@@ -152,6 +185,14 @@ class StorageManager:
         if self._backend is None:
             resolved_type = self._resolve_backend_type()
 
+            if resolved_type == "github":
+                self._backend = self._create_github_backend()
+                if self._backend:
+                    print(f"[存储管理器] 使用 GitHub 存储后端")
+                else:
+                    print("[存储管理器] 回退到本地存储")
+                    resolved_type = "local"
+
             if resolved_type == "remote":
                 self._backend = self._create_remote_backend()
                 if self._backend:
@@ -160,16 +201,16 @@ class StorageManager:
                     print("[存储管理器] 回退到本地存储")
                     resolved_type = "local"
 
-            if resolved_type == "local" or self._backend is None:
+            if resolved_type == "local":
                 from trendradar.storage.local import LocalStorageBackend
-
                 self._backend = LocalStorageBackend(
                     data_dir=self.data_dir,
                     enable_txt=self.enable_txt,
                     enable_html=self.enable_html,
+                    retention_days=self.local_retention_days,
                     timezone=self.timezone,
                 )
-                print(f"[存储管理器] 使用本地存储后端 (数据目录: {self.data_dir})")
+                print(f"[存储管理器] 使用本地存储后端")
 
         return self._backend
 
