@@ -269,12 +269,17 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             raise RuntimeError(f"Failed to initialize AI client: {e}")
         
-        # Prepare news data for AI - provide structured summary
+        # Prepare news data for AI - provide structured summary with video hints
         news_summary = []
         total_count = 0
+        video_platforms = ["bilibili", "douyin", "youtube"]  # Platforms that may have videos
+        
         for source_id, items_list in data.items.items():
             source_name = data.id_to_name.get(source_id, source_id)
-            news_summary.append(f"\n**{source_name}** (Top 8):")
+            has_video_potential = any(vp in source_id.lower() for vp in video_platforms)
+            video_hint = " 🎥 可能含视频" if has_video_potential else ""
+            
+            news_summary.append(f"\n**{source_name}** (Top 8){video_hint}:")
             for i, item in enumerate(items_list[:8], 1):
                 news_summary.append(f"  {i}. {item.title}")
             total_count += len(items_list)
@@ -313,6 +318,7 @@ class GitHubStorageBackend(StorageBackend):
 - 多方观点对比
 - 潜在影响分析
 - 个人独到见解
+- **必须嵌入相关视频**：如果该热点在 Bilibili/YouTube/抖音有相关内容，嵌入 1 个高质量视频
 
 #### 平台热点精选（简洁有力）
 每个平台只选Top 5，用一句话点评：
@@ -340,6 +346,12 @@ class GitHubStorageBackend(StorageBackend):
 - 用加粗 `**text**` 强调重点
 - 列表清晰，层级分明
 - 包含完整的 Frontmatter
+- **重要：嵌入相关视频！**
+  - 如果热点涉及 Bilibili、YouTube、抖音等平台，尽量嵌入相关视频
+  - 使用响应式容器：<div class="video-container"><iframe src="..." allowfullscreen></iframe></div>
+  - Bilibili 示例：`//player.bilibili.com/player.html?bvid=BVxxx&p=1`
+  - YouTube 示例：`https://www.youtube-nocookie.com/embed/VIDEO_ID`
+  - 每个深度分析板块至少嵌入 1 个相关视频
 
 ### 6. 禁忌
 - ❌ 不要重复同一事件多次
