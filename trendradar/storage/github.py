@@ -459,36 +459,7 @@ class GitHubStorageBackend(StorageBackend):
   - **封面图 seed 规则**：使用文章核心主题的英文关键词，如 `diplomacy-tension`、`china-economy`、`tech-innovation`
   - **分析配图 seed 规则**：每个深度分析板块的图片 seed 必须与该板块内容直接相关
   - **禁止使用通用 seed**：如 `news`、`image`、`photo` 等，必须使用具体内容相关的 seed
-  
-- **🎥 视频嵌入（重点！）**
-  - 每个深度分析板块**必须**嵌入至少 1 个相关视频
-  - **优先使用 Bilibili 热榜中的真实视频 URL**：
-    - 从提供的热点数据中提取 Bilibili 相关条目的 URL
-    - 如果热点数据中有 Bilibili 条目，直接使用其 URL
-    - 示例：如果数据中有 `{"title": "xxx", "url": "https://www.bilibili.com/video/BV1xx411c7mD"}`
-    - 则提取 bvid 并生成 iframe：
-      ```html
-      <div class="video-container">
-        <iframe src="//player.bilibili.com/player.html?bvid=BV1xx411c7mD&p=1&high_quality=1&danmaku=0" 
-                scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true">
-        </iframe>
-      </div>
-      ```
-  - **如果没有合适的 Bilibili 视频 URL，使用以下方案**：
-    1. **推荐搜索链接**（最实用）：
-       ```markdown
-       📺 [在B站搜索相关视频](https://search.bilibili.com/all?keyword=美伊谈判)
-       ```
-    2. **使用占位符并说明**：
-       ```html
-       <!-- 此处可嵌入相关视频，建议搜索关键词：美伊谈判 -->
-       <div class="video-container">
-         <iframe src="//player.bilibili.com/player.html?bvid=BV1xx411c7mD&p=1&high_quality=1&danmaku=0" 
-                 scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true">
-         </iframe>
-       </div>
-       *注：请替换为实际相关的视频ID*
-       ```
+  - **⚠️ 重要：开篇配图不能与封面图使用相同的 seed**，必须为每个板块选择不同的相关关键词
   
 - 使用 Emoji 增强视觉效果（但不要滥用）
 - 合理使用引用块 `>` 突出金句
@@ -523,18 +494,14 @@ class GitHubStorageBackend(StorageBackend):
 4. **🖼️ 图片 seed 必须与内容相关**：
    - 封面图：使用文章核心主题的英文关键词（如 `diplomacy-tension`、`china-economy`）
    - 分析配图：每个板块的图片 seed 必须与该板块内容直接相关
+   - **禁止重复**：开篇配图不能与封面图使用相同的 seed
    - 禁止使用通用 seed（如 `news`、`image`），必须使用具体内容关键词
 5. 然后才是文章内容
 6. 严格按照系统提示中的结构和要求创作
 7. 不要简单罗列，要提供深度分析和独到见解
-8. **🎥 视频嵌入**：
-   - **优先使用 Bilibili 热榜中的真实视频 URL**（从提供的数据中提取）
-   - 如果数据中有 Bilibili 条目，提取其 bvid 并生成 iframe
-   - 如果没有合适的视频，使用搜索链接或占位符
-9. **🖼️ 图片增强**：每个深度分析板块配 1 张相关图片（Picsum Photos，seed 与内容相关）
-10. 如果无法确定具体视频 ID，可以推荐搜索关键词或使用占位符
-11. **📚 利用历史上下文**：如果有持续关注的热点，请在文章中体现其演变和延续性
-12. **💰 成本控制**：文章精炼有力，控制在 {optimized_params['max_tokens']//4} 字以内
+8. **🖼️ 图片增强**：每个深度分析板块配 1 张相关图片（Picsum Photos，seed 与内容相关且不重复）
+9. **📚 利用历史上下文**：如果有持续关注的热点，请在文章中体现其演变和延续性
+10. **💰 成本控制**：文章精炼有力，控制在 {optimized_params['max_tokens']//4} 字以内
 
 请立即开始输出完整的 Markdown 文章！"""
         
