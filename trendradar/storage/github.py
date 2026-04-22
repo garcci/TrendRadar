@@ -351,11 +351,7 @@ class GitHubStorageBackend(StorageBackend):
 - **善用修辞**：比喻、对比、排比等手法增强可读性
 
 ### 5. Markdown 格式规范
-- 使用 Emoji 增强视觉效果（但不要滥用）
-- 合理使用引用块 `>` 突出金句
-- 用加粗 `**text**` 强调重点
-- 列表清晰，层级分明
-- **Frontmatter 必须包含：**
+- **必须且首先输出完整的 Frontmatter（YAML 格式）**
   ```yaml
   ---
   title: "你创作的有吸引力的标题"  # 不要用机械的日期标题
@@ -366,6 +362,12 @@ class GitHubStorageBackend(StorageBackend):
   excerpt: "一句话概括文章核心价值"
   ---
   ```
+  **⚠️ 重要：Frontmatter 必须在文章最开头，以 `---` 开始和结束！这是 Astro 的要求！**
+  
+- 使用 Emoji 增强视觉效果（但不要滥用）
+- 合理使用引用块 `>` 突出金句
+- 用加粗 `**text**` 强调重点
+- 列表清晰，层级分明
 - **重要：嵌入相关视频！**
   - 如果热点涉及 Bilibili、YouTube、抖音等平台，尽量嵌入相关视频
   - 使用响应式容器：<div class="video-container"><iframe src="..." allowfullscreen></iframe></div>
@@ -392,7 +394,14 @@ class GitHubStorageBackend(StorageBackend):
 **热点数据**：
 {news_text}
 
-请严格按照系统提示中的要求，创作一篇有深度、有洞察、有价值的专业文章。记住：不要简单罗列，要提供深度分析和独到见解！"""
+**⚠️ 输出要求（必须遵守）：**
+1. **首先输出完整的 Frontmatter**，以 `---` 开始和结束
+2. 然后才是文章内容
+3. 严格按照系统提示中的结构和要求创作
+4. 不要简单罗列，要提供深度分析和独到见解
+5. 如果有相关视频，务必嵌入
+
+请立即开始输出完整的 Markdown 文章！"""
         
         messages = [
             {"role": "system", "content": system_prompt},
