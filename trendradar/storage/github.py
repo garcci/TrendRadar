@@ -552,6 +552,10 @@ class GitHubStorageBackend(StorageBackend):
             
             history_mgr.save_article_metadata(metadata)
             logger.info("Article metadata saved to history")
+            
+            # TODO: Push history data to GitHub for persistence
+            # For now, history is local-only in GitHub Actions (will be lost)
+            # Future: Commit data/article_history/ to Astro repo
         except Exception as e:
             logger.warning(f"Failed to save article metadata: {e}")
         
