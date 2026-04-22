@@ -307,6 +307,8 @@ class GitHubStorageBackend(StorageBackend):
             astro_owner = os.environ.get("ASTRO_REPO_OWNER", "garcci")
             astro_repo = os.environ.get("ASTRO_REPO_NAME", "Astro")
             
+            logger.info(f"Checking memory system: GH_TOKEN={'present' if gh_token else 'missing'}, Owner={astro_owner}, Repo={astro_repo}")
+            
             if gh_token:
                 from .github_issues_memory import GitHubIssuesMemory
                 memory_backend = GitHubIssuesMemory(astro_owner, astro_repo, gh_token)
