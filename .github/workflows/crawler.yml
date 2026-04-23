@@ -180,7 +180,7 @@ jobs:
       # 🤖 自动代码迭代 - 系统自我改进
       # ═══════════════════════════════════════════════════════════
       - name: Auto Code Evolution
-        if: success() && secrets.GH_MEMORY_TOKEN != ''
+        if: success()
         env:
           GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
           ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
