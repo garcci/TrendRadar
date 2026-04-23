@@ -74,9 +74,9 @@ class AIAnalyzer:
 
         # 从分析配置获取功能参数
         self.max_news = analysis_config.get("MAX_NEWS_FOR_ANALYSIS", 50)
-        self.include_rss = analysis_config.get("INCLUDE_RSS", True)
+        self.include_rss = analysis_config.get("include_rss", analysis_config.get("INCLUDE_RSS", True))
         self.include_rank_timeline = analysis_config.get("INCLUDE_RANK_TIMELINE", False)
-        self.include_standalone = analysis_config.get("INCLUDE_STANDALONE", False)
+        self.include_standalone = analysis_config.get("include_standalone", analysis_config.get("INCLUDE_STANDALONE", False))
         self.language = analysis_config.get("LANGUAGE", "Chinese")
 
         # 加载提示词模板
