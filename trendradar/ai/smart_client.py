@@ -49,6 +49,10 @@ class SmartAIClient:
             }
         }
         
+        # ⏱️ 频率控制（避免429）
+        self.last_gemini_call = 0
+        self.min_interval = 2  # Gemini最小调用间隔2秒
+        
         self._init_providers()
     
     def _check_quota(self, provider: str) -> bool:
@@ -195,11 +199,19 @@ class SmartAIClient:
             raise Exception(f"Cloudflare API错误: {result.get('errors', [])}")
     
     def _call_gemini(self, messages, kwargs, start_time, task_type):
-        """调用Google Gemini"""
+        """调用Google Gemini（带频率控制和重试）"""
         import requests
+        import time as time_module
         
         api_key = os.environ.get("GEMINI_API_KEY", "")
         model = kwargs.get("model", "gemini-2.0-flash")
+        
+        # 频率控制：确保最小间隔
+        elapsed = time_module.time() - self.last_gemini_call
+        if elapsed < self.min_interval:
+            wait_time = self.min_interval - elapsed
+            print(f"[SmartAI] Gemini频率控制：等待 {wait_time:.1f} 秒")
+            time_module.sleep(wait_time)
         
         # 转换消息格式
         gemini_messages = []
@@ -212,19 +224,42 @@ class SmartAIClient:
         
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         
-        response = requests.post(url, 
-                                json={"contents": gemini_messages},
-                                timeout=30)
-        response.raise_for_status()
-        result = response.json()
+        # 重试机制（最多3次，遇到429时等待）
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(url, 
+                                        json={"contents": gemini_messages},
+                                        timeout=30)
+                
+                # 遇到429时等待后重试
+                if response.status_code == 429:
+                    wait = 2 ** attempt  # 指数退避：1, 2, 4秒
+                    print(f"[SmartAI] Gemini 429，等待 {wait} 秒后重试 ({attempt+1}/{max_retries})")
+                    time_module.sleep(wait)
+                    continue
+                
+                response.raise_for_status()
+                result = response.json()
+                
+                if "candidates" in result and result["candidates"]:
+                    content = result["candidates"][0]["content"]["parts"][0]["text"]
+                    latency = time_module.time() - start_time
+                    self.last_gemini_call = time_module.time()
+                    self._record_usage("google_gemini", task_type, 0, 0, latency, True)
+                    return content
+                else:
+                    raise Exception(f"Gemini API错误: {result}")
+                    
+            except requests.exceptions.HTTPError as e:
+                if attempt < max_retries - 1:
+                    wait = 2 ** attempt
+                    print(f"[SmartAI] Gemini请求失败，等待 {wait} 秒后重试: {e}")
+                    time_module.sleep(wait)
+                else:
+                    raise
         
-        if "candidates" in result and result["candidates"]:
-            content = result["candidates"][0]["content"]["parts"][0]["text"]
-            latency = time.time() - start_time
-            self._record_usage("google_gemini", task_type, 0, 0, latency, True)
-            return content
-        else:
-            raise Exception(f"Gemini API错误: {result}")
+        raise Exception("Gemini在最大重试次数后仍然失败")
     
     def _call_deepseek(self, messages, kwargs, start_time, task_type):
         """调用DeepSeek（兜底）"""
