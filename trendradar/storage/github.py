@@ -448,7 +448,9 @@ class GitHubStorageBackend(StorageBackend):
         evolution_context = ""
         try:
             if gh_token:
-                from ..evolution.evolution_system import AIEvolutionSystem
+                import sys
+                sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+                from evolution.evolution_system import AIEvolutionSystem
                 evolution_system = AIEvolutionSystem(astro_owner, astro_repo, gh_token)
                 evolution_context = evolution_system.get_evolution_context()
                 if evolution_context:
@@ -770,7 +772,9 @@ class GitHubStorageBackend(StorageBackend):
         
         # 🧬 AI 进化系统 - 评估文章质量并记录改进建议
         try:
-            from ..evolution.evolution_system import evaluate_and_evolve
+            import sys
+            sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            from evolution.evolution_system import evaluate_and_evolve
             gh_token = os.environ.get("GH_MEMORY_TOKEN")
             astro_owner = os.environ.get("ASTRO_REPO_OWNER", "garcci")
             astro_repo = os.environ.get("ASTRO_REPO_NAME", "Astro")
