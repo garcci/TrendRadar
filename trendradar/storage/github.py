@@ -357,7 +357,7 @@ class GitHubStorageBackend(StorageBackend):
         Returns:
             AI-generated Markdown formatted string
         """
-        from ..ai.client import AIClient
+        from ..ai.smart_client import SmartAIClient
         from ..core.loader import load_config
         from .history_manager import ArticleHistoryManager
         from .cost_optimizer import AICostOptimizer
@@ -376,7 +376,7 @@ class GitHubStorageBackend(StorageBackend):
         try:
             config = load_config()
             ai_config = config.get("ai", {})
-            ai_client = AIClient(ai_config)
+            ai_client = SmartAIClient(ai_config)
             
             # Validate AI configuration
             is_valid, error_msg = ai_client.validate_config()

@@ -1942,8 +1942,8 @@ def _run_doctor(config_path: Optional[str] = None) -> bool:
 
         if ai_enabled:
             try:
-                from trendradar.ai.client import AIClient
-                valid, message = AIClient(config.get("AI", {})).validate_config()
+                from trendradar.ai.smart_client import SmartAIClient
+                valid, message = SmartAIClient(config.get("AI", {})).validate_config()
                 if valid:
                     _record_doctor_result(results, "pass", "AI配置", f"模型: {config.get('AI', {}).get('MODEL', '')}")
                 else:

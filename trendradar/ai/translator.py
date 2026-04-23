@@ -9,7 +9,7 @@ AI 翻译器模块
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
-from trendradar.ai.client import AIClient
+from trendradar.ai.smart_client import SmartAIClient
 from trendradar.ai.prompt_loader import load_prompt_template
 
 
@@ -54,7 +54,7 @@ class AITranslator:
         self.scope = translation_config.get("SCOPE", {"HOTLIST": True, "RSS": True, "STANDALONE": True})
 
         # 创建 AI 客户端（基于 LiteLLM）
-        self.client = AIClient(ai_config)
+        self.client = SmartAIClient(ai_config)
 
         # 加载提示词模板
         self.system_prompt, self.user_prompt_template = load_prompt_template(

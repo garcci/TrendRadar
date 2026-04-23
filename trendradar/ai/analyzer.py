@@ -10,7 +10,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
-from trendradar.ai.client import AIClient
+from trendradar.ai.smart_client import SmartAIClient
 from trendradar.ai.prompt_loader import load_prompt_template
 
 
@@ -64,8 +64,8 @@ class AIAnalyzer:
         self.get_time_func = get_time_func
         self.debug = debug
 
-        # 创建 AI 客户端（基于 LiteLLM）
-        self.client = AIClient(ai_config)
+        # 创建 AI 客户端（智能路由，优先免费API）
+        self.client = SmartAIClient(ai_config)
 
         # 验证配置
         valid, error = self.client.validate_config()

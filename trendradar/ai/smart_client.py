@@ -92,6 +92,10 @@ class SmartAIClient:
         gemini_key = os.environ.get("GEMINI_API_KEY", "")
         self.gemini_enabled = bool(gemini_key)
     
+    def validate_config(self) -> tuple[bool, str]:
+        """验证配置（代理到DeepSeek客户端）"""
+        return self.deepseek_client.validate_config()
+    
     def chat(self, messages: List[Dict[str, str]], **kwargs) -> str:
         """
         智能路由调用

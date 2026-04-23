@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from trendradar.ai.client import AIClient
+from trendradar.ai.smart_client import SmartAIClient
 from trendradar.ai.prompt_loader import load_prompt_template
 
 
@@ -43,7 +43,7 @@ class AIFilter:
         get_time_func: Callable,
         debug: bool = False,
     ):
-        self.client = AIClient(ai_config)
+        self.client = SmartAIClient(ai_config)
         self.filter_config = filter_config
         self.batch_size = filter_config.get("BATCH_SIZE", 200)
         self.get_time_func = get_time_func
