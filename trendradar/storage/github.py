@@ -105,15 +105,12 @@ class GitHubStorageBackend(StorageBackend):
         date_str = data.date or datetime.now().strftime("%Y-%m-%d")
         
         # Check if we already generated an article today
-        # If yes, check if there are significant new topics (skip if too similar)
+        # If yes, skip to avoid duplicates (simple and reliable)
         try:
             existing_articles = self._check_existing_articles(date_str)
             if existing_articles:
-                logger.warning(f"Found {len(existing_articles)} existing article(s) for {date_str}")
-                # Check if current news is significantly different from existing articles
-                if not self._has_significant_changes(data, existing_articles):
-                    logger.warning("News topics are too similar to existing articles, skipping generation to avoid duplicates")
-                    return False
+                logger.warning(f"Found {len(existing_articles)} existing article(s) for {date_str}, skipping to avoid duplicates")
+                return False
         except Exception as e:
             logger.warning(f"Could not check existing articles: {e}, proceeding anyway")
         
