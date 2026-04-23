@@ -473,9 +473,35 @@ class GitHubStorageBackend(StorageBackend):
             except Exception as e2:
                 logger.warning(f"[进化系统] 降级加载也失败: {e2}")
         
-        # 将进化反馈合并到 context_summary 中
+        # 🎲 文章结构多样化引擎
+        diversity_instructions = ""
+        try:
+            if gh_token:
+                from evolution import get_diversity_instructions, PerspectiveRotator
+                # 提取热点关键词用于模板匹配
+                topics = []
+                for source_id, items in data.items.items():
+                    for item in items[:3]:
+                        if hasattr(item, 'title'):
+                            topics.append(item.title)
+                        elif isinstance(item, dict):
+                            topics.append(item.get('title', ''))
+                
+                diversity_instructions = get_diversity_instructions(".", topics)
+                if diversity_instructions:
+                    logger.warning(f"[多样化引擎] 加载结构模板: {len(diversity_instructions)} 字符")
+                
+                # 添加角度轮换
+                perspective = PerspectiveRotator.get_rotated_perspectives(2)
+                diversity_instructions += perspective
+        except Exception as e:
+            logger.warning(f"[多样化引擎] 加载失败: {e}")
+        
+        # 将进化反馈和多样化指导合并到 context_summary 中
         if evolution_context:
             context_summary += evolution_context
+        if diversity_instructions:
+            context_summary += diversity_instructions
         
         # Check cache before generating
         cache_key = cost_optimizer.generate_cache_key(news_text, context_summary)
