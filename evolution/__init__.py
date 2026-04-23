@@ -10,6 +10,8 @@ from .auto_evolution import (
     update_rss_health
 )
 
+from .code_evolution import AutoCodeEvolution, run_auto_evolution
+
 __all__ = [
     'AIEvolutionSystem',
     'evaluate_and_evolve',
@@ -18,5 +20,7 @@ __all__ = [
     'AdaptiveEvolutionEngine',
     'get_evolution_summary',
     'record_article_metrics',
-    'update_rss_health'
+    'update_rss_health',
+    'AutoCodeEvolution',
+    'run_auto_evolution'
 ]

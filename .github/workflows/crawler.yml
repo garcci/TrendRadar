@@ -175,3 +175,31 @@ jobs:
           ASTRO_BRANCH: ${{ secrets.ASTRO_BRANCH }}
           GITHUB_ACTIONS: true
         run: uv run python -m trendradar
+
+      # ═══════════════════════════════════════════════════════════
+      # 🤖 自动代码迭代 - 系统自我改进
+      # ═══════════════════════════════════════════════════════════
+      - name: Auto Code Evolution
+        if: success() && secrets.GH_MEMORY_TOKEN != ''
+        env:
+          GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
+          ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
+          ASTRO_REPO_NAME: ${{ secrets.ASTRO_REPO_NAME }}
+        run: |
+          echo "🤖 启动自动代码迭代系统..."
+          uv run python -c "
+          import os
+          import sys
+          sys.path.insert(0, '.')
+          from evolution.code_evolution import run_auto_evolution
+          
+          token = os.environ.get('GH_MEMORY_TOKEN')
+          owner = os.environ.get('ASTRO_REPO_OWNER', 'garcci')
+          repo = os.environ.get('ASTRO_REPO_NAME', 'Astro')
+          
+          if token:
+              result = run_auto_evolution(owner, repo, token)
+              print(f'自动迭代结果: {result}')
+          else:
+              print('跳过自动迭代：未配置 GH_MEMORY_TOKEN')
+          "
