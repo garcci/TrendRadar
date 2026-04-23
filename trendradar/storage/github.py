@@ -104,6 +104,19 @@ class GitHubStorageBackend(StorageBackend):
         timestamp = int(datetime.now(timezone.utc).timestamp())
         date_str = data.date or datetime.now().strftime("%Y-%m-%d")
         
+        # Check if we already generated an article today
+        # If yes, check if there are significant new topics (skip if too similar)
+        try:
+            existing_articles = self._check_existing_articles(date_str)
+            if existing_articles:
+                logger.warning(f"Found {len(existing_articles)} existing article(s) for {date_str}")
+                # Check if current news is significantly different from existing articles
+                if not self._has_significant_changes(data, existing_articles):
+                    logger.warning("News topics are too similar to existing articles, skipping generation to avoid duplicates")
+                    return False
+        except Exception as e:
+            logger.warning(f"Could not check existing articles: {e}, proceeding anyway")
+        
         # Generate article title and filename
         article_title = f"TrendRadar Report - {date_str}"
         filename = f"{date_str}-trendradar-{timestamp}.md"
@@ -125,6 +138,97 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             logger.error(f"Failed to push to GitHub: {e}")
             return False
+    
+    def _check_existing_articles(self, date_str: str) -> list:
+        """
+        检查今天是否已经生成过文章
+        
+        Returns:
+            已有文章列表，每篇文章包含标题和摘要
+        """
+        try:
+            # 通过 GitHub API 检查今天已推送的文件
+            import requests
+            check_url = f"{self.base_url}/contents/src/content/posts/news"
+            response = requests.get(check_url, headers=self.headers, timeout=10)
+            
+            if response.status_code != 200:
+                return []
+            
+            files = response.json()
+            existing = []
+            
+            for file_info in files:
+                if file_info.get('type') == 'file' and file_info.get('name', '').startswith(date_str):
+                    # 获取文件内容
+                    content_url = file_info.get('download_url')
+                    if content_url:
+                        try:
+                            content_resp = requests.get(content_url, timeout=10)
+                            if content_resp.status_code == 200:
+                                content = content_resp.text
+                                # 提取标题和描述
+                                title_match = content.split('title: "')[1].split('"')[0] if 'title: "' in content else ""
+                                desc_match = content.split('description: "')[1].split('"')[0] if 'description: "' in content else ""
+                                existing.append({
+                                    'title': title_match,
+                                    'description': desc_match,
+                                    'filename': file_info.get('name')
+                                })
+                        except Exception:
+                            pass
+            
+            return existing
+        except Exception as e:
+            logger.warning(f"Error checking existing articles: {e}")
+            return []
+    
+    def _has_significant_changes(self, data: NewsData, existing_articles: list) -> bool:
+        """
+        检查当前新闻与已有文章是否有显著差异
+        
+        判断标准：
+        - 如果有超过 30% 的新话题（不在已有文章标题/描述中），则认为有显著变化
+        
+        Returns:
+            True 如果有显著变化，False 如果太相似
+        """
+        if not existing_articles:
+            return True
+        
+        # 提取当前所有热点的标题关键词
+        current_topics = set()
+        for source_id, items in data.items.items():
+            for item in items:
+                # 提取标题中的关键词（简单分词）
+                title = item.title
+                # 取前 10 个字符作为话题标识
+                if len(title) > 10:
+                    current_topics.add(title[:10])
+                else:
+                    current_topics.add(title)
+        
+        # 提取已有文章的话题
+        existing_topics = set()
+        for article in existing_articles:
+            text = f"{article.get('title', '')} {article.get('description', '')}"
+            # 简单分词（取前 10 个字符）
+            words = text.split()
+            for word in words:
+                if len(word) > 2:
+                    existing_topics.add(word[:10])
+        
+        if not current_topics or not existing_topics:
+            return True
+        
+        # 计算新话题比例
+        new_topics = current_topics - existing_topics
+        new_ratio = len(new_topics) / len(current_topics) if current_topics else 0
+        
+        logger.warning(f"Topic analysis: {len(current_topics)} current topics, {len(new_topics)} new topics, ratio: {new_ratio:.2%}")
+        
+        # 如果新话题比例超过 30%，认为有显著变化
+        return new_ratio > 0.30
     
     def _generate_markdown(self, data: NewsData, title: str) -> str:
         """
@@ -506,8 +610,14 @@ class GitHubStorageBackend(StorageBackend):
   - **加粗强调**：使用 `**text**` 突出重点
 - 列表清晰，层级分明
 
-### 6. 禁忌
-- ❌ 不要重复同一事件多次
+### 6. 去重与连续性规则（极其重要）
+- **🚫 严格去重**：检查今日已生成文章列表（见下方历史记录），如果某个热点话题今天已经写过，**绝对不要重复写**
+- **📊 热点演变**：如果同一话题持续多日，请重点写"新变化"和"新进展"，而非重复已知信息
+- **🔄 增量更新**：只写今日新增的内容，不写昨日已报道过的相同内容
+- **✅ 首次出现**：新话题优先写；已写过的话题，除非有重大突破，否则跳过
+
+### 7. 禁忌
+- ❌ 不要重复同一事件多次（特别是同一天内）
 - ❌ 不要使用"据悉""据报道"等模糊表述
 - ❌ 不要写流水账
 - ❌ 不要没有观点
