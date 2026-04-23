@@ -1184,6 +1184,14 @@ class NewsAnalyzer:
                             error = f"源在失败列表中"
                         update_rss_health(astro_owner, astro_repo, gh_token, 
                                          feed.id, feed.name, feed.url, success, error)
+                        
+                        # 🗄️ 同时记录到D1数据库
+                        try:
+                            from evolution.storage_d1 import get_evolution_data_store
+                            d1_store = get_evolution_data_store()
+                            d1_store.save_rss_health(feed.id, feed.name, feed.url, success, error)
+                        except Exception as d1e:
+                            pass  # D1失败不影响主流程
             except Exception as e:
                 print(f"[自适应进化] RSS健康记录失败: {e}")
 

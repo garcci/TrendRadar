@@ -862,6 +862,26 @@ class GitHubStorageBackend(StorageBackend):
                     evaluation = evo.evaluate_article(ai_content, title)
                     record_article_metrics(astro_owner, astro_repo, gh_token, evaluation, prompt_version="v2")
                     logger.warning("[自适应进化] 已记录文章指标到趋势数据库")
+                    
+                    # 🗄️ 同时记录到D1数据库（解决Issues截断问题）
+                    try:
+                        from evolution.storage_d1 import get_evolution_data_store
+                        d1_store = get_evolution_data_store()
+                        d1_store.save_article_metric({
+                            'date': datetime.now().strftime('%Y-%m-%d'),
+                            'title': title,
+                            'overall_score': evaluation.get('overall_score', 0),
+                            'tech_content_ratio': evaluation.get('dimensions', {}).get('tech_content_ratio', {}).get('score', 0),
+                            'analysis_depth': evaluation.get('dimensions', {}).get('analysis_depth', {}).get('score', 0),
+                            'style_diversity': evaluation.get('dimensions', {}).get('style_diversity', {}).get('score', 0),
+                            'insightfulness': evaluation.get('dimensions', {}).get('insightfulness', {}).get('score', 0),
+                            'readability': evaluation.get('dimensions', {}).get('readability', {}).get('score', 0),
+                            'model_used': 'deepseek-reasoner',
+                            'cost': 0.02
+                        })
+                        logger.warning("[D1存储] 文章指标已保存到D1数据库")
+                    except Exception as d1e:
+                        logger.warning(f"[D1存储] 保存到D1失败（降级到文件）: {d1e}")
                 except Exception as e2:
                     logger.warning(f"[自适应进化] 记录指标失败: {e2}")
             else:
