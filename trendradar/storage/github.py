@@ -480,7 +480,6 @@ class GitHubStorageBackend(StorageBackend):
 ### 3. 文章结构（必须包含）
 
 #### 开篇引言（200-300字）
-- **紧跟 Frontmatter 后添加开篇配图**（使用与封面不同的 seed）
 - 今日热点的整体态势
 - 最值得关注的3-5个核心事件
 - **不要简单罗列**，而是提炼今日舆情的核心特征
@@ -499,7 +498,7 @@ class GitHubStorageBackend(StorageBackend):
 #### 深度分析板块（重点！每个 400-600字）
 选择2-3个最有价值的热点，每个进行深度分析：
 - **小标题要有吸引力**，能概括核心观点
-- **开篇配图**：每个板块配 1 张相关图片（Picsum Photos，seed 不重复）
+- **每个板块配 1 张相关图片**（Picsum Photos，seed 不重复）
 - 事件背景简述
 - 关键信息提炼
 - 多方观点对比
@@ -559,13 +558,13 @@ class GitHubStorageBackend(StorageBackend):
   - 标签数量控制在 3-6 个
   
 - **🖼️ 图片增强（重点！）**
-  - **开篇必须有一张主题相关的封面图**，紧跟在 Frontmatter 之后
+  - **Frontmatter 后不要添加任何图片**，因为封面图 `image` 字段已显示在文章顶部
+  - **正文配图**：每个深度分析板块配 1 张相关图片（Picsum Photos）
   - 使用 Picsum Photos 免费图库，**必须使用与内容相关的英文关键词作为 seed**：
     - **格式**：`https://picsum.photos/seed/英文关键词/1200/600`
     - **要求**：seed 必须是与图片内容相关的英文单词或短语（2-4个词），用连字符连接
     - **示例**：
       ```markdown
-      ![美伊谈判紧张局势](https://picsum.photos/seed/us-iran-negotiation/1200/600)
       ![中国制造业供应链](https://picsum.photos/seed/china-factory-supply/1200/600)
       ![芯片科技股上涨](https://picsum.photos/seed/tech-stock-chip/1200/600)
       ![英雄烈士归国仪式](https://picsum.photos/seed/hero-memorial-ceremony/1200/600)
@@ -573,7 +572,7 @@ class GitHubStorageBackend(StorageBackend):
   - **封面图 seed 规则**：使用文章核心主题的英文关键词，如 `diplomacy-tension`、`china-economy`、`tech-innovation`
   - **分析配图 seed 规则**：每个深度分析板块的图片 seed 必须与该板块内容直接相关
   - **禁止使用通用 seed**：如 `news`、`image`、`photo` 等，必须使用具体内容相关的 seed
-  - **⚠️ 重要：开篇配图不能与封面图使用相同的 seed**，必须为每个板块选择不同的相关关键词
+  - **⚠️ 重要：正文配图不能与封面图使用相同的 seed**，必须为每个板块选择不同的相关关键词
   
 - **📝 Astro 博客特性利用（重点！）**
   - **Admonition 引用块**：使用 `:::note[标题]` 语法创建漂亮的提示框
@@ -639,9 +638,9 @@ class GitHubStorageBackend(StorageBackend):
 2. **使用中文标签**：tags 必须是中文，如 `[新闻, 热点, 国际局势]`
 3. **🖼️ 图片规则（极其重要）**：
    - Frontmatter 中的 `image` 字段设置封面图 seed
-   - Frontmatter 后立即添加开篇配图，**必须使用与封面图不同的 seed**
+   - **Frontmatter 后不要添加任何图片**，封面图会自动显示在文章顶部
    - 每个深度分析板块的图片 seed 也必须互不相同
-   - **示例**：如果封面是 `iran-tension-negotiation`，开篇配图必须是其他词如 `diplomacy-talks`
+   - **示例**：如果封面是 `iran-tension-negotiation`，深度分析板块配图必须是其他词如 `diplomacy-talks`
 4. **图片 seed 必须与内容相关**：
    - 封面图：使用文章核心主题的英文关键词
    - 分析配图：每个板块的图片 seed 必须与该板块内容直接相关
