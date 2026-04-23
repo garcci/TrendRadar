@@ -277,6 +277,7 @@ class AITranslator:
         messages = []
         if self.system_prompt:
             messages.append({"role": "system", "content": self.system_prompt})
+        # 翻译调用
         messages.append({"role": "user", "content": user_prompt})
 
-        return self.client.chat(messages)
+        return self.client.chat(messages, task_type="translation")
