@@ -1170,12 +1170,11 @@ class NewsAnalyzer:
             # 保存到存储后端
             if self.storage_manager.save_rss_data(rss_data):
                 print(f"[RSS] 数据已保存到存储后端")
-
-                # 处理 RSS 数据（按模式过滤）并返回用于合并推送
-                return self._process_rss_data_by_mode(rss_data)
             else:
-                print(f"[RSS] 数据保存失败")
-                return None, None, None, set()
+                print(f"[RSS] 数据保存到存储后端失败（可能后端不支持），继续处理数据")
+            
+            # 处理 RSS 数据（按模式过滤）并返回用于合并推送
+            return self._process_rss_data_by_mode(rss_data)
 
         except ImportError as e:
             print(f"[RSS] 缺少依赖: {e}")
