@@ -454,7 +454,9 @@ class GitHubStorageBackend(StorageBackend):
                 evolution_system = AIEvolutionSystem(astro_owner, astro_repo, gh_token)
                 evolution_context = evolution_system.get_evolution_context()
                 if evolution_context:
-                    logger.info(f"[进化系统] 加载改进建议: {len(evolution_context)} 字符")
+                    logger.warning(f"[进化系统] 加载改进建议: {len(evolution_context)} 字符")
+                else:
+                    logger.warning("[进化系统] 暂无历史改进建议")
         except Exception as e:
             logger.warning(f"[进化系统] 加载进化上下文失败: {e}")
         
@@ -783,7 +785,9 @@ class GitHubStorageBackend(StorageBackend):
                     ai_content, title, astro_owner, astro_repo, gh_token
                 )
                 if improvement_prompt:
-                    logger.info(f"[进化系统] 文章评估完成，生成改进建议: {len(improvement_prompt)} 字符")
+                    logger.warning(f"[进化系统] 文章评估完成，生成改进建议: {len(improvement_prompt)} 字符")
+                else:
+                    logger.warning("[进化系统] 文章评估完成，无需改进")
             else:
                 logger.warning("[进化系统] 跳过评估：未配置 GH_MEMORY_TOKEN")
         except Exception as e:
