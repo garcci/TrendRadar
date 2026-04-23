@@ -16,6 +16,8 @@ from .diversity_engine import ArticleDiversityEngine, get_diversity_instructions
 from .smart_scheduler import SmartScheduler, get_smart_schedule_config
 from .model_router import ModelRouter, get_model_for_task, TaskType
 from .ab_testing import ABTestingFramework, run_ab_test_decision, TestDimension
+from .auto_healing import AutoHealingSystem, handle_error, get_system_health
+from .trend_forecast import TrendForecastEngine, get_trend_predictions, get_content_suggestions
 
 __all__ = [
     'AIEvolutionSystem',
@@ -40,5 +42,11 @@ __all__ = [
     'TaskType',
     'ABTestingFramework',
     'run_ab_test_decision',
-    'TestDimension'
+    'TestDimension',
+    'AutoHealingSystem',
+    'handle_error',
+    'get_system_health',
+    'TrendForecastEngine',
+    'get_trend_predictions',
+    'get_content_suggestions'
 ]
