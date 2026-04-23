@@ -204,6 +204,26 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
+      # 🧬 自主进化 - 全自动闭环优化
+      # ═══════════════════════════════════════════════════════════
+      - name: Autonomous Evolution
+        if: success()
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "🧬 启动自主进化系统..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from evolution.autonomous_evolution import run_autonomous_evolution
+          report = run_autonomous_evolution('.')
+          print(report)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 🤖 自动代码迭代 - 系统自我改进
       # ═══════════════════════════════════════════════════════════
       - name: Auto Code Evolution
