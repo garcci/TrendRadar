@@ -184,6 +184,26 @@ jobs:
         run: uv run python -m trendradar
 
       # ═══════════════════════════════════════════════════════════
+      # 📊 自动优化分析 - 基于历史数据驱动进化
+      # ═══════════════════════════════════════════════════════════
+      - name: Auto Optimization Report
+        if: success()
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "🧬 运行自动优化分析..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from evolution.auto_optimizer import run_auto_optimization
+          report = run_auto_optimization('.')
+          print(report)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 🤖 自动代码迭代 - 系统自我改进
       # ═══════════════════════════════════════════════════════════
       - name: Auto Code Evolution
