@@ -1,0 +1,10 @@
+[
+  {
+    "source_id": "hacker-news",
+    "source_name": "Hacker News",
+    "url": "https://news.ycombinator.com/rss",
+    "success": true,
+    "error": "",
+    "date": "2026-04-23"
+  }
+]

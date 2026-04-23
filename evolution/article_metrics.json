@@ -10,5 +10,17 @@
     "readability": 8.0,
     "model_used": "deepseek-reasoner",
     "cost": 0.02
+  },
+  {
+    "date": "2026-04-23",
+    "title": "AI技术周报",
+    "overall_score": 8.8,
+    "tech_content_ratio": 9.2,
+    "analysis_depth": 8.5,
+    "style_diversity": 7.8,
+    "insightfulness": 9.0,
+    "readability": 8.5,
+    "model_used": "deepseek-reasoner",
+    "cost": 0.025
   }
 ]
