@@ -224,6 +224,36 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
+      # 🔮 预测性维护 - 提前发现问题
+      # ═══════════════════════════════════════════════════════════
+      - name: Predictive Maintenance
+        if: success()
+        run: |
+          echo "🔮 启动预测性维护..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from evolution.predictive_maintenance import run_predictive_maintenance
+          report = run_predictive_maintenance('.')
+          print(report)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 🔄 智能回滚 - 验证变更效果
+      # ═══════════════════════════════════════════════════════════
+      - name: Smart Rollback
+        if: success()
+        run: |
+          echo "🔄 运行智能回滚检查..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from evolution.smart_rollback import verify_and_rollback
+          report = verify_and_rollback('.')
+          print(report)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 🤖 自动代码迭代 - 系统自我改进
       # ═══════════════════════════════════════════════════════════
       - name: Auto Code Evolution
