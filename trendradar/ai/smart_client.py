@@ -23,6 +23,13 @@ class SmartAIClient:
         self.config = config
         self.task_type = config.get("TASK_TYPE", "article_generation")
         
+        # 保持与AIClient兼容的属性
+        self.api_key = config.get("API_KEY") or os.environ.get("AI_API_KEY", "")
+        self.model = config.get("MODEL", "deepseek/deepseek-chat")
+        self.api_base = config.get("API_BASE", "")
+        self.temperature = config.get("TEMPERATURE", 0.7)
+        self.max_tokens = config.get("MAX_TOKENS", 4000)
+        
         # 🛡️ 额度保护阈值（严格控制在免费额度内）
         self.quota_limits = {
             "cloudflare_workers_ai": {
