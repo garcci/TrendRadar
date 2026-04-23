@@ -126,7 +126,14 @@ rss:
     - id: "github-trending"
       name: "GitHub Trending"
       url: "https://rsshub.app/github/trending/daily/any"
-      max_age_days: 2                 # GitHub 趋势项目保留 2 天
+      enabled: false                  # [AUTO-DISABLED] 403 Forbidden，等待替代源
+      max_age_days: 2
+
+    - id: "github-awards"
+      name: "GitHub Awards"
+      url: "https://github-awards.com/feed"
+      enabled: true
+      max_age_days: 2
 
     - id: "lobsters"
       name: "Lobsters"
@@ -353,7 +360,7 @@ display:
   # 两者共享此处的平台/RSS 配置，但开关互相独立（可只开 AI 分析、不推送展示）
   standalone:
     platforms: ["zhihu", "wallstreetcn-hot"]     # 热榜平台 ID 列表（如 ["zhihu", "weibo"]）
-    rss_feeds: ["hacker-news", "github-trending", "lobsters", "ai-news", "arxiv-ai", "ruanyifeng", "overreacted", "css-tricks", "product-hunt", "techcrunch", "36kr", "infoq-cn", "yahoo-finance", "geekpark", "solidot", "oschina"]                     # RSS 源 ID 列表
+    rss_feeds: ["hacker-news", "github-awards", "lobsters", "ai-news", "arxiv-ai", "ruanyifeng", "overreacted", "css-tricks", "product-hunt", "techcrunch", "36kr", "infoq-cn", "yahoo-finance", "geekpark", "solidot", "oschina"]                     # RSS 源 ID 列表
     max_items: 20                     # 每个源最多展示条数（0=不限制）
 
 
