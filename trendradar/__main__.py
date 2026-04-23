@@ -1167,6 +1167,26 @@ class NewsAnalyzer:
             # 抓取数据
             rss_data = fetcher.fetch_all()
 
+            # 🧬 记录 RSS 源健康状态（自适应进化系统）
+            try:
+                import sys
+                sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                from evolution import update_rss_health
+                gh_token = os.environ.get("GH_MEMORY_TOKEN")
+                astro_owner = os.environ.get("ASTRO_REPO_OWNER", "garcci")
+                astro_repo = os.environ.get("ASTRO_REPO_NAME", "Astro")
+                if gh_token:
+                    for feed in feeds:
+                        success = feed.id not in rss_data.failed_ids
+                        error = ""
+                        if not success:
+                            # 尝试获取错误信息
+                            error = f"源在失败列表中"
+                        update_rss_health(astro_owner, astro_repo, gh_token, 
+                                         feed.id, feed.name, feed.url, success, error)
+            except Exception as e:
+                print(f"[自适应进化] RSS健康记录失败: {e}")
+
             # 保存到存储后端
             if self.storage_manager.save_rss_data(rss_data):
                 print(f"[RSS] 数据已保存到存储后端")

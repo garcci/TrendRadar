@@ -444,21 +444,34 @@ class GitHubStorageBackend(StorageBackend):
             logger.warning(f"Failed to load history context: {e}")
             context_summary = "（无历史记录）"
         
-        # 🧬 获取进化反馈上下文（基于历史文章评估的改进建议）
+        # 🧬 获取进化反馈上下文（自适应进化系统 v3.0）
         evolution_context = ""
         try:
             if gh_token:
                 import sys
                 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+                from evolution import get_evolution_summary
+                # 获取基于长期趋势分析的进化反馈
+                evolution_context = get_evolution_summary(
+                    astro_owner, astro_repo, gh_token,
+                    current_prompt="",  # 当前prompt的哈希或版本标识
+                    days=7
+                )
+                if evolution_context:
+                    logger.warning(f"[自适应进化] 加载趋势分析: {len(evolution_context)} 字符")
+                else:
+                    logger.warning("[自适应进化] 数据不足，暂无趋势分析")
+        except Exception as e:
+            logger.warning(f"[自适应进化] 加载失败: {e}")
+            # 降级到旧版进化系统
+            try:
                 from evolution.evolution_system import AIEvolutionSystem
                 evolution_system = AIEvolutionSystem(astro_owner, astro_repo, gh_token)
                 evolution_context = evolution_system.get_evolution_context()
                 if evolution_context:
-                    logger.warning(f"[进化系统] 加载改进建议: {len(evolution_context)} 字符")
-                else:
-                    logger.warning("[进化系统] 暂无历史改进建议")
-        except Exception as e:
-            logger.warning(f"[进化系统] 加载进化上下文失败: {e}")
+                    logger.warning(f"[进化系统] 降级加载改进建议: {len(evolution_context)} 字符")
+            except Exception as e2:
+                logger.warning(f"[进化系统] 降级加载也失败: {e2}")
         
         # 将进化反馈合并到 context_summary 中
         if evolution_context:
@@ -799,10 +812,12 @@ class GitHubStorageBackend(StorageBackend):
             import sys
             sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
             from evolution.evolution_system import evaluate_and_evolve
+            from evolution import record_article_metrics
             gh_token = os.environ.get("GH_MEMORY_TOKEN")
             astro_owner = os.environ.get("ASTRO_REPO_OWNER", "garcci")
             astro_repo = os.environ.get("ASTRO_REPO_NAME", "Astro")
             if gh_token:
+                # 先进行评估
                 improvement_prompt = evaluate_and_evolve(
                     ai_content, title, astro_owner, astro_repo, gh_token
                 )
@@ -810,6 +825,19 @@ class GitHubStorageBackend(StorageBackend):
                     logger.warning(f"[进化系统] 文章评估完成，生成改进建议: {len(improvement_prompt)} 字符")
                 else:
                     logger.warning("[进化系统] 文章评估完成，无需改进")
+                
+                # 然后记录到自适应进化系统的指标数据库
+                # 注意：evaluate_and_evolve 内部已经保存了评估结果
+                # 这里我们额外记录到新的结构化数据库
+                try:
+                    # 重新获取评估结果用于记录
+                    from evolution.evolution_system import AIEvolutionSystem
+                    evo = AIEvolutionSystem(astro_owner, astro_repo, gh_token)
+                    evaluation = evo.evaluate_article(ai_content, title)
+                    record_article_metrics(astro_owner, astro_repo, gh_token, evaluation, prompt_version="v2")
+                    logger.warning("[自适应进化] 已记录文章指标到趋势数据库")
+                except Exception as e2:
+                    logger.warning(f"[自适应进化] 记录指标失败: {e2}")
             else:
                 logger.warning("[进化系统] 跳过评估：未配置 GH_MEMORY_TOKEN")
         except Exception as e:
