@@ -278,5 +278,5 @@ jobs:
               result = run_auto_evolution(owner, repo, token)
               print(f'自动迭代结果: {result}')
           else:
-              print('跳过自动迭代：未配置 GH_MEMORY_TOKEN')
+              print(f'跳过自动迭代：未配置 GH_MEMORY_TOKEN (token类型={type(token)}, 长度={len(token) if token else 0})')
           "
