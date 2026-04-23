@@ -29,8 +29,9 @@ class AICostOptimizer:
         
         # 配置参数
         self.max_cache_age_days = 7  # 缓存有效期
-        self.daily_token_budget = 500000  # 每日 Token 预算
-        self.min_article_interval_hours = 4  # 最小文章间隔（避免重复生成）
+        self.daily_token_budget = 200000  # 每日 Token 预算（保守设置，约 1-2 篇文章）
+        self.monthly_token_budget = 3000000  # 每月 Token 上限
+        self.min_article_interval_hours = 20  # 最小文章间隔（避免一天内多次生成）
         
     def should_generate_article(self, last_generation_time: Optional[str] = None) -> Tuple[bool, str]:
         """
@@ -210,20 +211,34 @@ class AICostOptimizer:
         """
         stats = self._load_stats()
         today = datetime.now().strftime("%Y-%m-%d")
+        current_month = datetime.now().strftime("%Y-%m")
         
         if today not in stats:
             stats[today] = {'tokens_used': 0, 'api_calls': 0, 'cache_hits': 0}
         
         today_stats = stats[today]
-        remaining = self.daily_token_budget - today_stats['tokens_used']
+        remaining_daily = self.daily_token_budget - today_stats['tokens_used']
         
-        return remaining > 0, {
+        # 检查月度预算
+        monthly_used = sum(
+            day['tokens_used'] 
+            for date, day in stats.items() 
+            if date.startswith(current_month)
+        )
+        remaining_monthly = self.monthly_token_budget - monthly_used
+        
+        within_budget = remaining_daily > 0 and remaining_monthly > 0
+        
+        return within_budget, {
             'today': today,
             'tokens_used': today_stats['tokens_used'],
             'api_calls': today_stats['api_calls'],
             'cache_hits': today_stats['cache_hits'],
-            'remaining': remaining,
-            'budget': self.daily_token_budget
+            'remaining_daily': remaining_daily,
+            'daily_budget': self.daily_token_budget,
+            'monthly_used': monthly_used,
+            'remaining_monthly': remaining_monthly,
+            'monthly_budget': self.monthly_token_budget
         }
     
     def _load_cache(self) -> Dict:
