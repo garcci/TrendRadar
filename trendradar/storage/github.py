@@ -106,13 +106,14 @@ class GitHubStorageBackend(StorageBackend):
         
         # Check if we already generated an article today
         # If yes, skip to avoid duplicates (simple and reliable)
-        try:
-            existing_articles = self._check_existing_articles(date_str)
-            if existing_articles:
-                logger.warning(f"Found {len(existing_articles)} existing article(s) for {date_str}, skipping to avoid duplicates")
-                return False
-        except Exception as e:
-            logger.warning(f"Could not check existing articles: {e}, proceeding anyway")
+        # NOTE: Temporarily disabled for testing
+        # try:
+        #     existing_articles = self._check_existing_articles(date_str)
+        #     if existing_articles:
+        #         logger.warning(f"Found {len(existing_articles)} existing article(s) for {date_str}, skipping to avoid duplicates")
+        #         return False
+        # except Exception as e:
+        #     logger.warning(f"Could not check existing articles: {e}, proceeding anyway")
         
         # Generate article title and filename
         article_title = f"TrendRadar Report - {date_str}"
