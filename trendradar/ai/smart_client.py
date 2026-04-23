@@ -22,7 +22,55 @@ class SmartAIClient:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.task_type = config.get("TASK_TYPE", "article_generation")
+        
+        # 🛡️ 额度保护阈值（严格控制在免费额度内）
+        self.quota_limits = {
+            "cloudflare_workers_ai": {
+                "daily_limit": 10000,
+                "safety_threshold": 0.85,  # 用到85%就停用
+                "unit": "neurons"
+            },
+            "google_gemini": {
+                "daily_limit": 1500,
+                "safety_threshold": 0.85,
+                "unit": "requests"
+            },
+            "modelscope": {
+                "daily_limit": 2000,
+                "safety_threshold": 0.85,
+                "unit": "requests"
+            }
+        }
+        
         self._init_providers()
+    
+    def _check_quota(self, provider: str) -> bool:
+        """
+        检查Provider额度是否充足
+        返回: True=可用, False=已超限或接近阈值
+        """
+        try:
+            from evolution.quota_monitor import QuotaMonitor
+            monitor = QuotaMonitor()
+            usage = monitor.get_usage_today()
+            
+            limit_config = self.quota_limits.get(provider)
+            if not limit_config:
+                return True  # 没有限制（如DeepSeek）
+            
+            used = usage.get(provider, 0)
+            limit = limit_config["daily_limit"]
+            threshold = limit_config["safety_threshold"]
+            
+            # 检查是否超过安全阈值
+            if used >= limit * threshold:
+                print(f"[额度保护] {provider} 额度即将耗尽: {used}/{limit} ({used/limit*100:.0f}%)，切换到DeepSeek")
+                return False
+            
+            return True
+        except Exception:
+            # 额度检查失败时，保守起见不使用免费API
+            return False
     
     def _init_providers(self):
         """初始化各Provider客户端"""
@@ -74,31 +122,37 @@ class SmartAIClient:
             return self._call_deepseek(messages, kwargs, start_time, task_type)
     
     def _select_provider(self, task_type: str, require_high_quality: bool) -> str:
-        """选择Provider"""
+        """
+        选择Provider（带额度保护）
+        绝不超过免费额度！
+        """
         # 高质量要求 → DeepSeek
         if require_high_quality:
             return "deepseek"
         
-        # 任务路由
+        # 检查各免费API额度（有额度才用）
+        cf_available = self.cf_enabled and self._check_quota("cloudflare_workers_ai")
+        gemini_available = self.gemini_enabled and self._check_quota("google_gemini")
+        
+        # 任务路由（只使用有额度的Provider）
         if task_type in ["summarization", "content_dedup", "rss_analysis"]:
-            # 轻量任务优先用Cloudflare
-            if self.cf_enabled:
+            if cf_available:
                 return "cloudflare"
-            elif self.gemini_enabled:
+            elif gemini_available:
                 return "gemini"
         
         elif task_type in ["translation", "quality_evaluation"]:
-            # 翻译和评估用Gemini
-            if self.gemini_enabled:
+            if gemini_available:
                 return "gemini"
-            elif self.cf_enabled:
+            elif cf_available:
                 return "cloudflare"
         
         elif task_type == "article_generation":
-            # 文章生成默认用DeepSeek，但可尝试Gemini
-            if self.gemini_enabled and not require_high_quality:
+            # 文章生成默认用DeepSeek，但可尝试Gemini（如果有额度）
+            if gemini_available:
                 return "gemini"
         
+        # 默认兜底：DeepSeek（付费但稳定）
         return "deepseek"
     
     def _call_cloudflare(self, messages, kwargs, start_time, task_type):
