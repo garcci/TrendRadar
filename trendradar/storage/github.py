@@ -444,6 +444,22 @@ class GitHubStorageBackend(StorageBackend):
             logger.warning(f"Failed to load history context: {e}")
             context_summary = "（无历史记录）"
         
+        # 🧬 获取进化反馈上下文（基于历史文章评估的改进建议）
+        evolution_context = ""
+        try:
+            if gh_token:
+                from ..evolution.evolution_system import AIEvolutionSystem
+                evolution_system = AIEvolutionSystem(astro_owner, astro_repo, gh_token)
+                evolution_context = evolution_system.get_evolution_context()
+                if evolution_context:
+                    logger.info(f"[进化系统] 加载改进建议: {len(evolution_context)} 字符")
+        except Exception as e:
+            logger.warning(f"[进化系统] 加载进化上下文失败: {e}")
+        
+        # 将进化反馈合并到 context_summary 中
+        if evolution_context:
+            context_summary += evolution_context
+        
         # Check cache before generating
         cache_key = cost_optimizer.generate_cache_key(news_text, context_summary)
         cached_response = cost_optimizer.get_cached_response(cache_key)
@@ -751,6 +767,23 @@ class GitHubStorageBackend(StorageBackend):
                 logger.warning("Article metadata saved to local history (will be lost)")
         except Exception as e:
             logger.warning(f"Failed to save article metadata: {e}")
+        
+        # 🧬 AI 进化系统 - 评估文章质量并记录改进建议
+        try:
+            from ..evolution.evolution_system import evaluate_and_evolve
+            gh_token = os.environ.get("GH_MEMORY_TOKEN")
+            astro_owner = os.environ.get("ASTRO_REPO_OWNER", "garcci")
+            astro_repo = os.environ.get("ASTRO_REPO_NAME", "Astro")
+            if gh_token:
+                improvement_prompt = evaluate_and_evolve(
+                    ai_content, title, astro_owner, astro_repo, gh_token
+                )
+                if improvement_prompt:
+                    logger.info(f"[进化系统] 文章评估完成，生成改进建议: {len(improvement_prompt)} 字符")
+            else:
+                logger.warning("[进化系统] 跳过评估：未配置 GH_MEMORY_TOKEN")
+        except Exception as e:
+            logger.warning(f"[进化系统] 评估失败: {e}")
         
         return ai_content
     
