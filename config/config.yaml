@@ -68,12 +68,12 @@ platforms:
     # 综合资讯平台
     - id: "thepaper"
       name: "澎湃新闻"
-    - id: "toutiao"
-      name: "今日头条"
-    - id: "weibo"
-      name: "微博"
-    
+
     # 可选平台（如需更全面的覆盖，可取消注释）
+    # - id: "toutiao"
+    #   name: "今日头条"
+    # - id: "weibo"
+    #   name: "微博"
     # - id: "baidu"
     #   name: "百度热搜"
     # - id: "ifeng"
