@@ -111,12 +111,12 @@ class AppContext:
     @property
     def rss_enabled(self) -> bool:
         """RSS 是否启用"""
-        return self.rss_config.get("ENABLED", False)
+        return self.rss_config.get("enabled", self.rss_config.get("ENABLED", False))
 
     @property
     def rss_feeds(self) -> List[Dict]:
         """获取 RSS 源列表"""
-        return self.rss_config.get("FEEDS", [])
+        return self.rss_config.get("feeds", self.rss_config.get("FEEDS", []))
 
     @property
     def display_mode(self) -> str:
