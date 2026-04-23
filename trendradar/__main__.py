@@ -1225,25 +1225,34 @@ class NewsAnalyzer:
 
         # 1. 首先获取原始条目（用于独立展示区，不受 display.regions.rss 影响）
         # 根据模式获取原始条目
-        if self.report_mode == "incremental":
-            new_items_dict = self.storage_manager.detect_new_rss_items(rss_data)
-            if new_items_dict:
-                raw_rss_items = self._convert_rss_items_to_list(new_items_dict, rss_data.id_to_name)
-        elif self.report_mode == "current":
-            latest_data = self.storage_manager.get_latest_rss_data(rss_data.date)
-            if latest_data:
-                raw_rss_items = self._convert_rss_items_to_list(latest_data.items, latest_data.id_to_name)
-        else:  # daily
-            all_data = self.storage_manager.get_rss_data(rss_data.date)
-            if all_data:
-                raw_rss_items = self._convert_rss_items_to_list(all_data.items, all_data.id_to_name)
+        # 注意：GitHub 存储后端不支持 RSS 保存，直接从 rss_data 获取
+        if rss_data and hasattr(rss_data, 'items') and rss_data.items:
+            raw_rss_items = self._convert_rss_items_to_list(rss_data.items, rss_data.id_to_name)
+        else:
+            # 降级：尝试从存储后端获取
+            if self.report_mode == "incremental":
+                new_items_dict = self.storage_manager.detect_new_rss_items(rss_data)
+                if new_items_dict:
+                    raw_rss_items = self._convert_rss_items_to_list(new_items_dict, rss_data.id_to_name)
+            elif self.report_mode == "current":
+                latest_data = self.storage_manager.get_latest_rss_data(rss_data.date)
+                if latest_data:
+                    raw_rss_items = self._convert_rss_items_to_list(latest_data.items, latest_data.id_to_name)
+            else:  # daily
+                all_data = self.storage_manager.get_rss_data(rss_data.date)
+                if all_data:
+                    raw_rss_items = self._convert_rss_items_to_list(all_data.items, all_data.id_to_name)
 
         # 如果 RSS 展示未启用，跳过关键词分析，只返回原始条目用于独立展示区
         if not rss_display_enabled:
             return None, None, raw_rss_items, rss_new_urls
 
         # 2. 获取新增条目（用于统计）
-        new_items_dict = self.storage_manager.detect_new_rss_items(rss_data)
+        # 注意：GitHub 存储后端不支持 RSS 保存，直接使用所有数据作为新增
+        if rss_data and hasattr(rss_data, 'items') and rss_data.items:
+            new_items_dict = rss_data.items
+        else:
+            new_items_dict = self.storage_manager.detect_new_rss_items(rss_data)
         new_items_list = None
         if new_items_dict:
             new_items_list = self._convert_rss_items_to_list(new_items_dict, rss_data.id_to_name)
