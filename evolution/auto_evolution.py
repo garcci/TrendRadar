@@ -512,21 +512,25 @@ class AdaptiveEvolutionEngine:
             
             if check.status_code == 200:
                 sha = check.json()['sha']
+                import base64
+                encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
                 requests.put(url, headers={
                     "Authorization": f"token {self.token}",
                     "Accept": "application/vnd.github.v3+json"
                 }, json={
                     "message": f"更新 RSS 健康数据 - {datetime.now().strftime('%Y-%m-%d')}",
-                    "content": content.encode('utf-8').decode('utf-8'),
+                    "content": encoded_content,
                     "sha": sha
                 })
             else:
+                import base64
+                encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
                 requests.put(url, headers={
                     "Authorization": f"token {self.token}",
                     "Accept": "application/vnd.github.v3+json"
                 }, json={
                     "message": f"创建 RSS 健康数据 - {datetime.now().strftime('%Y-%m-%d')}",
-                    "content": content.encode('utf-8').decode('utf-8')
+                    "content": encoded_content
                 })
         except Exception as e:
             print(f"[自适应进化] 保存 RSS 健康数据失败: {e}")
@@ -643,21 +647,25 @@ def record_article_metrics(repo_owner: str, repo_name: str, token: str,
         content = json.dumps(metrics_history, ensure_ascii=False, indent=2)
         
         if sha:
+            import base64
+            encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
             requests.put(url, headers={
                 "Authorization": f"token {token}",
                 "Accept": "application/vnd.github.v3+json"
             }, json={
                 "message": f"记录文章指标 - {metric['date']}",
-                "content": content.encode('utf-8').decode('utf-8'),
+                "content": encoded_content,
                 "sha": sha
             })
         else:
+            import base64
+            encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
             requests.put(url, headers={
                 "Authorization": f"token {token}",
                 "Accept": "application/vnd.github.v3+json"
             }, json={
                 "message": f"创建文章指标记录 - {metric['date']}",
-                "content": content.encode('utf-8').decode('utf-8')
+                "content": encoded_content
             })
         
         print(f"[自适应进化] 已记录文章指标: overall_score={metric['overall_score']}")
