@@ -18,6 +18,10 @@ from .model_router import ModelRouter, get_model_for_task, TaskType
 from .ab_testing import ABTestingFramework, run_ab_test_decision, TestDimension
 from .auto_healing import AutoHealingSystem, handle_error, get_system_health
 from .trend_forecast import TrendForecastEngine, get_trend_predictions, get_content_suggestions
+from .free_ai_router import (
+    FreeAIRouter, CloudflareWorkersAI, GoogleGeminiClient,
+    get_optimal_provider, get_daily_cost_report, get_quota_status
+)
 
 __all__ = [
     'AIEvolutionSystem',
@@ -48,5 +52,11 @@ __all__ = [
     'get_system_health',
     'TrendForecastEngine',
     'get_trend_predictions',
-    'get_content_suggestions'
+    'get_content_suggestions',
+    'FreeAIRouter',
+    'CloudflareWorkersAI',
+    'GoogleGeminiClient',
+    'get_optimal_provider',
+    'get_daily_cost_report',
+    'get_quota_status'
 ]
