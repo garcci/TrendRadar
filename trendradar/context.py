@@ -106,7 +106,7 @@ class AppContext:
     @property
     def rss_config(self) -> Dict:
         """获取 RSS 配置"""
-        return self.config.get("RSS", {})
+        return self.config.get("rss", self.config.get("RSS", {}))
 
     @property
     def rss_enabled(self) -> bool:
