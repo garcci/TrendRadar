@@ -125,7 +125,7 @@ rss:
 
     - id: "github-trending"
       name: "GitHub Trending"
-      url: "https://github.com/trending.atom"
+      url: "https://rsshub.app/github/trending/daily/any"
       max_age_days: 2                 # GitHub 趋势项目保留 2 天
 
     - id: "lobsters"
@@ -134,8 +134,8 @@ rss:
 
     # ===== AI 与机器学习 =====
     - id: "ai-news"
-      name: "AI News (The Batch)"
-      url: "https://www.deeplearning.ai/the-batch/feed/"
+      name: "AI News"
+      url: "https://www.artificialintelligence-news.com/feed/"
       max_age_days: 3
 
     - id: "arxiv-ai"
@@ -152,7 +152,7 @@ rss:
 
     - id: "overreacted"
       name: "Overreacted (Dan Abramov)"
-      url: "https://overreacted.io/zh-hans/rss.xml"
+      url: "https://overreacted.io/rss.xml"
       max_age_days: 7
 
     - id: "css-tricks"
@@ -178,10 +178,28 @@ rss:
       name: "InfoQ 中文"
       url: "https://www.infoq.cn/feed"
       max_age_days: 2
-     
+    
     - id: "yahoo-finance"
       name: "雅虎财经"
       url: "https://finance.yahoo.com/news/rssindex"
+      max_age_days: 1
+
+    # ===== 中国科技创业 =====
+    - id: "geekpark"
+      name: "极客公园"
+      url: "https://www.geekpark.net/rss"
+      max_age_days: 2
+
+    - id: "solidot"
+      name: "Solidot"
+      url: "https://www.solidot.org/index.rss"
+      max_age_days: 1
+
+    # ===== 开源与技术 =====
+    - id: "oschina"
+      name: "开源中国"
+      url: "https://www.oschina.net/news/rss"
+      max_age_days: 2
 
     # 自定义源示例
     # - id: "custom-feed"
@@ -335,7 +353,7 @@ display:
   # 两者共享此处的平台/RSS 配置，但开关互相独立（可只开 AI 分析、不推送展示）
   standalone:
     platforms: ["zhihu", "wallstreetcn-hot"]     # 热榜平台 ID 列表（如 ["zhihu", "weibo"]）
-    rss_feeds: ["hacker-news", "github-trending", "lobsters", "ai-news", "arxiv-ai", "ruanyifeng", "overreacted", "css-tricks", "product-hunt", "techcrunch", "36kr", "infoq-cn"]                     # RSS 源 ID 列表
+    rss_feeds: ["hacker-news", "github-trending", "lobsters", "ai-news", "arxiv-ai", "ruanyifeng", "overreacted", "css-tricks", "product-hunt", "techcrunch", "36kr", "infoq-cn", "yahoo-finance", "geekpark", "solidot", "oschina"]                     # RSS 源 ID 列表
     max_items: 20                     # 每个源最多展示条数（0=不限制）
 
 
