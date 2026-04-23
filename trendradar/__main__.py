@@ -1705,16 +1705,37 @@ class NewsAnalyzer:
 
     def run(self) -> None:
         """执行分析流程"""
+        import time
+        run_stats = {
+            'start_time': time.time(),
+            'crawl_time': 0,
+            'ai_generation_time': 0,
+            'total_time': 0,
+            'tokens_used': 0,
+            'platforms_crawled': [],
+            'rss_sources_crawled': [],
+            'article_generated': False,
+            'cache_hit': False,
+            'errors': []
+        }
+        
         try:
             self._initialize_and_check_config()
 
             mode_strategy = self._get_mode_strategy()
 
             # 抓取热榜数据
+            crawl_start = time.time()
             results, id_to_name, failed_ids = self._crawl_data()
+            run_stats['crawl_time'] = time.time() - crawl_start
+            run_stats['platforms_crawled'] = list(id_to_name.values())
+            if failed_ids:
+                run_stats['errors'].extend([f"平台抓取失败: {fid}" for fid in failed_ids])
 
             # 抓取 RSS 数据（如果启用），返回统计条目、新增条目和原始条目
+            rss_start = time.time()
             rss_items, rss_new_items, raw_rss_items, rss_new_urls = self._crawl_rss_data()
+            run_stats['rss_sources_crawled'] = [item.get('source', 'unknown') for item in (rss_items or [])]
 
             # 执行模式策略，传递 RSS 数据用于合并推送
             self._execute_mode_strategy(
@@ -1724,10 +1745,47 @@ class NewsAnalyzer:
             )
 
         except Exception as e:
-            print(f"分析流程执行出错: {e}")
+            error_msg = str(e)
+            print(f"分析流程执行出错: {error_msg}")
+            run_stats['errors'].append(error_msg)
             if self.ctx.config.get("DEBUG", False):
                 raise
         finally:
+            run_stats['total_time'] = time.time() - run_stats['start_time']
+            
+            # 获取 Token 使用量
+            try:
+                from .storage.cost_optimizer import AICostOptimizer
+                cost_opt = AICostOptimizer()
+                usage = cost_opt.get_today_usage()
+                run_stats['tokens_used'] = usage.get('tokens_used', 0)
+                run_stats['api_calls'] = usage.get('api_calls', 0)
+                run_stats['cache_hits'] = usage.get('cache_hits', 0)
+            except Exception:
+                pass
+            
+            # 🧬 系统进化分析
+            try:
+                import os
+                import sys
+                sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                from evolution.system_evolution import evolve_system
+                
+                gh_token = os.environ.get("GH_MEMORY_TOKEN")
+                astro_owner = os.environ.get("ASTRO_REPO_OWNER", "garcci")
+                astro_repo = os.environ.get("ASTRO_REPO_NAME", "Astro")
+                
+                if gh_token:
+                    system_evolution_prompt = evolve_system(
+                        run_stats, astro_owner, astro_repo, gh_token
+                    )
+                    if system_evolution_prompt:
+                        print(f"[系统进化] 生成系统优化反馈: {len(system_evolution_prompt)} 字符")
+                else:
+                    print("[系统进化] 跳过：未配置 GH_MEMORY_TOKEN")
+            except Exception as e:
+                print(f"[系统进化] 分析失败: {e}")
+            
             # 清理资源（包括过期数据清理和数据库连接关闭）
             self.ctx.cleanup()
 

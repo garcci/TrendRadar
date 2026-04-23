@@ -241,6 +241,17 @@ class AICostOptimizer:
             'monthly_budget': self.monthly_token_budget
         }
     
+    def get_today_usage(self) -> Dict:
+        """
+        获取今日 Token 使用量
+        
+        Returns:
+            {'tokens_used': int, 'api_calls': int, 'cache_hits': int}
+        """
+        stats = self._load_stats()
+        today = datetime.now().strftime("%Y-%m-%d")
+        return stats.get(today, {'tokens_used': 0, 'api_calls': 0, 'cache_hits': 0})
+    
     def _load_cache(self) -> Dict:
         """加载缓存"""
         if self.cache_file.exists():
