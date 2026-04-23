@@ -158,6 +158,11 @@ jobs:
           # AI 配置（ai_analysis 和 ai_translation 共享模型配置）
           AI_ANALYSIS_ENABLED: ${{ secrets.AI_ANALYSIS_ENABLED }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          # 免费AI Provider配置
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MODELSCOPE_API_KEY: ${{ secrets.MODELSCOPE_API_KEY }}
           # Memory System Configuration
           GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
           AI_MODEL: ${{ secrets.AI_MODEL }}
