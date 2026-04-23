@@ -1,0 +1,14 @@
+[
+  {
+    "date": "2026-04-23",
+    "title": "测试文章",
+    "overall_score": 8.5,
+    "tech_content_ratio": 9.0,
+    "analysis_depth": 8.0,
+    "style_diversity": 7.5,
+    "insightfulness": 8.5,
+    "readability": 8.0,
+    "model_used": "deepseek-reasoner",
+    "cost": 0.02
+  }
+]
