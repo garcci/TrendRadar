@@ -193,6 +193,16 @@ class GitHubStorageBackend(StorageBackend):
                         markdown_content = f"---{frontmatter}---{parts[2]}"
                         logger.info("[智能调度] 文章已标记为草稿 (draft: true)")
         
+        # 📝 智能摘要 - 自动生成TL;DR（Lv19进化）
+        try:
+            from evolution.smart_summary import add_smart_summary
+            original_length = len(markdown_content)
+            markdown_content = add_smart_summary(markdown_content)
+            if len(markdown_content) > original_length:
+                logger.info("[智能摘要] 已自动生成文章摘要块")
+        except Exception as e:
+            logger.warning(f"[智能摘要] 生成失败: {e}")
+        
         # Push to GitHub
         try:
             self._push_to_github(filepath, markdown_content, f"feat: add TrendRadar report - {article_title}")
@@ -879,6 +889,16 @@ class GitHubStorageBackend(StorageBackend):
         if cross_source_insights:
             user_prompt += cross_source_insights
             logger.info("[跨源关联] 已注入跨平台话题分析")
+        
+        # 🔮 注入趋势预测洞察
+        try:
+            from evolution.trend_predictor import get_trend_insight
+            trend_insight = get_trend_insight()
+            if trend_insight:
+                user_prompt += trend_insight
+                logger.info("[趋势预测] 已注入预测洞察")
+        except Exception as e:
+            logger.warning(f"[趋势预测] 失败: {e}")
         
         user_prompt += """
 
