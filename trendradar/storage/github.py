@@ -1027,6 +1027,16 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             logger.warning(f"[体积监控] 失败: {e}")
         
+        # 🔭 注入跨项目学习洞察（Lv42）
+        try:
+            from evolution.cross_project_learner import learn_cross_project
+            cross_project_insight = learn_cross_project()
+            if cross_project_insight:
+                user_prompt += cross_project_insight
+                logger.info("[跨项目学习] 已注入GitHub Trending/HN洞察")
+        except Exception as e:
+            logger.warning(f"[跨项目学习] 失败: {e}")
+        
         # 🎯 注入Prompt效果追踪洞察（Lv39）
         try:
             from evolution.prompt_tracker import get_prompt_effectiveness_report
@@ -1079,6 +1089,7 @@ class GitHubStorageBackend(StorageBackend):
                 "exception_monitor": "### 🚨 异常监控报告",
                 "exception_heal": "### 🔧 异常修复报告",
                 "repo_size": "### 📦 仓库体积监控",
+                "cross_project": "### 🔭 跨项目技术趋势洞察",
             }
             
             for fragment_id, marker in fragment_markers.items():
