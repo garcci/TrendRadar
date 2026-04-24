@@ -51,7 +51,15 @@ class SmartAIClient:
         
         # ⏱️ 频率控制（避免429）
         self.last_gemini_call = 0
-        self.min_interval = 2  # Gemini最小调用间隔2秒
+        self.min_interval = 3  # Gemini最小调用间隔3秒（降低429概率）
+        
+        # 429处理配置
+        self.gemini_rate_limit_config = {
+            "max_retries": 5,           # 最多重试5次
+            "base_wait": 2,             # 基础等待2秒
+            "max_wait": 60,             # 最大等待60秒
+            "cooldown_after_fail": 10   # 失败后冷却10秒
+        }
         
         self._init_providers()
     
@@ -224,17 +232,22 @@ class SmartAIClient:
         
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         
-        # 重试机制（最多3次，遇到429时等待）
-        max_retries = 3
+        # 重试机制（使用配置参数，遇到429时指数退避）
+        config = self.gemini_rate_limit_config
+        max_retries = config["max_retries"]
+        base_wait = config["base_wait"]
+        max_wait = config["max_wait"]
+        
+        last_error = None
         for attempt in range(max_retries):
             try:
                 response = requests.post(url, 
                                         json={"contents": gemini_messages},
                                         timeout=30)
                 
-                # 遇到429时等待后重试
+                # 遇到429时等待后重试（指数退避）
                 if response.status_code == 429:
-                    wait = 2 ** attempt  # 指数退避：1, 2, 4秒
+                    wait = min(base_wait * (2 ** attempt), max_wait)
                     print(f"[SmartAI] Gemini 429，等待 {wait} 秒后重试 ({attempt+1}/{max_retries})")
                     time_module.sleep(wait)
                     continue
@@ -252,14 +265,26 @@ class SmartAIClient:
                     raise Exception(f"Gemini API错误: {result}")
                     
             except requests.exceptions.HTTPError as e:
+                last_error = e
                 if attempt < max_retries - 1:
-                    wait = 2 ** attempt
+                    wait = min(base_wait * (2 ** attempt), max_wait)
                     print(f"[SmartAI] Gemini请求失败，等待 {wait} 秒后重试: {e}")
                     time_module.sleep(wait)
                 else:
-                    raise
+                    break
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    wait = min(base_wait * (2 ** attempt), max_wait)
+                    print(f"[SmartAI] Gemini异常，等待 {wait} 秒后重试: {e}")
+                    time_module.sleep(wait)
+                else:
+                    break
         
-        raise Exception("Gemini在最大重试次数后仍然失败")
+        # 所有重试失败后，冷却并降级
+        print(f"[SmartAI] Gemini在{max_retries}次重试后仍然失败，冷却{config['cooldown_after_fail']}秒后降级到DeepSeek")
+        time_module.sleep(config["cooldown_after_fail"])
+        raise Exception(f"Gemini在最大重试次数后仍然失败: {last_error}")
     
     def _call_deepseek(self, messages, kwargs, start_time, task_type):
         """调用DeepSeek（兜底）"""

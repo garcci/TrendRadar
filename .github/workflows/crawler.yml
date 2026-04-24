@@ -44,7 +44,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write      # 允许自动代码迭代推送变更
   actions: write
 
 jobs:

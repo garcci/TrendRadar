@@ -519,7 +519,7 @@ class AIFilter:
         return results
 
     def _extract_json(self, response: str) -> Optional[str]:
-        """从 AI 响应中提取 JSON 字符串"""
+        """从 AI 响应中提取 JSON 字符串，并尝试修复截断"""
         if not response or not response.strip():
             return None
 
@@ -537,7 +537,66 @@ class AIFilter:
                 json_str = parts[1]
 
         json_str = json_str.strip()
+        
+        # 尝试修复截断的JSON
+        if json_str:
+            json_str = self._fix_truncated_json(json_str)
+        
         return json_str if json_str else None
+    
+    def _fix_truncated_json(self, json_str: str) -> str:
+        """修复截断的JSON字符串"""
+        # 1. 移除尾部的不完整内容（从最后一个完整的JSON结构开始）
+        # 尝试找到最后一个完整的JSON对象/数组
+        
+        # 检查是否以未闭合的字符串结尾
+        # 简单方法：统计引号数量
+        quote_count = json_str.count('"') - json_str.count('\\"')
+        if quote_count % 2 == 1:
+            # 奇数个引号，说明有字符串未闭合
+            # 找到最后一个未配对的引号位置，截断到那里
+            last_quote = json_str.rfind('"')
+            if last_quote > 0:
+                # 截断到最后一个完整字符串之后
+                json_str = json_str[:last_quote]
+                # 找到该字符串开始的位置
+                prev_quote = json_str.rfind('"')
+                if prev_quote >= 0:
+                    # 保留到字符串结束
+                    json_str = json_str[:last_quote + 1]
+        
+        # 2. 修复未闭合的JSON结构
+        # 统计括号
+        open_braces = json_str.count('{') - json_str.count('}')
+        open_brackets = json_str.count('[') - json_str.count(']')
+        
+        # 如果末尾有逗号，移除它
+        json_str = json_str.rstrip().rstrip(',').rstrip()
+        
+        # 添加缺失的闭合括号
+        if open_braces > 0:
+            json_str += '}' * open_braces
+        if open_brackets > 0:
+            json_str += ']' * open_brackets
+        
+        # 3. 如果JSON以对象或数组开始但未结束，尝试截断到最后一个完整的元素
+        try:
+            json.loads(json_str)
+            return json_str  # 解析成功，返回修复后的JSON
+        except json.JSONDecodeError:
+            pass
+        
+        # 4. 如果还是失败，尝试找到最后一个有效的JSON结构
+        # 从末尾开始，逐步截断，直到找到可解析的部分
+        for i in range(len(json_str) - 1, 0, -1):
+            if json_str[i] in ['}', ']']:
+                try:
+                    json.loads(json_str[:i+1])
+                    return json_str[:i+1]
+                except json.JSONDecodeError:
+                    continue
+        
+        return json_str
 
     def _print_formatted_json(self, response: str) -> None:
         """格式化打印 AI 响应中的 JSON，便于 debug 阅读"""

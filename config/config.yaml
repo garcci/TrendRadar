@@ -132,6 +132,12 @@ rss:
     - id: "github-awards"
       name: "GitHub Awards"
       url: "https://github-awards.com/feed"
+      enabled: false                  # [AUTO-DISABLED] SSL证书验证失败，等待替代源
+      max_age_days: 2
+
+    - id: "github-blog"
+      name: "GitHub Blog"
+      url: "https://github.blog/feed/"
       enabled: true
       max_age_days: 2
 
@@ -195,6 +201,13 @@ rss:
     - id: "geekpark"
       name: "极客公园"
       url: "https://www.geekpark.net/rss"
+      enabled: false                  # [AUTO-DISABLED] 连接超时，等待恢复
+      max_age_days: 2
+
+    - id: "tmtpost"
+      name: "钛媒体"
+      url: "https://www.tmtpost.com/feed"
+      enabled: true
       max_age_days: 2
 
     - id: "solidot"
@@ -360,7 +373,7 @@ display:
   # 两者共享此处的平台/RSS 配置，但开关互相独立（可只开 AI 分析、不推送展示）
   standalone:
     platforms: ["zhihu", "wallstreetcn-hot"]     # 热榜平台 ID 列表（如 ["zhihu", "weibo"]）
-    rss_feeds: ["hacker-news", "github-awards", "lobsters", "ai-news", "arxiv-ai", "ruanyifeng", "overreacted", "css-tricks", "product-hunt", "techcrunch", "36kr", "infoq-cn", "yahoo-finance", "geekpark", "solidot", "oschina"]                     # RSS 源 ID 列表
+    rss_feeds: ["hacker-news", "github-blog", "lobsters", "ai-news", "arxiv-ai", "ruanyifeng", "overreacted", "css-tricks", "product-hunt", "techcrunch", "36kr", "infoq-cn", "yahoo-finance", "tmtpost", "solidot", "oschina"]                     # RSS 源 ID 列表
     max_items: 20                     # 每个源最多展示条数（0=不限制）
 
 
