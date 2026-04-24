@@ -1,0 +1,394 @@
+name: Auto Evolution
+
+on:
+  schedule:
+    # 每小时运行一次
+    # 格式: 分 时 日 月 周
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: evolution-${{ github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  evolve:
+    runs-on: ubuntu-latest
+    steps:
+      # ═══════════════════════════════════════════════════════════
+      # 基础设置
+      # ═══════════════════════════════════════════════════════════
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.6.x"
+
+      - name: Install dependencies
+        run: uv sync
+
+      # ═══════════════════════════════════════════════════════════
+      # 🏥 系统健康检查
+      # ═══════════════════════════════════════════════════════════
+      - name: System Health Check
+        run: |
+          echo "🏥 启动系统健康检查..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from evolution.health_check import get_health_report
+          print(get_health_report())
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 🧬 自主进化系统 - Lv26-Lv30
+      # ═══════════════════════════════════════════════════════════
+      - name: Autonomous Evolution
+        run: |
+          echo "🧬 启动自主进化系统..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🧬 自主进化系统 v2.0')
+          print('='*60)
+          
+          # Lv26: 自我观察
+          try:
+              from evolution.self_observer import SelfObserver
+              observer = SelfObserver('.')
+              gaps = observer.identify_capability_gaps()
+              print(f'[自主进化] Lv26 发现{len(gaps)}个能力缺口')
+          except Exception as e:
+              print(f'[自主进化] Lv26 自我观察失败: {e}')
+          
+          # Lv27: 自主设计
+          try:
+              from evolution.self_designer import generate_new_feature_design
+              if gaps:
+                  designs = generate_new_feature_design(gaps)
+                  print(f'[自主进化] Lv27 设计{len(designs)}个新功能')
+          except Exception as e:
+              print(f'[自主进化] Lv27 自主设计失败: {e}')
+          
+          # Lv28: 自主编码
+          try:
+              from evolution.self_coder import generate_feature_code
+              if gaps:
+                  code_results = generate_feature_code(gaps)
+                  print(f'[自主进化] Lv28 生成{len(code_results)}个模块')
+          except Exception as e:
+              print(f'[自主进化] Lv28 自主编码失败: {e}')
+          
+          # Lv29: 自主测试
+          try:
+              from evolution.self_tester import run_auto_tests
+              test_results = run_auto_tests('.')
+              print(f'[自主进化] Lv29 测试完成: {len(test_results)}个')
+          except Exception as e:
+              print(f'[自主进化] Lv29 自主测试失败: {e}')
+          
+          # Lv30: 自主部署决策
+          try:
+              from evolution.self_deployer import make_deploy_decision
+              decision = make_deploy_decision('.')
+              print(f'[自主进化] Lv30 部署决策: {decision}')
+          except Exception as e:
+              print(f'[自主进化] Lv30 自主部署失败: {e}')
+          
+          print('='*60)
+          print('🧬 自主进化完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 🚨 异常干预系统 - Lv33-Lv35
+      # ═══════════════════════════════════════════════════════════
+      - name: Exception Intervention
+        run: |
+          echo "🚨 启动异常干预系统..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🚨 异常干预系统 v2.0')
+          print('='*60)
+          
+          # Lv33: 异常监控
+          try:
+              from evolution.exception_monitor import get_exception_monitor_report
+              report = get_exception_monitor_report()
+              print(report)
+              print('[异常干预] Lv33 异常监控完成')
+          except Exception as e:
+              print(f'[异常干预] Lv33 异常监控失败: {e}')
+          
+          # Lv34: 异常修复
+          try:
+              from evolution.exception_healer import get_heal_report
+              heal_report = get_heal_report()
+              print(heal_report)
+              print('[异常干预] Lv34 异常修复完成')
+          except Exception as e:
+              print(f'[异常干预] Lv34 异常修复失败: {e}')
+          
+          # Lv35: 异常预测
+          try:
+              from evolution.exception_predictor import get_exception_prediction
+              prediction = get_exception_prediction()
+              print(prediction)
+              print('[异常干预] Lv35 异常预测完成')
+          except Exception as e:
+              print(f'[异常干预] Lv35 异常预测失败: {e}')
+          
+          print('='*60)
+          print('🚨 异常干预完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 📦 仓库精简 - Lv36-Lv38
+      # ═══════════════════════════════════════════════════════════
+      - name: Repo Cleanup
+        run: |
+          echo "📦 启动仓库精简系统..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('📦 仓库精简系统 v2.0')
+          print('='*60)
+          
+          # Lv36: 体积监控
+          try:
+              from evolution.repo_size_monitor import get_repo_size_insight
+              size_insight = get_repo_size_insight()
+              print(size_insight)
+              print('[仓库精简] Lv36 体积监控完成')
+          except Exception as e:
+              print(f'[仓库精简] Lv36 体积监控失败: {e}')
+          
+          # Lv37: 数据归档
+          try:
+              from evolution.data_archiver import archive_old_data
+              archive_result = archive_old_data('.')
+              print(archive_result)
+              print('[仓库精简] Lv37 数据归档完成')
+          except Exception as e:
+              print(f'[仓库精简] Lv37 数据归档失败: {e}')
+          
+          # Lv38: 冗余清理
+          try:
+              from evolution.cleanup_manager import cleanup_repo
+              cleanup_result = cleanup_repo('.')
+              print(cleanup_result)
+              print('[仓库精简] Lv38 冗余清理完成')
+          except Exception as e:
+              print(f'[仓库精简] Lv38 冗余清理失败: {e}')
+          
+          print('='*60)
+          print('📦 仓库精简完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 🎯 Prompt进化 - Lv39-Lv41
+      # ═══════════════════════════════════════════════════════════
+      - name: Prompt Evolution
+        run: |
+          echo "🎯 启动Prompt进化..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🎯 Prompt进化系统 v2.0')
+          print('='*60)
+          
+          # Lv39: Prompt效果追踪
+          try:
+              from evolution.prompt_tracker import get_prompt_effectiveness_report
+              report = get_prompt_effectiveness_report()
+              print(report)
+              print('[Prompt进化] Lv39 效果追踪完成')
+          except Exception as e:
+              print(f'[Prompt进化] Lv39 效果追踪失败: {e}')
+          
+          # Lv40: Prompt自动优化
+          try:
+              from evolution.prompt_optimizer import get_prompt_optimization_report
+              report = get_prompt_optimization_report()
+              print(report)
+              print('[Prompt进化] Lv40 自动优化完成')
+          except Exception as e:
+              print(f'[Prompt进化] Lv40 自动优化失败: {e}')
+          
+          # Lv41: Prompt进化引擎
+          try:
+              from evolution.prompt_evolution import get_prompt_evolution_report
+              report = get_prompt_evolution_report()
+              print(report)
+              print('[Prompt进化] Lv41 进化引擎完成')
+          except Exception as e:
+              print(f'[Prompt进化] Lv41 进化引擎失败: {e}')
+          
+          print('='*60)
+          print('🎯 Prompt进化完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 🔭 跨项目学习 - Lv42
+      # ═══════════════════════════════════════════════════════════
+      - name: Cross-Project Learning
+        run: |
+          echo "🔭 启动跨项目学习..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🔭 跨项目学习系统 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.cross_project_learner import CrossProjectLearner
+              learner = CrossProjectLearner('.')
+              trends = learner.learn()
+              
+              analysis = trends.get('analysis', {})
+              print(f'📊 GitHub热门项目: {analysis.get(\"total_projects\", 0)}个')
+              print(f'📊 HN热门话题: {analysis.get(\"total_hn_topics\", 0)}个')
+              
+              insights = analysis.get('insights', [])
+              for i, insight in enumerate(insights[:5], 1):
+                  print(f'  {i}. {insight}')
+              
+              print('[跨项目学习] Lv42 学习完成')
+          except Exception as e:
+              print(f'[跨项目学习] Lv42 失败: {e}')
+          
+          print('='*60)
+          print('🔭 跨项目学习完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 📤 内容分发 - Lv43
+      # ═══════════════════════════════════════════════════════════
+      - name: Content Distribution
+        run: |
+          echo "📤 准备内容分发..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('📤 内容分发系统 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.content_distributor import ContentDistributor
+              distributor = ContentDistributor('.')
+              
+              test_package = distributor.generate_distribution_package(
+                  title='今日科技热点速览',
+                  summary='AI技术持续突破，开源社区活跃',
+                  tags=['AI', '科技', '开源'],
+                  article_url='https://example.com/article'
+              )
+              
+              platforms = test_package.get('platforms', {})
+              for platform, content in platforms.items():
+                  print(f'  📱 {platform}: OK')
+              
+              print(f'[内容分发] Lv43 生成{len(platforms)}个平台内容')
+          except Exception as e:
+              print(f'[内容分发] Lv43 失败: {e}')
+          
+          print('='*60)
+          print('📤 内容分发准备完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 🤖 深度自主编码 - Lv44
+      # ═══════════════════════════════════════════════════════════
+      - name: Deep Self Coding
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          echo "🤖 启动深度自主编码..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🤖 深度自主编码系统 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.deep_self_coder import generate_simple_module
+              
+              result = generate_simple_module(
+                  name='DataVisualizer',
+                  purpose='可视化数据分析结果',
+                  methods=['load data', 'create chart', 'export report']
+              )
+              
+              print(f'  模块: {result.get(\"module_name\", \"unknown\")}')
+              print(f'  有效: {result.get(\"valid\", False)}')
+              print(f'  代码长度: {len(result.get(\"code\", \"\"))}字符')
+              
+              print('[深度编码] Lv44 测试完成')
+          except Exception as e:
+              print(f'[深度编码] Lv44 失败: {e}')
+          
+          print('='*60)
+          print('🤖 深度自主编码完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 🤖 自动代码迭代 - Lv28升级
+      # ═══════════════════════════════════════════════════════════
+      - name: Auto Code Evolution
+        env:
+          GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
+          ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
+          ASTRO_REPO_NAME: ${{ secrets.ASTRO_REPO_NAME }}
+        run: |
+          echo "🤖 启动自动代码迭代系统..."
+          git config --global user.email "trendradar-auto@github.com"
+          git config --global user.name "TrendRadar Auto Evolution"
+          uv run python -c "
+          import os
+          import sys
+          sys.path.insert(0, '.')
+          from evolution.code_evolution import run_auto_evolution
+          
+          token = os.environ.get('GH_MEMORY_TOKEN')
+          owner = os.environ.get('ASTRO_REPO_OWNER', 'garcci')
+          repo = os.environ.get('ASTRO_REPO_NAME', 'Astro')
+          
+          if token:
+              result = run_auto_evolution(owner, repo, token)
+              print(f'自动迭代结果: {result}')
+          else:
+              print('跳过自动迭代：未配置 GH_MEMORY_TOKEN')
+          "
