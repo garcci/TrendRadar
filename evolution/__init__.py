@@ -13,7 +13,7 @@ from .auto_evolution import (
 from .code_evolution import AutoCodeEvolution, run_auto_evolution
 from .prompt_versioning import PromptVersionManager, get_compact_evolution_feedback
 from .diversity_engine import ArticleDiversityEngine, get_diversity_instructions, PerspectiveRotator
-from .smart_scheduler import SmartScheduler, get_smart_schedule_config
+from .smart_scheduler import SmartScheduler
 from .model_router import ModelRouter, get_model_for_task, TaskType
 from .ab_testing import ABTestingFramework, run_ab_test_decision, TestDimension
 from .auto_healing import AutoHealingSystem, handle_error, get_system_health
@@ -40,7 +40,6 @@ __all__ = [
     'get_diversity_instructions',
     'PerspectiveRotator',
     'SmartScheduler',
-    'get_smart_schedule_config',
     'ModelRouter',
     'get_model_for_task',
     'TaskType',
