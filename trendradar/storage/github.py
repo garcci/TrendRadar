@@ -1017,6 +1017,16 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             logger.warning(f"[异常修复] 失败: {e}")
         
+        # 📦 注入仓库体积监控洞察（Lv36）
+        try:
+            from evolution.repo_size_monitor import get_repo_size_insight
+            size_insight = get_repo_size_insight()
+            if size_insight:
+                user_prompt += size_insight
+                logger.info("[体积监控] 已注入体积报告")
+        except Exception as e:
+            logger.warning(f"[体积监控] 失败: {e}")
+        
         user_prompt += """
 
 **⚠️ 重要提醒**：

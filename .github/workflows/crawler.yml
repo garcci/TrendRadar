@@ -347,6 +347,61 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
+      # 📦 仓库精简 - Lv36-Lv38 体积监控/归档/清理
+      # ═══════════════════════════════════════════════════════════
+      - name: Repo Cleanup
+        if: success()
+        run: |
+          echo "📦 启动仓库精简..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('📦 仓库精简系统 v1.0')
+          print('='*60)
+          
+          # Lv36: 体积监控
+          try:
+              from evolution.repo_size_monitor import get_repo_size_report
+              report = get_repo_size_report()
+              print(f'[仓库精简] 当前仓库大小: {report[\"total_size_mb\"]} MB')
+              print(f'[仓库精简] 状态: {report[\"status_text\"]}')
+          except Exception as e:
+              print(f'[仓库精简] Lv36 体积监控失败: {e}')
+          
+          # Lv37: 数据归档
+          try:
+              from evolution.data_archiver import run_auto_archive
+              results = run_auto_archive('.')
+              if results:
+                  from evolution.data_archiver import DataArchiver
+                  archiver = DataArchiver()
+                  print(archiver.generate_archive_report(results))
+              else:
+                  print('[仓库精简] Lv37 无需归档')
+          except Exception as e:
+              print(f'[仓库精简] Lv37 数据归档失败: {e}')
+          
+          # Lv38: 冗余清理
+          try:
+              from evolution.cleanup_manager import run_cleanup
+              results = run_cleanup('.')
+              if results:
+                  from evolution.cleanup_manager import CleanupManager
+                  manager = CleanupManager()
+                  print(manager.generate_cleanup_report(results))
+              else:
+                  print('[仓库精简] Lv38 无需清理')
+          except Exception as e:
+              print(f'[仓库精简] Lv38 冗余清理失败: {e}')
+          
+          print('='*60)
+          print('📦 仓库精简完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 🔄 智能回滚 - 验证变更效果
       # ═══════════════════════════════════════════════════════════
       - name: Smart Rollback

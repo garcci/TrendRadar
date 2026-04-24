@@ -45,5 +45,11 @@ data/temp/
 *.db
 *.sqlite
 
+# Large files that shouldn't be in git
+output/
+_image/
+.trash/
+.archive/
+
 # Keep article history for memory system
 # !data/article_history/
