@@ -1181,6 +1181,21 @@ class GitHubStorageBackend(StorageBackend):
             
             # Extract keywords from title and content (simple extraction)
             import re
+            
+            # 提取纯文本内容（去掉frontmatter）用于生成excerpt
+            # AI返回的内容包含frontmatter(---...---)，需要跳过
+            content_for_excerpt = ai_content
+            if '---' in ai_content:
+                # 跳过frontmatter，取第一个---之后的内容
+                parts = ai_content.split('---', 2)
+                if len(parts) >= 3:
+                    content_for_excerpt = parts[2]
+            
+            # 去掉markdown标记，取纯文本前300字符作为excerpt
+            clean_text = re.sub(r'[#*>`\[\]\(\)!\n\r]', '', content_for_excerpt)
+            clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+            excerpt = clean_text[:300] if len(clean_text) > 300 else clean_text
+            
             keywords = re.findall(r'[\u4e00-\u9fa5]{2,6}', ai_content[:500])  # First 500 chars
             # Filter common words
             stop_words = {'今日', '热点', '分析', '深度', '平台', '趋势'}
@@ -1193,7 +1208,7 @@ class GitHubStorageBackend(StorageBackend):
             metadata = {
                 'date': data.date,
                 'title': title,
-                'excerpt': ai_content[200:400] if len(ai_content) > 400 else '',
+                'excerpt': excerpt,
                 'keywords': keywords,
                 'hot_topics': hot_topics,
                 'platforms': list(data.id_to_name.values()),

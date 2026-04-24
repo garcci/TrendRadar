@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 class GitHubIssuesMemory:
     """使用 GitHub Issues 作为记忆后端"""
     
-    # GitHub Issues 内容长度限制（超过会被截断）
-    MAX_ISSUE_BODY_LENGTH = 60000  # 留一些余量
+    # GitHub Issues 内容长度限制（GitHub API限制约65535字符，留余量）
+    MAX_ISSUE_BODY_LENGTH = 65000  # 留约500字符余量
     
     def __init__(self, repo_owner: str, repo_name: str, token: str):
         """
