@@ -967,6 +967,26 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             logger.warning(f"[实时追踪] 失败: {e}")
         
+        # 📊 注入进化效果评估洞察（Lv31）
+        try:
+            from evolution.evolution_effect_evaluator import get_evolution_effect_insight
+            effect_insight = get_evolution_effect_insight()
+            if effect_insight:
+                user_prompt += effect_insight
+                logger.info("[进化效果] 已注入效果评估洞察")
+        except Exception as e:
+            logger.warning(f"[进化效果] 失败: {e}")
+        
+        # 📡 注入RSS源推荐洞察（Lv32）
+        try:
+            from evolution.rss_recommender import get_rss_recommendation_insight
+            rss_rec_insight = get_rss_recommendation_insight()
+            if rss_rec_insight:
+                user_prompt += rss_rec_insight
+                logger.info("[RSS推荐] 已注入源推荐洞察")
+        except Exception as e:
+            logger.warning(f"[RSS推荐] 失败: {e}")
+        
         user_prompt += """
 
 **⚠️ 重要提醒**：
