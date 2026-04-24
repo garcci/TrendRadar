@@ -231,35 +231,48 @@ class RSSRecommender:
     
     def generate_recommendation_report(self) -> Dict:
         """生成推荐报告"""
-        metrics = self._load_metrics(days=30)
-        existing_sources = self._extract_existing_sources()
-        
-        report = {
-            "timestamp": datetime.now().isoformat(),
-            "analysis_period_days": 30,
-            "existing_sources_count": len(existing_sources),
-            "existing_sources": existing_sources[:10]  # 只显示前10个
-        }
-        
-        # 话题覆盖分析
-        coverage = self.analyze_topic_coverage(metrics)
-        report["topic_coverage"] = coverage
-        
-        # 缺口识别
-        gaps = self.identify_gaps(coverage)
-        report["gaps"] = gaps
-        
-        # 推荐源
-        recommendations = self.generate_recommendations(gaps)
-        report["recommendations"] = recommendations
-        
-        # 总体评估
-        if coverage:
-            avg_coverage = sum(c["coverage_score"] for c in coverage.values()) / len(coverage)
-            report["overall_coverage"] = round(avg_coverage, 1)
-            report["coverage_assessment"] = "良好" if avg_coverage >= 7 else "一般" if avg_coverage >= 5 else "需改进"
-        
-        return report
+        try:
+            metrics = self._load_metrics(days=30)
+            existing_sources = self._extract_existing_sources()
+            
+            report = {
+                "timestamp": datetime.now().isoformat(),
+                "analysis_period_days": 30,
+                "existing_sources_count": len(existing_sources),
+                "existing_sources": existing_sources[:10]  # 只显示前10个
+            }
+            
+            # 话题覆盖分析
+            coverage = self.analyze_topic_coverage(metrics)
+            report["topic_coverage"] = coverage
+            
+            # 缺口识别
+            gaps = self.identify_gaps(coverage)
+            report["gaps"] = gaps
+            
+            # 推荐源
+            recommendations = self.generate_recommendations(gaps)
+            report["recommendations"] = recommendations
+            
+            # 总体评估
+            if coverage and isinstance(coverage, dict):
+                scores = [c.get("coverage_score", 0) for c in coverage.values() if isinstance(c, dict)]
+                if scores:
+                    avg_coverage = sum(scores) / len(scores)
+                    report["overall_coverage"] = round(avg_coverage, 1)
+                    report["coverage_assessment"] = "良好" if avg_coverage >= 7 else "一般" if avg_coverage >= 5 else "需改进"
+            
+            return report
+        except Exception as e:
+            # 发生错误时返回基本报告
+            return {
+                "timestamp": datetime.now().isoformat(),
+                "error": str(e),
+                "existing_sources_count": 0,
+                "topic_coverage": {},
+                "gaps": [],
+                "recommendations": []
+            }
     
     def generate_recommendation_insight(self) -> str:
         """生成推荐洞察（用于Prompt注入）"""
