@@ -523,7 +523,23 @@ class GitHubStorageBackend(StorageBackend):
         date_obj = datetime.strptime(data.date, "%Y-%m-%d") if data.date else datetime.now()
         weekday_cn = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"][date_obj.weekday()]
         
-        system_prompt = """你是一位资深的新闻主编和深度内容创作者，拥有10年以上的媒体经验。你的任务是将热点资讯转化为一篇**有深度、有洞察、有价值**的专业文章。
+        system_prompt = """你是一位资深的新闻主编和深度内容创作者，拥有10年以上的媒体经验。你的任务是将热点资讯转化为一篇**有深度、有洞察、有价值**的专业文章。"""
+        
+        # 🧬 动态Prompt优化 - 根据历史评分自动调整
+        try:
+            from evolution.prompt_optimizer import get_optimized_prompt_params
+            system_prompt, optimized_temp, optimized_tokens = get_optimized_prompt_params(
+                system_prompt, 
+                base_temp=optimized_params['temperature'],
+                base_tokens=optimized_params['max_tokens']
+            )
+            # 更新参数
+            optimized_params['temperature'] = optimized_temp
+            optimized_params['max_tokens'] = optimized_tokens
+        except Exception as e:
+            logger.warning(f"Prompt优化失败，使用默认参数: {e}")
+        
+        system_prompt += """
 
 ## 核心要求
 
@@ -749,6 +765,19 @@ class GitHubStorageBackend(StorageBackend):
 {compressed_news_text}
 
 {context_summary}
+"""
+        
+        # 📊 数据增强 - 从RSS中提取数据点
+        try:
+            from evolution.data_enhancer import get_data_enhancement
+            data_enhancement = get_data_enhancement(compressed_news_text)
+            if data_enhancement:
+                user_prompt += data_enhancement
+                logger.info("[数据增强] 已注入数据点提示")
+        except Exception as e:
+            logger.warning(f"[数据增强] 失败: {e}")
+        
+        user_prompt += """
 
 **⚠️ 重要提醒**：
 1. **你是主编，你有决策权**：选择今日最有价值的科技话题，用你最擅长的角度分析
@@ -801,6 +830,19 @@ class GitHubStorageBackend(StorageBackend):
         # Estimate token usage (rough estimate: 1 Chinese char ≈ 1.5 tokens)
         estimated_tokens = int(len(ai_content) * 1.5 + len(str(messages)) * 0.5)
         logger.info(f"AI generated {len(ai_content)} characters (~{estimated_tokens} tokens)")
+        
+        # 🔬 科技内容检测
+        try:
+            from evolution.tech_content_guard import check_tech_content
+            is_pass, tech_message = check_tech_content(ai_content, min_ratio=0.7)
+            if is_pass:
+                logger.info(f"[科技检测] {tech_message}")
+            else:
+                logger.warning(f"[科技检测] {tech_message[:100]}...")
+                # 将科技内容不足的信息记录到metrics中，供Prompt优化器使用
+                # 不强制重写以避免额外API成本
+        except Exception as e:
+            logger.warning(f"[科技检测] 检测失败: {e}")
         
         # Cache the response
         cost_optimizer.cache_response(cache_key, ai_content, estimated_tokens)
