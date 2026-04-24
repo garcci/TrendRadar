@@ -929,6 +929,44 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             logger.warning(f"[情感分析] 失败: {e}")
         
+        # 🕸️ 注入知识图谱洞察（Lv23）
+        try:
+            from evolution.knowledge_graph import get_knowledge_graph_insight
+            # 从热点标题构建临时内容用于实体识别
+            temp_content = "\n".join([
+                getattr(item, 'title', '') 
+                for items_list in data.items.values() 
+                for item in items_list
+            ])
+            if temp_content:
+                kg_insight = get_knowledge_graph_insight(temp_content)
+                if kg_insight:
+                    user_prompt += kg_insight
+                    logger.info("[知识图谱] 已注入实体关系洞察")
+        except Exception as e:
+            logger.warning(f"[知识图谱] 失败: {e}")
+        
+        # 👤 注入读者画像洞察（Lv24）
+        try:
+            from evolution.reader_analytics import get_reader_insight
+            reader_insight = get_reader_insight()
+            if reader_insight:
+                user_prompt += reader_insight
+                logger.info("[读者画像] 已注入读者偏好洞察")
+        except Exception as e:
+            logger.warning(f"[读者画像] 失败: {e}")
+        
+        # ⚡ 注入实时热点追踪洞察（Lv25）
+        try:
+            from evolution.retime_tracker import get_urgency_insight
+            if all_titles:
+                urgency_insight = get_urgency_insight(all_titles)
+                if urgency_insight:
+                    user_prompt += urgency_insight
+                    logger.info("[实时追踪] 已注入紧急度洞察")
+        except Exception as e:
+            logger.warning(f"[实时追踪] 失败: {e}")
+        
         user_prompt += """
 
 **⚠️ 重要提醒**：

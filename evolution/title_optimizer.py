@@ -83,29 +83,54 @@ class TitleOptimizer:
     
     def extract_topics_from_content(self, content: str) -> List[str]:
         """从内容中提取关键话题"""
-        # 提取加粗文本（通常是重要概念）
+        topics = []
+        
+        # 移除frontmatter
+        if content.startswith("---"):
+            parts = content.split("---", 2)
+            if len(parts) >= 3:
+                content = parts[2]
+        
+        # 1. 优先从科技关键词库匹配
+        tech_keywords = [
+            "AI", "人工智能", "大模型", "GPT", "芯片", "GPU", "半导体", "开源",
+            "云计算", "区块链", "量子计算", "自动驾驶", "机器人", "5G", "6G",
+            "新能源", "电动车", "脑机接口", "物联网", "元宇宙", "VR", "AR",
+            "英伟达", "NVIDIA", "AMD", "Intel", "OpenAI", "Google", "微软",
+            "特斯拉", "苹果", "华为", "小米", "三星", "台积电"
+        ]
+        for kw in tech_keywords:
+            if kw in content and kw not in topics:
+                topics.append(kw)
+        
+        # 2. 从加粗文本提取（过滤掉常见非话题词）
         bold_texts = re.findall(r'\*\*([^*]{2,20})\*\*', content)
+        skip_words = {'今日', '热点', '分析', '深度', '平台', '趋势', '文章', '内容',
+                     '新闻', '报告', '总结', '概述', '引言', '结语', '建议',
+                     '注意', '重要', '必须', '不要', '可以', '需要'}
+        for text in bold_texts:
+            if text not in skip_words and len(text) >= 2 and text not in topics:
+                topics.append(text)
         
-        # 提取标题
+        # 3. 从标题提取
         headings = re.findall(r'^#{2,3}\s+(.+)$', content, re.MULTILINE)
+        for h in headings:
+            # 清理markdown标记
+            clean = re.sub(r'[#*`]', '', h).strip()
+            if clean and clean not in skip_words and clean not in topics:
+                topics.append(clean)
         
-        # 提取关键词（从tags）
+        # 4. 从tags提取
         tags_match = re.search(r'tags:\s*\[([^\]]+)\]', content)
-        tags = []
         if tags_match:
             tags = [t.strip().strip('"').strip("'") for t in tags_match.group(1).split(",")]
+            for tag in tags:
+                if tag not in topics and tag not in skip_words:
+                    topics.append(tag)
         
-        # 合并去重
-        all_topics = bold_texts + headings + tags
-        seen = set()
-        unique = []
-        for t in all_topics:
-            key = t[:10]
-            if key not in seen and len(t) >= 2:
-                seen.add(key)
-                unique.append(t)
-        
-        return unique[:10]
+        # 过滤和排序
+        filtered = [t for t in topics if len(t) >= 2 and len(t) <= 20]
+        return filtered[:10]
     
     def generate_candidate_titles(self, content: str, date_str: str = "") -> List[str]:
         """
