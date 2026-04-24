@@ -203,6 +203,16 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             logger.warning(f"[智能摘要] 生成失败: {e}")
         
+        # 📝 标题优化 - 自动生成最佳标题（Lv22进化）
+        try:
+            from evolution.title_optimizer import optimize_article_title, replace_article_title
+            new_title = optimize_article_title(markdown_content)
+            if new_title and "TrendRadar Report" not in new_title:
+                markdown_content = replace_article_title(markdown_content, new_title)
+                logger.info(f"[标题优化] 已优化标题为: {new_title}")
+        except Exception as e:
+            logger.warning(f"[标题优化] 失败: {e}")
+        
         # Push to GitHub
         try:
             self._push_to_github(filepath, markdown_content, f"feat: add TrendRadar report - {article_title}")
@@ -899,6 +909,25 @@ class GitHubStorageBackend(StorageBackend):
                 logger.info("[趋势预测] 已注入预测洞察")
         except Exception as e:
             logger.warning(f"[趋势预测] 失败: {e}")
+        
+        # 😊😠 注入情感分析洞察
+        try:
+            from evolution.emotion_analyzer import get_emotion_insight
+            # 收集所有热点标题
+            all_titles = []
+            for items_list in data.items.values():
+                for item in items_list:
+                    title = getattr(item, 'title', '')
+                    if title:
+                        all_titles.append(title)
+            
+            if all_titles:
+                emotion_insight = get_emotion_insight(all_titles)
+                if emotion_insight:
+                    user_prompt += emotion_insight
+                    logger.info("[情感分析] 已注入情感洞察")
+        except Exception as e:
+            logger.warning(f"[情感分析] 失败: {e}")
         
         user_prompt += """
 
