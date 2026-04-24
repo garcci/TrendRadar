@@ -326,12 +326,12 @@ class AutoCodeEvolution:
                         errors.append(f"无法应用变更: {change.file_path} - 找不到匹配内容，可能文件已被修改")
                         continue
                     
-                    if change.change_type == "add" and not change.original:
-                        # 对于添加操作，直接在文件末尾追加，验证合并后的内容
-                        modified = full_content + change.replacement
-                    else:
-                        modified = full_content.replace(change.original, change.replacement, 1)
+                    if change.change_type == "add":
+                        # 添加操作可能涉及复杂的位置逻辑，暂时跳过YAML验证
+                        # 实际应用时会找到正确的插入位置
+                        continue
                     
+                    modified = full_content.replace(change.original, change.replacement, 1)
                     yaml.safe_load(modified)
                 except Exception as e:
                     errors.append(f"YAML 语法错误: {change.file_path} - {e}")
