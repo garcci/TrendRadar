@@ -201,15 +201,25 @@ class AutoCodeEvolution:
         crawl_times = [log.get('crawl_time', 0) for log in system_logs if 'crawl_time' in log]
         if crawl_times and sum(crawl_times) / len(crawl_times) > 90:
             # 平均抓取时间超过90秒，建议减少平台或增加超时
-            changes.append(CodeChange(
-                file_path="config/config.yaml",
-                change_type="replace",
-                original="    max_age_days: 3",
-                replacement="    max_age_days: 2  # [AUTO] 减少过滤天数以加速处理",
-                reason="平均抓取时间超过90秒，减少RSS新鲜度过滤以优化性能",
-                confidence=0.7,
-                requires_approval=True
-            ))
+            # 尝试多种缩进格式匹配
+            possible_originals = [
+                "    max_age_days: 3",
+                "      max_age_days: 3",
+                "max_age_days: 3"
+            ]
+            
+            for original in possible_originals:
+                if original in self._get_file_content("config/config.yaml"):
+                    changes.append(CodeChange(
+                        file_path="config/config.yaml",
+                        change_type="replace",
+                        original=original,
+                        replacement=original.replace("3", "2") + "  # [AUTO] 减少过滤天数以加速处理",
+                        reason="平均抓取时间超过90秒，减少RSS新鲜度过滤以优化性能",
+                        confidence=0.7,
+                        requires_approval=True
+                    ))
+                    break
         
         return changes
     
@@ -310,6 +320,11 @@ class AutoCodeEvolution:
                     import yaml
                     # 尝试解析修改后的内容
                     full_content = self._get_file_content(change.file_path)
+                    
+                    # 检查 original 是否存在于文件中
+                    if change.change_type == "replace" and change.original not in full_content:
+                        errors.append(f"无法应用变更: {change.file_path} - 找不到匹配内容，可能文件已被修改")
+                        continue
                     
                     if change.change_type == "add" and not change.original:
                         # 对于添加操作，直接在文件末尾追加，验证合并后的内容
