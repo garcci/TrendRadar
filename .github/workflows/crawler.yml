@@ -264,6 +264,9 @@ jobs:
           ASTRO_REPO_NAME: ${{ secrets.ASTRO_REPO_NAME }}
         run: |
           echo "🤖 启动自动代码迭代系统..."
+          # 配置Git身份（自动迭代需要提交代码）
+          git config --global user.email "trendradar-auto@github.com"
+          git config --global user.name "TrendRadar Auto Evolution"
           uv run python -c "
           import os
           import sys
