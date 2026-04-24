@@ -1,239 +1,257 @@
 # -*- coding: utf-8 -*-
 """
-智能调度系统 - 根据质量动态调整生成策略
+智能调度系统 - 根据内容质量动态调整发布策略
 
-问题：
-1. 每天固定生成文章，但有时没有好内容
-2. Token预算固定，无法根据质量调整
-3. 文章质量波动时缺乏自适应机制
+核心理念：
+1. 不是所有日子都值得发布文章
+2. 低质量内容会损害品牌价值
+3. 根据数据质量智能决策：发布/草稿/跳过
 
-解决方案：
-1. 质量预测 - 根据热点数据预测文章质量
-2. 动态预算 - 质量预期高时增加投入，低时减少
-3. 智能跳过 - 没有好内容时不硬写
-4. 补偿机制 - 跳过后在有好内容时加倍投入
+决策维度：
+- 热点数量：太少则跳过
+- 科技占比：太低则跳过或草稿
+- RSS健康度：太多失效则降低期望
+- 历史评分趋势：连续低分则跳过
+
+调度策略：
+- publish: 生成并发布（高质量日）
+- draft: 生成但不发布（中等质量日）
+- skip: 跳过生成（低质量日）
 """
 
 import json
+import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass
 
 
-@dataclass
-class ScheduleDecision:
-    """调度决策"""
-    should_generate: bool
-    reason: str
-    token_budget: int
-    temperature: float
-    max_tokens: int
-    expected_quality: float
-    confidence: float
+class ContentQualityEvaluator:
+    """内容质量评估器"""
+    
+    def __init__(self, trendradar_path: str = "."):
+        self.trendradar_path = trendradar_path
+        self.metrics_file = f"{trendradar_path}/evolution/article_metrics.json"
+        self.rss_file = f"{trendradar_path}/evolution/rss_health.json"
+    
+    def evaluate_daily_data(self, news_items_count: int, tech_items_count: int,
+                           rss_success_rate: float) -> Dict:
+        """
+        评估当日数据质量
+        
+        Args:
+            news_items_count: 总热点数
+            tech_items_count: 科技热点数
+            rss_success_rate: RSS源成功率
+            
+        返回: 质量评估结果
+        """
+        scores = {}
+        issues = []
+        
+        # 1. 数量评分 (0-3分)
+        if news_items_count >= 100:
+            scores["quantity"] = 3
+        elif news_items_count >= 50:
+            scores["quantity"] = 2
+        elif news_items_count >= 20:
+            scores["quantity"] = 1
+        else:
+            scores["quantity"] = 0
+            issues.append(f"热点数量不足: {news_items_count}条（需≥20）")
+        
+        # 2. 科技占比评分 (0-3分)
+        tech_ratio = tech_items_count / max(news_items_count, 1)
+        if tech_ratio >= 0.5:
+            scores["tech_ratio"] = 3
+        elif tech_ratio >= 0.3:
+            scores["tech_ratio"] = 2
+        elif tech_ratio >= 0.15:
+            scores["tech_ratio"] = 1
+        else:
+            scores["tech_ratio"] = 0
+            issues.append(f"科技热点占比过低: {tech_ratio*100:.0f}%（需≥15%）")
+        
+        # 3. RSS健康度评分 (0-2分)
+        if rss_success_rate >= 0.8:
+            scores["rss_health"] = 2
+        elif rss_success_rate >= 0.5:
+            scores["rss_health"] = 1
+        else:
+            scores["rss_health"] = 0
+            issues.append(f"RSS源健康度差: {rss_success_rate*100:.0f}%")
+        
+        # 4. 历史趋势评分 (0-2分)
+        trend_score = self._evaluate_history_trend()
+        scores["history_trend"] = trend_score
+        if trend_score == 0:
+            issues.append("近期文章评分持续偏低")
+        
+        total_score = sum(scores.values())
+        
+        return {
+            "total_score": total_score,
+            "max_score": 10,
+            "scores": scores,
+            "issues": issues,
+            "tech_ratio": tech_ratio,
+            "rss_success_rate": rss_success_rate
+        }
+    
+    def _evaluate_history_trend(self) -> int:
+        """评估历史评分趋势"""
+        if not os.path.exists(self.metrics_file):
+            return 2  # 无历史数据，默认给满分
+        
+        try:
+            with open(self.metrics_file, 'r') as f:
+                metrics = json.load(f)
+            
+            if len(metrics) < 3:
+                return 2
+            
+            # 取最近3篇评分
+            recent_scores = [m.get("overall_score", 7) for m in metrics[-3:]]
+            avg_score = sum(recent_scores) / len(recent_scores)
+            
+            if avg_score >= 7:
+                return 2
+            elif avg_score >= 5.5:
+                return 1
+            else:
+                return 0
+        except Exception:
+            return 2
 
 
 class SmartScheduler:
     """智能调度器"""
     
+    # 调度决策阈值
+    THRESHOLDS = {
+        "publish": 7,   # ≥7分：发布
+        "draft": 4,     # 4-6分：草稿
+        "skip": 0       # <4分：跳过
+    }
+    
     def __init__(self, trendradar_path: str = "."):
         self.trendradar_path = trendradar_path
-        self.metrics_file = f"{trendradar_path}/evolution/metrics_history.json"
-        
-        # 默认配置
-        self.default_token_budget = 200000  # 每日默认预算
-        self.min_token_budget = 50000  # 最低预算
-        self.max_token_budget = 500000  # 最高预算
-        self.quality_threshold = 6.0  # 质量阈值，低于此建议跳过
-        self.skip_cooldown_days = 2  # 跳过后的冷却期
+        self.evaluator = ContentQualityEvaluator(trendradar_path)
+        self.decision_log = f"{trendradar_path}/evolution/scheduler_decisions.json"
     
-    def make_decision(self, hot_topics: List[str], rss_count: int) -> ScheduleDecision:
+    def make_decision(self, news_items_count: int = 0, tech_items_count: int = 0,
+                     rss_success_rate: float = 1.0) -> Dict:
         """
-        做出生成决策
+        做出调度决策
         
-        考虑因素：
-        1. 最近文章质量趋势
-        2. 今日热点数量和质量
-        3. RSS数据丰富度
-        4. 历史跳过记录
+        返回: {
+            "action": "publish|draft|skip",
+            "score": 总分,
+            "reason": 决策原因,
+            "issues": 发现的问题,
+            "suggestion": 建议
+        }
         """
-        # 加载历史指标
-        metrics = self._load_recent_metrics(14)
-        
-        if not metrics:
-            # 没有历史数据，使用默认配置
-            return ScheduleDecision(
-                should_generate=True,
-                reason="无历史数据，使用默认配置生成",
-                token_budget=self.default_token_budget,
-                temperature=0.7,
-                max_tokens=4000,
-                expected_quality=7.0,
-                confidence=0.5
-            )
-        
-        # 计算质量趋势
-        recent_scores = [m.get('overall_score', 0) for m in metrics[-7:]]
-        avg_quality = sum(recent_scores) / len(recent_scores) if recent_scores else 7.0
-        
-        # 检测下降趋势
-        declining = False
-        if len(recent_scores) >= 3:
-            declining = all(recent_scores[i] >= recent_scores[i+1] for i in range(len(recent_scores)-1))
-        
-        # 计算今日内容质量预期
-        content_score = self._evaluate_content_quality(hot_topics, rss_count)
-        
-        # 检查最近是否跳过过
-        recent_skips = self._count_recent_skips(metrics)
-        
-        # 决策逻辑
-        if content_score < 3.0 and avg_quality < 6.5:
-            # 内容少且质量差，建议跳过
-            return ScheduleDecision(
-                should_generate=False,
-                reason=f"今日内容质量预期低({content_score:.1f})，且近期平均质量({avg_quality:.1f})不高，建议跳过",
-                token_budget=0,
-                temperature=0.7,
-                max_tokens=0,
-                expected_quality=content_score,
-                confidence=0.7
-            )
-        
-        if declining and avg_quality < 6.0:
-            # 质量持续下降，保守策略
-            return ScheduleDecision(
-                should_generate=True,
-                reason=f"质量持续下降，降低预算保守生成",
-                token_budget=int(self.default_token_budget * 0.6),
-                temperature=0.8,  # 增加随机性
-                max_tokens=3500,
-                expected_quality=avg_quality * 0.9,
-                confidence=0.6
-            )
-        
-        if content_score > 7.0 and avg_quality > 7.5:
-            # 内容好且历史质量高，增加投入
-            return ScheduleDecision(
-                should_generate=True,
-                reason=f"内容质量预期高({content_score:.1f})，增加预算深度生成",
-                token_budget=int(self.default_token_budget * 1.5),
-                temperature=0.6,  # 更稳定
-                max_tokens=5000,
-                expected_quality=min(9.0, avg_quality * 1.1),
-                confidence=0.8
-            )
-        
-        if recent_skips >= 2:
-            # 最近跳过多，补偿性生成
-            return ScheduleDecision(
-                should_generate=True,
-                reason=f"已连续跳过{recent_skips}天，补偿性生成",
-                token_budget=int(self.default_token_budget * 1.3),
-                temperature=0.7,
-                max_tokens=4500,
-                expected_quality=avg_quality,
-                confidence=0.6
-            )
-        
-        # 默认决策
-        return ScheduleDecision(
-            should_generate=True,
-            reason=f"标准生成 (内容质量: {content_score:.1f}, 近期平均: {avg_quality:.1f})",
-            token_budget=self.default_token_budget,
-            temperature=0.7,
-            max_tokens=4000,
-            expected_quality=avg_quality,
-            confidence=0.6
+        evaluation = self.evaluator.evaluate_daily_data(
+            news_items_count, tech_items_count, rss_success_rate
         )
-    
-    def get_budget_adjustment(self, actual_quality: float, expected_quality: float) -> str:
-        """
-        根据实际质量调整未来预算
         
-        Returns:
-            调整建议
-        """
-        ratio = actual_quality / expected_quality if expected_quality > 0 else 1.0
+        score = evaluation["total_score"]
+        issues = evaluation["issues"]
         
-        if ratio > 1.2:
-            return "实际质量超预期，下次可适当增加预算"
-        elif ratio < 0.8:
-            return "实际质量低于预期，建议优化Prompt或减少输入噪声"
+        # 做出决策
+        if score >= self.THRESHOLDS["publish"]:
+            action = "publish"
+            reason = f"数据质量优秀 ({score}/10)，建议发布"
+            suggestion = "正常生成并发布文章"
+        elif score >= self.THRESHOLDS["draft"]:
+            action = "draft"
+            reason = f"数据质量一般 ({score}/10)，建议保存草稿"
+            suggestion = "生成文章但不发布，保存到drafts目录"
         else:
-            return "质量符合预期，保持当前策略"
+            action = "skip"
+            reason = f"数据质量不足 ({score}/10)，建议跳过"
+            suggestion = "跳过今日生成，等待更好的热点数据"
+        
+        decision = {
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "action": action,
+            "score": score,
+            "reason": reason,
+            "issues": issues,
+            "suggestion": suggestion,
+            "metrics": {
+                "news_count": news_items_count,
+                "tech_count": tech_items_count,
+                "tech_ratio": evaluation["tech_ratio"],
+                "rss_success_rate": evaluation["rss_success_rate"]
+            }
+        }
+        
+        # 记录决策
+        self._log_decision(decision)
+        
+        return decision
     
-    def _evaluate_content_quality(self, hot_topics: List[str], rss_count: int) -> float:
-        """
-        评估今日内容质量预期
+    def _log_decision(self, decision: Dict):
+        """记录调度决策"""
+        decisions = []
+        if os.path.exists(self.decision_log):
+            with open(self.decision_log, 'r') as f:
+                decisions = json.load(f)
         
-        基于：
-        1. 热点数量
-        2. RSS数据量
-        3. 科技内容关键词密度
-        """
-        score = 5.0  # 基础分
+        decisions.append(decision)
         
-        # 热点加分
-        score += min(len(hot_topics) * 0.3, 2.0)
+        # 只保留最近30天
+        cutoff = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+        decisions = [d for d in decisions if d["date"] >= cutoff]
         
-        # RSS加分
-        score += min(rss_count * 0.1, 2.0)
-        
-        # 科技关键词检测
-        tech_keywords = ['AI', '人工智能', '芯片', '开源', '算法', '模型', 'GPT', '科技']
-        tech_count = sum(1 for topic in hot_topics for kw in tech_keywords if kw in topic)
-        score += min(tech_count * 0.3, 2.0)
-        
-        return min(score, 10.0)
+        with open(self.decision_log, 'w') as f:
+            json.dump(decisions, f, ensure_ascii=False, indent=2)
     
-    def _load_recent_metrics(self, days: int) -> List[Dict]:
-        """加载最近指标"""
-        try:
-            import os
-            if not os.path.exists(self.metrics_file):
-                return []
-            
-            with open(self.metrics_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            cutoff = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
-            return [d for d in data if d.get('date', '') >= cutoff]
-        except Exception:
-            return []
-    
-    def _count_recent_skips(self, metrics: List[Dict]) -> int:
-        """计算最近跳过的天数"""
-        # 如果metrics中没有记录，说明那天可能跳过了
-        # 简化处理：检查最近7天中有多少天有记录
-        recent_dates = set(m['date'] for m in metrics[-7:])
+    def get_schedule_stats(self) -> Dict:
+        """获取调度统计"""
+        if not os.path.exists(self.decision_log):
+            return {"total": 0, "publish": 0, "draft": 0, "skip": 0}
         
-        # 检查最近7天
-        skipped = 0
-        for i in range(7):
-            date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
-            if date not in recent_dates:
-                skipped += 1
+        with open(self.decision_log, 'r') as f:
+            decisions = json.load(f)
         
-        return skipped
+        stats = {
+            "total": len(decisions),
+            "publish": len([d for d in decisions if d["action"] == "publish"]),
+            "draft": len([d for d in decisions if d["action"] == "draft"]),
+            "skip": len([d for d in decisions if d["action"] == "skip"])
+        }
+        
+        return stats
 
 
 # 便捷函数
-def get_smart_schedule_config(trendradar_path: str, hot_topics: List[str], 
-                              rss_count: int) -> Dict:
+def should_publish_today(news_count: int = 0, tech_count: int = 0,
+                        rss_rate: float = 1.0, trendradar_path: str = ".") -> Tuple[bool, str]:
     """
-    获取智能调度配置
+    判断是否应该在今日发布文章
     
-    这是智能调度系统的入口点
+    返回: (是否发布, 原因)
     """
     scheduler = SmartScheduler(trendradar_path)
-    decision = scheduler.make_decision(hot_topics, rss_count)
+    decision = scheduler.make_decision(news_count, tech_count, rss_rate)
     
-    return {
-        'should_generate': decision.should_generate,
-        'reason': decision.reason,
-        'token_budget': decision.token_budget,
-        'temperature': decision.temperature,
-        'max_tokens': decision.max_tokens,
-        'expected_quality': decision.expected_quality,
-        'confidence': decision.confidence
-    }
+    return decision["action"] == "publish", decision["reason"]
+
+
+if __name__ == "__main__":
+    # 测试
+    scheduler = SmartScheduler()
+    
+    # 场景1: 高质量日
+    d1 = scheduler.make_decision(150, 80, 0.9)
+    print(f"高质量日: {d1['action']} - {d1['reason']}")
+    
+    # 场景2: 低质量日
+    d2 = scheduler.make_decision(10, 1, 0.3)
+    print(f"低质量日: {d2['action']} - {d2['reason']}")
+    
+    # 场景3: 一般日
+    d3 = scheduler.make_decision(50, 15, 0.7)
+    print(f"一般日: {d3['action']} - {d3['reason']}")

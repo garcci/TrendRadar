@@ -104,6 +104,56 @@ class GitHubStorageBackend(StorageBackend):
         timestamp = int(datetime.now(timezone.utc).timestamp())
         date_str = data.date or datetime.now().strftime("%Y-%m-%d")
         
+        # ═══════════════════════════════════════════════════════════
+        # 🧠 智能调度决策 - Lv17 进化
+        # ═══════════════════════════════════════════════════════════
+        try:
+            from evolution.smart_scheduler import SmartScheduler
+            
+            # 统计热点数据
+            total_items = sum(len(items) for items in data.items.values())
+            
+            # 简单统计科技热点（基于标题关键词）
+            tech_keywords = ['AI', '人工智能', '芯片', '开源', 'GitHub', '模型', '训练', '算法', 
+                           '框架', '云', '数据', '安全', '区块链', '量子', '机器人', '自动驾驶',
+                           '半导体', 'GPU', '大模型', 'LLM', 'Transformer', '神经网络']
+            tech_count = 0
+            for items in data.items.values():
+                for item in items:
+                    title = getattr(item, 'title', '') or ''
+                    if any(kw in title for kw in tech_keywords):
+                        tech_count += 1
+            
+            scheduler = SmartScheduler()
+            decision = scheduler.make_decision(
+                news_items_count=total_items,
+                tech_items_count=tech_count,
+                rss_success_rate=0.8
+            )
+            
+            print(f"\n{'='*50}")
+            print(f"🧠 智能调度决策")
+            print(f"{'='*50}")
+            print(f"决策: {decision['action'].upper()}")
+            print(f"评分: {decision['score']}/10")
+            print(f"原因: {decision['reason']}")
+            if decision['issues']:
+                print(f"问题: {'; '.join(decision['issues'])}")
+            print(f"{'='*50}\n")
+            
+            if decision['action'] == 'skip':
+                logger.warning(f"[智能调度] 跳过今日生成: {decision['reason']}")
+                return False
+            elif decision['action'] == 'draft':
+                logger.info(f"[智能调度] 生成草稿模式: {decision['reason']}")
+                is_draft = True
+            else:
+                is_draft = False
+                
+        except Exception as e:
+            logger.warning(f"[智能调度] 决策失败，使用默认策略: {e}")
+            is_draft = False
+        
         # Check if we already generated an article today
         # If yes, skip to avoid duplicates (simple and reliable)
         # NOTE: Temporarily disabled for testing
@@ -127,6 +177,21 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             logger.warning(f"AI generation failed, falling back to template: {e}")
             markdown_content = self._generate_markdown(data, article_title)
+        
+        # 📝 草稿模式处理 - 将draft设为true
+        if is_draft:
+            if "draft: false" in markdown_content:
+                markdown_content = markdown_content.replace("draft: false", "draft: true")
+                logger.info("[智能调度] 文章已标记为草稿 (draft: true)")
+            elif "---" in markdown_content:
+                # 在frontmatter中添加draft字段
+                parts = markdown_content.split("---", 2)
+                if len(parts) >= 3:
+                    frontmatter = parts[1]
+                    if "draft:" not in frontmatter:
+                        frontmatter += "\ndraft: true"
+                        markdown_content = f"---{frontmatter}---{parts[2]}"
+                        logger.info("[智能调度] 文章已标记为草稿 (draft: true)")
         
         # Push to GitHub
         try:
@@ -407,6 +472,39 @@ class GitHubStorageBackend(StorageBackend):
             total_count += len(items_list)
         
         news_text = "\n".join(news_summary)
+        
+        # ═══════════════════════════════════════════════════════════
+        # 🔗 跨源关联分析 - Lv18 进化
+        # ═══════════════════════════════════════════════════════════
+        cross_source_insights = ""
+        try:
+            from evolution.cross_source_analyzer import CrossSourceAnalyzer
+            
+            # 构建平台items数据
+            platform_items = {}
+            for source_id, items_list in data.items.items():
+                source_name = data.id_to_name.get(source_id, source_id)
+                platform_items[source_name] = []
+                for item in items_list[:10]:  # 每个平台取前10条
+                    platform_items[source_name].append({
+                        "title": getattr(item, 'title', ''),
+                        "excerpt": getattr(item, 'excerpt', '') or getattr(item, 'title', ''),
+                        "url": getattr(item, 'url', '')
+                    })
+            
+            analyzer = CrossSourceAnalyzer()
+            clusters = analyzer.find_topic_clusters(platform_items)
+            
+            if clusters:
+                cross_source_insights = analyzer.generate_cross_source_insights(clusters)
+                logger.info(f"[跨源关联] 发现 {len(clusters)} 个跨平台话题簇")
+                for c in clusters[:3]:
+                    logger.info(f"  - {c['representative_title'][:40]}... ({c['size']}条, 平台: {', '.join(c['platforms'])})")
+            else:
+                logger.info("[跨源关联] 未发现跨平台关联话题")
+                
+        except Exception as e:
+            logger.warning(f"[跨源关联] 分析失败: {e}")
         
         # Get historical context for continuity
         try:
@@ -776,6 +874,11 @@ class GitHubStorageBackend(StorageBackend):
                 logger.info("[数据增强] 已注入数据点提示")
         except Exception as e:
             logger.warning(f"[数据增强] 失败: {e}")
+        
+        # 🔗 注入跨源关联洞察
+        if cross_source_insights:
+            user_prompt += cross_source_insights
+            logger.info("[跨源关联] 已注入跨平台话题分析")
         
         user_prompt += """
 
