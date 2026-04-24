@@ -122,13 +122,16 @@ class RSSRecommender:
             with open(self.config_file, 'r') as f:
                 content = f.read()
             
-            # 简单提取已启用的RSS源ID
+            # 简单提取所有name字段（已启用的源）
             import re
-            matches = re.findall(r'- id:\s*"([^"]+)"\s*\n\s*name:\s*"([^"]+)"\s*\n\s*url:\s*"([^"]+)"\s*\n\s*enabled:\s*(true|false)', content)
+            # 匹配 name: "xxx" 的行
+            name_matches = re.findall(r'^\s*name:\s*"([^"]+)"', content, re.MULTILINE)
             
-            for match in matches:
-                source_id, name, url, enabled = match
-                if enabled == "true":
+            # 过滤掉平台名称，只保留RSS源
+            # 简单判断：包含"网"、"报"、"志"、"Blog"、"RSS"的通常是RSS源
+            rss_keywords = ['网', '报', '志', 'Blog', 'RSS', 'Feed', 'News', 'Times', 'Post']
+            for name in name_matches:
+                if any(kw in name for kw in rss_keywords):
                     existing.append(name)
         except Exception:
             pass
