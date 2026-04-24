@@ -987,6 +987,36 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             logger.warning(f"[RSS推荐] 失败: {e}")
         
+        # 🔮 注入异常预测洞察（Lv35）
+        try:
+            from evolution.exception_predictor import get_exception_prediction
+            prediction_insight = get_exception_prediction()
+            if prediction_insight:
+                user_prompt += prediction_insight
+                logger.info("[异常预测] 已注入预防建议")
+        except Exception as e:
+            logger.warning(f"[异常预测] 失败: {e}")
+        
+        # 🚨 注入异常监控洞察（Lv33）
+        try:
+            from evolution.exception_monitor import get_exception_monitor_report
+            monitor_report = get_exception_monitor_report()
+            if monitor_report:
+                user_prompt += monitor_report
+                logger.info("[异常监控] 已注入监控报告")
+        except Exception as e:
+            logger.warning(f"[异常监控] 失败: {e}")
+        
+        # 🔧 注入异常修复洞察（Lv34）
+        try:
+            from evolution.exception_healer import get_heal_report
+            heal_report = get_heal_report()
+            if heal_report:
+                user_prompt += heal_report
+                logger.info("[异常修复] 已注入修复报告")
+        except Exception as e:
+            logger.warning(f"[异常修复] 失败: {e}")
+        
         user_prompt += """
 
 **⚠️ 重要提醒**：

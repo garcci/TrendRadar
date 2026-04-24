@@ -296,6 +296,57 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
+      # 🚨 异常干预系统 - Lv33-Lv35 实时修复
+      # ═══════════════════════════════════════════════════════════
+      - name: Exception Intervention
+        if: success()
+        run: |
+          echo "🚨 启动异常干预系统..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🚨 异常干预系统 v1.0')
+          print('='*60)
+          
+          # Lv33: 异常监控
+          try:
+              from evolution.exception_monitor import get_exception_monitor_report
+              report = get_exception_monitor_report()
+              print(report)
+              print('[异常干预] Lv33 异常监控完成')
+          except Exception as e:
+              print(f'[异常干预] Lv33 异常监控失败: {e}')
+          
+          # Lv34: 异常修复
+          try:
+              from evolution.exception_healer import run_exception_healing
+              results = run_exception_healing('.', min_count=2)
+              if results:
+                  from evolution.exception_healer import ExceptionHealer
+                  healer = ExceptionHealer()
+                  print(healer.generate_heal_report(results))
+              else:
+                  print('[异常干预] Lv34 暂无需要修复的异常')
+          except Exception as e:
+              print(f'[异常干预] Lv34 异常修复失败: {e}')
+          
+          # Lv35: 异常预测
+          try:
+              from evolution.exception_predictor import get_exception_prediction
+              prediction = get_exception_prediction()
+              print(prediction)
+              print('[异常干预] Lv35 异常预测完成')
+          except Exception as e:
+              print(f'[异常干预] Lv35 异常预测失败: {e}')
+          
+          print('='*60)
+          print('🚨 异常干预完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 🔄 智能回滚 - 验证变更效果
       # ═══════════════════════════════════════════════════════════
       - name: Smart Rollback
