@@ -204,23 +204,80 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
-      # 🧬 自主进化 - 全自动闭环优化
+      # 🧬 自主进化系统 - Lv26-Lv30 自我成长
       # ═══════════════════════════════════════════════════════════
       - name: Autonomous Evolution
         if: success()
-        env:
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           echo "🧬 启动自主进化系统..."
           uv run python -c "
           import sys
           sys.path.insert(0, '.')
-          from evolution.autonomous_evolution import run_autonomous_evolution
-          report = run_autonomous_evolution('.')
-          print(report)
+          
+          print('='*60)
+          print('🧬 自主进化系统 v1.0')
+          print('='*60)
+          
+          # Lv26: 自我观察
+          try:
+              from evolution.self_observer import get_self_diagnosis
+              diagnosis = get_self_diagnosis()
+              print(diagnosis)
+              print('[自主进化] Lv26 自我观察完成')
+          except Exception as e:
+              print(f'[自主进化] Lv26 自我观察失败: {e}')
+          
+          # Lv27: 自主设计
+          try:
+              from evolution.self_designer import run_self_design
+              designs = run_self_design()
+              if designs:
+                  print(f'[自主进化] Lv27 设计了 {len(designs)} 个新功能')
+              else:
+                  print('[自主进化] Lv27 暂无需要设计的新功能')
+          except Exception as e:
+              print(f'[自主进化] Lv27 自主设计失败: {e}')
+          
+          # Lv28: 自主编码
+          try:
+              from evolution.self_coder import run_self_coding
+              implementations = run_self_coding()
+              if implementations:
+                  print(f'[自主进化] Lv28 实现了 {len(implementations)} 个新功能')
+              else:
+                  print('[自主进化] Lv28 暂无需要实现的新功能')
+          except Exception as e:
+              print(f'[自主进化] Lv28 自主编码失败: {e}')
+          
+          # Lv29: 自主测试
+          try:
+              from evolution.self_tester import run_self_testing
+              test_results = run_self_testing()
+              if test_results:
+                  from evolution.self_tester import SelfTester
+                  tester = SelfTester()
+                  print(tester.generate_test_report(test_results))
+              else:
+                  print('[自主进化] Lv29 暂无需要测试的新功能')
+          except Exception as e:
+              print(f'[自主进化] Lv29 自主测试失败: {e}')
+          
+          # Lv30: 自主部署
+          try:
+              from evolution.self_deployer import run_self_deploy
+              deploy_decisions = run_self_deploy()
+              if deploy_decisions:
+                  from evolution.self_deployer import SelfDeployer
+                  deployer = SelfDeployer()
+                  print(deployer.generate_deploy_report(deploy_decisions))
+              else:
+                  print('[自主进化] Lv30 暂无需要部署的新功能')
+          except Exception as e:
+              print(f'[自主进化] Lv30 自主部署失败: {e}')
+          
+          print('='*60)
+          print('🧬 自主进化完成')
+          print('='*60)
           "
 
       # ═══════════════════════════════════════════════════════════
