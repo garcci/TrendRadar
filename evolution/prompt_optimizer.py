@@ -1,228 +1,247 @@
 # -*- coding: utf-8 -*-
 """
-Prompt动态优化系统 - 根据文章评分自动调整Prompt强度
+Prompt自动优化 - Lv40
 
-核心逻辑：
-- 评分 < 6.0: 强化模式 - 增加技术深度要求、数据支撑要求
-- 评分 6.0-7.5: 标准模式 - 保持当前要求
-- 评分 > 7.5: 创新模式 - 鼓励更多创新角度
+核心理念：
+1. 基于Lv39的追踪数据自动计算各Prompt片段的权重
+2. 识别低效片段并生成改进建议
+3. 动态调整Prompt注入顺序（高效片段优先）
+4. 生成优化后的Prompt模板建议
 
-进化机制：
-1. 读取最近3篇文章的评分
-2. 计算平均分和趋势
-3. 根据分数选择对应的Prompt增强策略
-4. 将增强指令注入到system_prompt中
+优化策略：
+- 提升高效片段: 增加使用频率，放在Prompt前面
+- 降低低效片段: 减少使用频率，放在Prompt后面或移除
+- 新增片段测试: 为低覆盖领域生成新片段建议
+- 片段融合: 将多个低效片段合并为一个高效片段
+
+权重计算：
+- 基础权重 = 效果增量 × 使用频率
+- 稳定权重 = 基础权重 × 置信度（使用次数越多越可信）
+- 最终权重 = 稳定权重 + 领域覆盖 bonus
+
+输出：
+- 优化后的Prompt片段权重
+- 片段调整建议
+- 新片段生成建议
 """
 
 import json
 import os
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from collections import defaultdict
+from datetime import datetime
+from typing import Dict, List, Optional
 
 
 class PromptOptimizer:
-    """Prompt动态优化器"""
+    """Prompt自动优化器"""
     
-    # 不同评分区间对应的增强策略
-    ENHANCEMENT_STRATEGIES = {
-        "critical": {  # 评分 < 6.0
-            "level": "强化模式",
-            "instructions": """
-## ⚠️ 质量强化指令（系统检测到近期文章评分偏低，请严格执行）
-
-### 技术深度强制要求
-- **每个技术话题必须包含**：
-  - 核心技术原理的详细解释（至少150字）
-  - 具体的技术架构图或流程描述
-  - 性能数据对比（如延迟、吞吐量、准确率等）
-  - 与竞品/替代方案的详细对比表格
-
-### 数据支撑强制要求  
-- **每篇文章至少包含5个具体数据点**：
-  - 市场份额、增长率、用户数量等
-  - 性能指标（如训练成本、推理速度）
-  - 财务数据（营收、估值、融资额）
-  - 时间线数据（发布日期、里程碑）
-
-### 分析深度强制要求
-- **禁止表面描述**，必须回答：
-  - 这项技术/事件为什么重要？（行业影响）
-  - 背后的驱动因素是什么？（深层原因）
-  - 对谁有利？对谁不利？（利益分析）
-  - 3-6个月后会怎样？（趋势预测）
-
-### 结构强制要求
-- 深度分析板块不少于3个
-- 每个板块必须包含：技术细节 + 数据表格 + 预测分析
-- 总字数不少于1500字
-""",
-            "temperature_adjustment": -0.1,  # 降低随机性，提高确定性
-            "max_tokens_adjustment": 1.3    # 增加输出长度
-        },
-        "standard": {  # 评分 6.0-7.5
-            "level": "标准模式",
-            "instructions": "",  # 不添加额外指令
-            "temperature_adjustment": 0,
-            "max_tokens_adjustment": 1.0
-        },
-        "creative": {  # 评分 > 7.5
-            "level": "创新模式",
-            "instructions": """
-## 🚀 创新鼓励指令（系统检测到近期文章质量优秀，鼓励创新）
-
-### 创新角度建议
-- 尝试跨界关联：将科技热点与其他领域（哲学、社会学、心理学）联系
-- 使用故事化叙事：用具体案例或人物故事引出技术话题
-- 提出反直觉观点：挑战主流认知，提供独特视角
-- 历史对比：将当前事件与科技史上的类似事件对比
-
-### 风格多样化
-- 可以尝试：访谈体、日记体、书信体等创新形式
-- 适当增加幽默感，让技术文章更生动
-- 使用类比和隐喻解释复杂概念
-
-### 保持质量的同时追求特色
-- 在保持深度分析的基础上，追求独特的表达风格
-- 每篇文章尝试1-2个新的写作技巧
-""",
-            "temperature_adjustment": 0.1,   # 增加随机性，鼓励创新
-            "max_tokens_adjustment": 1.1
-        }
+    # 权重阈值
+    WEIGHT_THRESHOLDS = {
+        "high": 2.0,      # 高效片段
+        "medium": 0.5,    # 中等片段
+        "low": -0.5,      # 低效片段
+        "remove": -1.0    # 建议移除
     }
     
     def __init__(self, trendradar_path: str = "."):
         self.trendradar_path = trendradar_path
-        self.metrics_file = f"{trendradar_path}/evolution/article_metrics.json"
+        self.track_file = f"{trendradar_path}/evolution/prompt_track.json"
+        self.optimize_file = f"{trendradar_path}/evolution/prompt_optimization.json"
     
-    def get_recent_scores(self, days: int = 7) -> List[Dict]:
-        """获取最近的文章评分"""
-        if not os.path.exists(self.metrics_file):
-            return []
-        
-        with open(self.metrics_file, 'r') as f:
-            metrics = json.load(f)
-        
-        # 按时间排序，取最近的
-        cutoff = (datetime.now() - timedelta(days=days)).isoformat()
-        recent = [m for m in metrics if m.get("timestamp", "") > cutoff]
-        
-        return recent
+    def _load_tracks(self) -> List[Dict]:
+        """加载追踪记录"""
+        if os.path.exists(self.track_file):
+            try:
+                with open(self.track_file, 'r') as f:
+                    return json.load(f)
+            except Exception:
+                pass
+        return []
     
-    def analyze_score_trend(self, scores: List[Dict]) -> Tuple[str, float, str]:
-        """
-        分析评分趋势
+    def _load_optimization_history(self) -> List[Dict]:
+        """加载优化历史"""
+        if os.path.exists(self.optimize_file):
+            try:
+                with open(self.optimize_file, 'r') as f:
+                    return json.load(f)
+            except Exception:
+                pass
+        return []
+    
+    def _save_optimization(self, optimization: Dict):
+        """保存优化结果"""
+        history = self._load_optimization_history()
+        history.append(optimization)
+        history = history[-20:]  # 保留最近20次
         
-        返回: (策略名称, 平均分, 趋势描述)
-        """
-        if not scores:
-            return "standard", 0.0, "无历史数据"
+        with open(self.optimize_file, 'w') as f:
+            json.dump(history, f, ensure_ascii=False, indent=2)
+    
+    def calculate_fragment_weights(self, fragment_data: Dict) -> Dict[str, float]:
+        """计算片段权重"""
+        weights = {}
         
-        # 计算平均分
-        avg_score = sum(s.get("overall_score", 0) for s in scores) / len(scores)
-        
-        # 计算趋势
-        if len(scores) >= 2:
-            first_half = sum(s.get("overall_score", 0) for s in scores[:len(scores)//2]) / max(len(scores)//2, 1)
-            second_half = sum(s.get("overall_score", 0) for s in scores[len(scores)//2:]) / max(len(scores) - len(scores)//2, 1)
+        for fid, data in fragment_data.items():
+            effect_delta = data.get("effect_delta", 0)
+            uses = data.get("uses", 0)
             
-            if second_half > first_half + 0.5:
-                trend = "上升"
-            elif second_half < first_half - 0.5:
-                trend = "下降"
-            else:
-                trend = "平稳"
-        else:
-            trend = "未知"
+            # 基础权重 = 效果增量
+            base_weight = effect_delta
+            
+            # 置信度因子（使用次数越多越可信）
+            confidence = min(1.0, uses / 10)  # 10次以上达到最大置信度
+            
+            # 稳定权重
+            stable_weight = base_weight * confidence
+            
+            # 使用频率加成（常用片段更有价值）
+            frequency_bonus = min(0.5, uses / 20)
+            
+            weights[fid] = stable_weight + frequency_bonus
         
-        # 选择策略
-        if avg_score < 6.0:
-            strategy = "critical"
-        elif avg_score > 7.5:
-            strategy = "creative"
-        else:
-            strategy = "standard"
-        
-        return strategy, avg_score, trend
+        return weights
     
-    def get_prompt_enhancement(self) -> Dict:
-        """
-        获取Prompt增强配置
+    def generate_optimization_plan(self, fragment_data: Dict) -> Dict:
+        """生成优化计划"""
+        weights = self.calculate_fragment_weights(fragment_data)
         
-        返回: {
-            "instructions": "增强指令文本",
-            "temperature_delta": 温度调整值,
-            "max_tokens_multiplier": 长度调整倍数,
-            "level": "当前模式名称",
-            "avg_score": 平均评分,
-            "trend": 趋势描述
+        plan = {
+            "timestamp": datetime.now().isoformat(),
+            "boost": [],      # 需要提升的片段
+            "reduce": [],     # 需要降低的片段
+            "remove": [],     # 建议移除的片段
+            "new_suggestions": [],  # 新片段建议
+            "reorder": []     # 重新排序建议
         }
-        """
-        scores = self.get_recent_scores(days=7)
-        strategy_name, avg_score, trend = self.analyze_score_trend(scores)
         
-        strategy = self.ENHANCEMENT_STRATEGIES[strategy_name]
+        # 分类处理
+        for fid, weight in weights.items():
+            data = fragment_data.get(fid, {})
+            name = data.get("name", fid)
+            
+            item = {
+                "id": fid,
+                "name": name,
+                "weight": round(weight, 2),
+                "current_uses": data.get("uses", 0),
+                "avg_score": data.get("avg_score", 0)
+            }
+            
+            if weight >= self.WEIGHT_THRESHOLDS["high"]:
+                plan["boost"].append(item)
+            elif weight <= self.WEIGHT_THRESHOLDS["remove"]:
+                plan["remove"].append(item)
+            elif weight <= self.WEIGHT_THRESHOLDS["low"]:
+                plan["reduce"].append(item)
         
-        return {
-            "instructions": strategy["instructions"],
-            "temperature_delta": strategy["temperature_adjustment"],
-            "max_tokens_multiplier": strategy["max_tokens_adjustment"],
-            "level": strategy["level"],
-            "avg_score": avg_score,
-            "trend": trend,
-            "sample_count": len(scores)
-        }
+        # 按权重排序
+        plan["boost"].sort(key=lambda x: -x["weight"])
+        plan["reduce"].sort(key=lambda x: x["weight"])
+        plan["remove"].sort(key=lambda x: x["weight"])
+        
+        # 生成重新排序建议（高效片段放前面）
+        all_fragments = []
+        for fid, data in fragment_data.items():
+            all_fragments.append({
+                "id": fid,
+                "name": data.get("name", fid),
+                "weight": round(weights.get(fid, 0), 2)
+            })
+        
+        all_fragments.sort(key=lambda x: -x["weight"])
+        plan["reorder"] = all_fragments[:10]
+        
+        # 新片段建议（基于低覆盖领域）
+        covered_categories = set()
+        for fid, data in fragment_data.items():
+            covered_categories.add(data.get("category", "其他"))
+        
+        all_categories = {"质量", "内容", "风格", "深度", "受众", "时效", "系统"}
+        missing = all_categories - covered_categories
+        
+        if missing:
+            category_suggestions = {
+                "质量": "文章质量自检清单",
+                "内容": "数据来源可信度分析",
+                "风格": "语气一致性检查",
+                "深度": "专家观点引用建议",
+                "受众": "读者阅读时间预估",
+                "时效": "新闻时效性分级",
+                "系统": "系统资源使用提示"
+            }
+            
+            for cat in missing:
+                plan["new_suggestions"].append({
+                    "category": cat,
+                    "suggested_name": category_suggestions.get(cat, f"{cat}增强"),
+                    "reason": f"{cat}类Prompt片段缺失，建议补充"
+                })
+        
+        return plan
     
-    def inject_enhancement(self, system_prompt: str, base_temperature: float = 0.7, 
-                          base_max_tokens: int = 4000) -> Tuple[str, float, int]:
-        """
-        将增强指令注入到system_prompt中
+    def generate_optimization_report(self) -> str:
+        """生成优化报告"""
+        # 从tracker获取数据
+        from evolution.prompt_tracker import PromptTracker
+        tracker = PromptTracker(self.trendradar_path)
+        fragment_data = tracker.analyze_fragment_effectiveness()
         
-        返回: (增强后的prompt, 调整后的temperature, 调整后的max_tokens)
-        """
-        enhancement = self.get_prompt_enhancement()
+        if not fragment_data:
+            return "\n### 🎯 Prompt优化建议\n\n**数据不足**，需要更多文章来生成优化建议。\n"
         
-        # 如果没有增强指令，返回原始值
-        if not enhancement["instructions"]:
-            return system_prompt, base_temperature, base_max_tokens
+        plan = self.generate_optimization_plan(fragment_data)
         
-        # 在prompt末尾注入增强指令（在"记住："之前）
-        injection_point = "记住：读者时间宝贵"
-        if injection_point in system_prompt:
-            enhanced_prompt = system_prompt.replace(
-                injection_point,
-                enhancement["instructions"] + "\n\n" + injection_point
-            )
-        else:
-            enhanced_prompt = system_prompt + "\n\n" + enhancement["instructions"]
+        # 保存优化计划
+        self._save_optimization(plan)
         
-        # 计算调整后的参数
-        new_temperature = max(0.1, min(1.0, base_temperature + enhancement["temperature_delta"]))
-        new_max_tokens = int(base_max_tokens * enhancement["max_tokens_multiplier"])
+        lines = ["\n### 🎯 Prompt自动优化建议\n"]
         
-        print(f"[Prompt优化] 当前模式: {enhancement['level']}")
-        print(f"[Prompt优化] 近期平均分: {enhancement['avg_score']:.1f}/10 ({enhancement['trend']}趋势)")
-        print(f"[Prompt优化] 样本数: {enhancement['sample_count']}篇")
-        print(f"[Prompt优化] 温度调整: {base_temperature} → {new_temperature}")
-        print(f"[Prompt优化] 长度调整: {base_max_tokens} → {new_max_tokens}")
+        # 提升建议
+        if plan["boost"]:
+            lines.append("**📈 建议强化以下片段**（高效，放前面）:")
+            for item in plan["boost"][:5]:
+                lines.append(f"- ⬆️ **{item['name']}** (权重: {item['weight']}, 使用{item['current_uses']}次)")
+            lines.append("")
         
-        return enhanced_prompt, new_temperature, new_max_tokens
+        # 降低建议
+        if plan["reduce"]:
+            lines.append("**📉 建议弱化以下片段**（低效，放后面）:")
+            for item in plan["reduce"][:3]:
+                lines.append(f"- ⬇️ **{item['name']}** (权重: {item['weight']}, 均分{item['avg_score']})")
+            lines.append("")
+        
+        # 移除建议
+        if plan["remove"]:
+            lines.append("**🗑️ 建议移除以下片段**（负效果）:")
+            for item in plan["remove"]:
+                lines.append(f"- ❌ **{item['name']}** (权重: {item['weight']})")
+            lines.append("")
+        
+        # 新片段建议
+        if plan["new_suggestions"]:
+            lines.append("**✨ 建议新增以下片段**:")
+            for sugg in plan["new_suggestions"]:
+                lines.append(f"- 🆕 {sugg['suggested_name']} ({sugg['category']})")
+            lines.append("")
+        
+        # 排序建议
+        if plan["reorder"]:
+            lines.append("**📋 建议Prompt注入顺序**:")
+            for i, item in enumerate(plan["reorder"][:8], 1):
+                emoji = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
+                lines.append(f"{emoji} {item['name']} (权重: {item['weight']})")
+            lines.append("")
+        
+        return "\n".join(lines)
 
 
 # 便捷函数
-def get_optimized_prompt_params(system_prompt: str, base_temp: float = 0.7, 
-                                base_tokens: int = 4000, trendradar_path: str = ".") -> Tuple[str, float, int]:
-    """获取优化后的Prompt参数"""
+def get_prompt_optimization_report(trendradar_path: str = ".") -> str:
+    """获取Prompt优化报告"""
     optimizer = PromptOptimizer(trendradar_path)
-    return optimizer.inject_enhancement(system_prompt, base_temp, base_tokens)
+    return optimizer.generate_optimization_report()
 
 
 if __name__ == "__main__":
-    # 测试
     optimizer = PromptOptimizer()
-    enhancement = optimizer.get_prompt_enhancement()
-    print(f"\n当前模式: {enhancement['level']}")
-    print(f"平均分: {enhancement['avg_score']:.1f}")
-    print(f"趋势: {enhancement['trend']}")
-    print(f"样本数: {enhancement['sample_count']}")
-    if enhancement['instructions']:
-        print(f"\n增强指令:\n{enhancement['instructions'][:200]}...")
+    print(optimizer.generate_optimization_report())

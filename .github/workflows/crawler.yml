@@ -402,6 +402,53 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
+      # 🎯 Prompt进化 - Lv39-Lv41 自适应Prompt优化
+      # ═══════════════════════════════════════════════════════════
+      - name: Prompt Evolution
+        if: success()
+        run: |
+          echo "🎯 启动Prompt进化..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🎯 Prompt进化系统 v1.0')
+          print('='*60)
+          
+          # Lv39: Prompt效果追踪
+          try:
+              from evolution.prompt_tracker import get_prompt_effectiveness_report
+              report = get_prompt_effectiveness_report()
+              print(report)
+              print('[Prompt进化] Lv39 效果追踪完成')
+          except Exception as e:
+              print(f'[Prompt进化] Lv39 效果追踪失败: {e}')
+          
+          # Lv40: Prompt自动优化
+          try:
+              from evolution.prompt_optimizer import get_prompt_optimization_report
+              report = get_prompt_optimization_report()
+              print(report)
+              print('[Prompt进化] Lv40 自动优化完成')
+          except Exception as e:
+              print(f'[Prompt进化] Lv40 自动优化失败: {e}')
+          
+          # Lv41: Prompt进化引擎
+          try:
+              from evolution.prompt_evolution import get_prompt_evolution_report
+              report = get_prompt_evolution_report()
+              print(report)
+              print('[Prompt进化] Lv41 进化引擎完成')
+          except Exception as e:
+              print(f'[Prompt进化] Lv41 进化引擎失败: {e}')
+          
+          print('='*60)
+          print('🎯 Prompt进化完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 🔄 智能回滚 - 验证变更效果
       # ═══════════════════════════════════════════════════════════
       - name: Smart Rollback

@@ -1027,6 +1027,71 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             logger.warning(f"[体积监控] 失败: {e}")
         
+        # 🎯 注入Prompt效果追踪洞察（Lv39）
+        try:
+            from evolution.prompt_tracker import get_prompt_effectiveness_report
+            prompt_effect_report = get_prompt_effectiveness_report()
+            if prompt_effect_report:
+                user_prompt += prompt_effect_report
+                logger.info("[Prompt追踪] 已注入效果报告")
+        except Exception as e:
+            logger.warning(f"[Prompt追踪] 失败: {e}")
+        
+        # 🎯 注入Prompt优化建议（Lv40）
+        try:
+            from evolution.prompt_optimizer import get_prompt_optimization_report
+            prompt_opt_report = get_prompt_optimization_report()
+            if prompt_opt_report:
+                user_prompt += prompt_opt_report
+                logger.info("[Prompt优化] 已注入优化建议")
+        except Exception as e:
+            logger.warning(f"[Prompt优化] 失败: {e}")
+        
+        # 🧬 注入Prompt进化引擎报告（Lv41）
+        try:
+            from evolution.prompt_evolution import get_prompt_evolution_report
+            prompt_evo_report = get_prompt_evolution_report()
+            if prompt_evo_report:
+                user_prompt += prompt_evo_report
+                logger.info("[Prompt进化] 已注入进化报告")
+        except Exception as e:
+            logger.warning(f"[Prompt进化] 失败: {e}")
+        
+        # 🎯 Prompt片段追踪记录（Lv39）
+        try:
+            from evolution.prompt_tracker import record_prompt_fragments
+            
+            # 根据实际注入的内容推断使用的片段
+            fragments_used = []
+            fragment_markers = {
+                "quality_feedback": "历史文章质量反馈",
+                "data_enhancement": "### 📊 数据增强",
+                "cross_source": "### 🔗 跨源关联",
+                "trend_forecast": "### 🔮 趋势预测",
+                "emotion_analysis": "### 😊😠 情感分析",
+                "knowledge_graph": "### 🕸️ 知识图谱",
+                "reader_profile": "### 👤 读者画像",
+                "realtime_tracking": "### ⚡ 实时热点",
+                "self_design": "### 🎨 自主功能设计",
+                "evolution_effect": "### 📊 进化效果评估",
+                "rss_recommend": "### 📡 RSS源智能推荐",
+                "exception_prediction": "### 🔮 异常预测与预防",
+                "exception_monitor": "### 🚨 异常监控报告",
+                "exception_heal": "### 🔧 异常修复报告",
+                "repo_size": "### 📦 仓库体积监控",
+            }
+            
+            for fragment_id, marker in fragment_markers.items():
+                if marker in user_prompt:
+                    fragments_used.append(fragment_id)
+            
+            # 生成文章ID（基于日期和标题）
+            article_id = f"{data.date}_{hash(title) % 10000}"
+            record_prompt_fragments(article_id, fragments_used)
+            logger.info(f"[Prompt追踪] 记录{len(fragments_used)}个片段: {fragments_used}")
+        except Exception as e:
+            logger.warning(f"[Prompt追踪] 记录失败: {e}")
+        
         user_prompt += """
 
 **⚠️ 重要提醒**：
