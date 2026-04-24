@@ -310,7 +310,13 @@ class AutoCodeEvolution:
                     import yaml
                     # 尝试解析修改后的内容
                     full_content = self._get_file_content(change.file_path)
-                    modified = full_content.replace(change.original, change.replacement, 1)
+                    
+                    if change.change_type == "add" and not change.original:
+                        # 对于添加操作，直接在文件末尾追加，验证合并后的内容
+                        modified = full_content + change.replacement
+                    else:
+                        modified = full_content.replace(change.original, change.replacement, 1)
+                    
                     yaml.safe_load(modified)
                 except Exception as e:
                     errors.append(f"YAML 语法错误: {change.file_path} - {e}")
