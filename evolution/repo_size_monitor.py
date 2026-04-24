@@ -84,11 +84,25 @@ class RepoSizeMonitor:
     
     def get_total_size(self) -> int:
         """获取仓库总大小（字节）"""
+        # 尝试使用du命令
         output = self._run_command(["du", "-sb", "."])
         try:
             return int(output.split()[0])
         except Exception:
-            return 0
+            pass
+        
+        # Fallback: 使用os.walk计算
+        total = 0
+        for root, dirs, files in os.walk(self.trendradar_path):
+            if ".git" in root:
+                continue
+            for filename in files:
+                try:
+                    filepath = os.path.join(root, filename)
+                    total += os.path.getsize(filepath)
+                except Exception:
+                    continue
+        return total
     
     def get_git_size(self) -> int:
         """获取.git目录大小（字节）"""
@@ -96,11 +110,23 @@ class RepoSizeMonitor:
         if not os.path.exists(git_dir):
             return 0
         
+        # 尝试使用du命令
         output = self._run_command(["du", "-sb", ".git"])
         try:
             return int(output.split()[0])
         except Exception:
-            return 0
+            pass
+        
+        # Fallback: 使用os.walk计算
+        total = 0
+        for root, dirs, files in os.walk(git_dir):
+            for filename in files:
+                try:
+                    filepath = os.path.join(root, filename)
+                    total += os.path.getsize(filepath)
+                except Exception:
+                    continue
+        return total
     
     def scan_big_files(self, threshold_kb: int = 100) -> List[Dict]:
         """扫描大文件"""
