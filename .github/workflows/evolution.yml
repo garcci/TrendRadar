@@ -365,6 +365,43 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
+      # 🔍 输出质量验证 - Lv45 捕获静默错误
+      # ═══════════════════════════════════════════════════════════
+      - name: Output Quality Validation
+        env:
+          GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
+          ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
+          ASTRO_REPO_NAME: ${{ secrets.ASTRO_REPO_NAME }}
+        run: |
+          echo "🔍 启动输出质量验证..."
+          uv run python -c "
+          import sys
+          import os
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🔍 输出质量验证系统 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.output_quality_validator import validate_output_quality
+              
+              token = os.environ.get('GH_MEMORY_TOKEN')
+              owner = os.environ.get('ASTRO_REPO_OWNER', 'garcci')
+              repo = os.environ.get('ASTRO_REPO_NAME', 'Astro')
+              
+              report = validate_output_quality(owner, repo, token)
+              print(report)
+              print('[质量验证] Lv45 验证完成')
+          except Exception as e:
+              print(f'[质量验证] Lv45 失败: {e}')
+          
+          print('='*60)
+          print('🔍 输出质量验证完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 🤖 自动代码迭代 - Lv28升级
       # ═══════════════════════════════════════════════════════════
       - name: Auto Code Evolution
