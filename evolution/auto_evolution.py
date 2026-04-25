@@ -39,17 +39,6 @@ class ArticleMetrics:
 
 
 @dataclass
-class PromptVersion:
-    """Prompt 版本记录"""
-    version: str
-    timestamp: str
-    changes: List[str]
-    metrics_before: Dict
-    metrics_after: Dict
-    improvement: float
-
-
-@dataclass
 class RSSSourceHealth:
     """RSS 源健康状态"""
     source_id: str
