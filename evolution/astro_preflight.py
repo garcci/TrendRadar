@@ -34,7 +34,7 @@ class AstroPreflight:
         (r':\s*\n\s*\n', "YAML 字段后有多余空行（可能导致解析错误）"),
         (r'title:\s*[^"\']', "title 值未用引号包裹"),
         (r'published:\s*\d{4}-\d{2}-\d{2}$', "published 缺少时间部分"),
-        (r'draft:\s*[^truefals]', "draft 值格式错误"),
+        (r'draft:\s*[^truefals\s]', "draft 值格式错误"),
         (r'category:\s*[^"\']', "category 值未用引号包裹"),
         (r'image:\s*[^h]', "image 值不是 URL"),
     ]
@@ -154,8 +154,9 @@ class AstroPreflight:
         published = data.get("published")
         if published:
             published_str = str(published)
-            # 检查是否为 ISO 8601 格式
-            if not re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}', published_str):
+            # datetime 对象 str() 输出: 2026-04-25 08:00:00+08:00（空格分隔）
+            # 需要同时支持 T 分隔和空格分隔的 ISO 8601 格式
+            if not re.match(r'^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}', published_str):
                 if re.match(r'^\d{4}-\d{2}-\d{2}$', published_str):
                     self.warnings.append("published 只有日期部分，缺少时间")
                 else:
