@@ -514,6 +514,22 @@ def run_auto_evolution(repo_owner: str, repo_name: str, token: str,
     print("🤖 自动代码迭代系统 v1.0")
     print("=" * 60)
     
+    # 🛡️ Lv73: 检查是否被退化检测系统暂停
+    pause_flag = os.path.join(trendradar_path, "evolution", ".pause_evolution")
+    if os.path.exists(pause_flag):
+        try:
+            with open(pause_flag, 'r') as f:
+                content = f.read()
+            reason = ""
+            for line in content.split('\n'):
+                if line.startswith('REASON='):
+                    reason = line.split('=', 1)[1]
+            print(f"🛡️ [安全护栏] 自动进化已被暂停: {reason}")
+            print("🛡️ 如需恢复，请手动删除 evolution/.pause_evolution 文件")
+            return {'status': 'paused', 'reason': reason}
+        except Exception as e:
+            print(f"🛡️ [安全护栏] 暂停标记读取失败: {e}")
+    
     engine = AutoCodeEvolution(repo_owner, repo_name, token, trendradar_path)
     all_changes = []
     
