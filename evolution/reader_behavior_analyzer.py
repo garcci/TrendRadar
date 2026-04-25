@@ -129,17 +129,27 @@ class ReaderBehaviorAnalyzer:
         if not rss_health:
             return {}
 
-        sources = rss_health.get("sources", [])
+        # rss_health.json 可能是 list 或 dict 格式
+        if isinstance(rss_health, list):
+            sources = rss_health
+        else:
+            sources = rss_health.get("sources", [])
+
         source_analysis = {}
 
         for src in sources:
-            name = src.get("name", "unknown")
-            success_rate = src.get("success_rate", 0)
-            avg_quality = src.get("avg_quality", 0)
-            article_count = src.get("article_count", 0)
+            name = src.get("source_name") or src.get("name", "unknown")
+            success = src.get("success", False)
+            error = src.get("error", "")
+            date = src.get("date", "")
 
-            # 综合价值 = 成功率 * 平均质量 * log(文章数+1)
-            value = success_rate * avg_quality * (1 + article_count * 0.05)
+            # 简单评估：成功 = 高质量，失败 = 低质量
+            success_rate = 100.0 if success else 0.0
+            avg_quality = 8.0 if success else 3.0
+            article_count = 1  # 每次记录代表一次抓取尝试
+
+            # 综合价值 = 成功率 * 平均质量
+            value = success_rate * avg_quality * 0.01
             source_analysis[name] = {
                 "success_rate": success_rate,
                 "avg_quality": avg_quality,
