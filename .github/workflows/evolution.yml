@@ -43,6 +43,7 @@ jobs:
       # 🏥 系统健康检查
       # ═══════════════════════════════════════════════════════════
       - name: System Health Check
+        continue-on-error: true
         run: |
           echo "🏥 启动系统健康检查..."
           uv run python -c "
@@ -56,6 +57,7 @@ jobs:
       # 🧬 自主进化系统 - Lv26-Lv30
       # ═══════════════════════════════════════════════════════════
       - name: Autonomous Evolution
+        continue-on-error: true
         run: |
           echo "🧬 启动自主进化系统..."
           uv run python -c "
@@ -118,6 +120,7 @@ jobs:
       # 🚨 异常干预系统 - Lv33-Lv35
       # ═══════════════════════════════════════════════════════════
       - name: Exception Intervention
+        continue-on-error: true
         run: |
           echo "🚨 启动异常干预系统..."
           uv run python -c "
@@ -164,6 +167,7 @@ jobs:
       # 🏗️ Astro 构建健康检查 — 跨仓库部署监控
       # ═══════════════════════════════════════════════════════════
       - name: Astro Build Health Check
+        continue-on-error: true
         env:
           GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
           ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
@@ -221,6 +225,7 @@ jobs:
       # 📦 仓库精简 - Lv36-Lv38
       # ═══════════════════════════════════════════════════════════
       - name: Repo Cleanup
+        continue-on-error: true
         run: |
           echo "📦 启动仓库精简系统..."
           uv run python -c "
@@ -267,6 +272,7 @@ jobs:
       # 🎯 Prompt进化 - Lv39-Lv41
       # ═══════════════════════════════════════════════════════════
       - name: Prompt Evolution
+        continue-on-error: true
         run: |
           echo "🎯 启动Prompt进化..."
           uv run python -c "
@@ -313,6 +319,7 @@ jobs:
       # 🔭 跨项目学习 - Lv42
       # ═══════════════════════════════════════════════════════════
       - name: Cross-Project Learning
+        continue-on-error: true
         run: |
           echo "🔭 启动跨项目学习..."
           uv run python -c "
@@ -349,6 +356,7 @@ jobs:
       # 📤 内容分发 - Lv43
       # ═══════════════════════════════════════════════════════════
       - name: Content Distribution
+        continue-on-error: true
         run: |
           echo "📤 准备内容分发..."
           uv run python -c "
@@ -387,6 +395,7 @@ jobs:
       # 🤖 深度自主编码 - Lv44
       # ═══════════════════════════════════════════════════════════
       - name: Deep Self Coding
+        continue-on-error: true
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -426,6 +435,7 @@ jobs:
       # 🔍 输出质量验证 - Lv45 捕获静默错误
       # ═══════════════════════════════════════════════════════════
       - name: Output Quality Validation
+        continue-on-error: true
         env:
           GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
           ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
@@ -463,6 +473,7 @@ jobs:
       # 📊 免费资源智能调度 - Lv46 榨干每一滴免费额度
       # ═══════════════════════════════════════════════════════════
       - name: Free Resource Scheduler
+        continue-on-error: true
         run: |
           echo "📊 启动免费资源智能调度..."
           uv run python -c "
@@ -489,6 +500,7 @@ jobs:
       # 🔧 自动校准系统 - Lv47 根据质量反馈调整参数
       # ═══════════════════════════════════════════════════════════
       - name: Auto Calibration
+        continue-on-error: true
         env:
           GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
           ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
@@ -525,6 +537,7 @@ jobs:
       # 🩹 AI代码修复器 - Lv48 自动诊断和修复代码
       # ═══════════════════════════════════════════════════════════
       - name: AI Code Healer
+        continue-on-error: true
         env:
           GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
         run: |
@@ -557,6 +570,7 @@ jobs:
       # 🌐 多语言自动翻译 - Lv49 扩大全球受众
       # ═══════════════════════════════════════════════════════════
       - name: Multilingual Translation
+        continue-on-error: true
         env:
           GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
         run: |
@@ -595,6 +609,7 @@ jobs:
       # 📊 内容健康度仪表盘 - Lv50 系统体检报告
       # ═══════════════════════════════════════════════════════════
       - name: Health Dashboard
+        continue-on-error: true
         env:
           GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
           ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
@@ -631,6 +646,7 @@ jobs:
       # ⏰ 智能发布时间优化 - Lv51 数据驱动优化
       # ═══════════════════════════════════════════════════════════
       - name: Publish Time Optimizer
+        continue-on-error: true
         env:
           GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
           ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
@@ -667,6 +683,7 @@ jobs:
       # 👤 读者行为分析 - Lv52 深度内容洞察
       # ═══════════════════════════════════════════════════════════
       - name: Reader Behavior Analysis
+        continue-on-error: true
         run: |
           echo "👤 启动读者行为分析..."
           uv run python -c "
@@ -693,6 +710,7 @@ jobs:
       # 🎨 自动配图生成 - Lv53 AI 封面图
       # ═══════════════════════════════════════════════════════════
       - name: Auto Image Generation
+        continue-on-error: true
         env:
           GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
           ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
@@ -732,6 +750,7 @@ jobs:
       # 🔍 竞品内容监控 - Lv54 发现内容缺口与机会
       # ═══════════════════════════════════════════════════════════
       - name: Competitor Monitor
+        continue-on-error: true
         run: |
           echo "🔍 启动竞品内容监控..."
           uv run python -c "
@@ -758,6 +777,7 @@ jobs:
       # 🔬 跨源观点聚合 - Lv55 多源信息融合
       # ═══════════════════════════════════════════════════════════
       - name: Cross Source Synthesis
+        continue-on-error: true
         run: |
           echo "🔬 启动跨源观点聚合..."
           uv run python -c "
@@ -784,6 +804,7 @@ jobs:
       # 📝 智能摘要增强 - Lv56 多层级摘要生成
       # ═══════════════════════════════════════════════════════════
       - name: Smart Summarizer
+        continue-on-error: true
         run: |
           echo "📝 启动智能摘要增强..."
           uv run python -c "
@@ -810,6 +831,7 @@ jobs:
       # 🏷️ 自动标签优化 - Lv57 提升标签相关性
       # ═══════════════════════════════════════════════════════════
       - name: Tag Optimizer
+        continue-on-error: true
         run: |
           echo "🏷️ 启动自动标签优化..."
           uv run python -c "
@@ -836,6 +858,7 @@ jobs:
       # 🧬 系统自动优化 - Lv61
       # ═══════════════════════════════════════════════════════════
       - name: Auto Optimization
+        continue-on-error: true
         run: |
           echo "🧬 启动系统自动优化..."
           uv run python -c "
@@ -863,6 +886,7 @@ jobs:
       # 📊 模块健康度仪表盘 - Lv63
       # ═══════════════════════════════════════════════════════════
       - name: Module Health Dashboard
+        continue-on-error: true
         run: |
           echo "📊 生成模块健康度仪表盘..."
           uv run python -c "
@@ -890,6 +914,7 @@ jobs:
       # 📈 闲置模块价值评估 - Lv65
       # ═══════════════════════════════════════════════════════════
       - name: Module Value Assessment
+        continue-on-error: true
         timeout-minutes: 3
         run: |
           echo "📈 评估闲置模块价值..."
@@ -918,6 +943,7 @@ jobs:
       # 📦 数据管道总览 - Lv66
       # ═══════════════════════════════════════════════════════════
       - name: Data Pipeline Summary
+        continue-on-error: true
         timeout-minutes: 2
         run: |
           echo "📦 数据管道总览..."
@@ -946,6 +972,7 @@ jobs:
       # 🧪 A/B 测试管理 - Lv68
       # ═══════════════════════════════════════════════════════════
       - name: A/B Testing Monitor
+        continue-on-error: true
         timeout-minutes: 3
         run: |
           echo "🧪 启动 A/B 测试监控..."
@@ -988,6 +1015,7 @@ jobs:
       # 🧠 模型路由成本优化 - Lv69
       # ═══════════════════════════════════════════════════════════
       - name: Model Router Optimization
+        continue-on-error: true
         timeout-minutes: 3
         run: |
           echo "🧠 启动模型路由成本优化..."
@@ -1035,6 +1063,7 @@ jobs:
       # 🤖 自动代码迭代 - Lv28升级
       # ═══════════════════════════════════════════════════════════
       - name: Auto Code Evolution
+        continue-on-error: true
         env:
           GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
           ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
