@@ -270,14 +270,25 @@ class TitleOptimizer:
         return best_title
     
     def replace_title_in_content(self, content: str, new_title: str) -> str:
-        """在文章内容中替换标题"""
-        # 替换frontmatter中的title
-        if 'title:' in content:
-            content = re.sub(
-                r'title:\s*"[^"]*"',
-                f'title: "{new_title}"',
-                content
-            )
+        """在文章内容中替换标题（安全处理引号，防止 YAML 解析失败）"""
+        if 'title:' not in content:
+            return content
+        
+        # 安全包裹新标题：如果包含双引号且无单引号，改用单引号包裹
+        if '"' in new_title and "'" not in new_title:
+            replacement = f"title: '{new_title}'"
+        else:
+            # 转义内部双引号
+            safe_title = new_title.replace('"', '\\"')
+            replacement = f'title: "{safe_title}"'
+        
+        # 匹配各种 title 格式：双引号、单引号
+        content = re.sub(
+            r'^title:\s*(?:"[^"]*"|\'[^\']*\')$',
+            replacement,
+            content,
+            flags=re.MULTILINE
+        )
         
         return content
 

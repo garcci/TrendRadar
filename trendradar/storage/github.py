@@ -213,6 +213,9 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             logger.warning(f"[标题优化] 失败: {e}")
         
+        # 🧹 Frontmatter 清理 - 修复 YAML 引号嵌套等问题
+        markdown_content = self._sanitize_frontmatter(markdown_content, data.date, article_title)
+        
         # Push to GitHub
         try:
             self._push_to_github(filepath, markdown_content, f"feat: add TrendRadar report - {article_title}")
@@ -329,9 +332,16 @@ class GitHubStorageBackend(StorageBackend):
         date_obj = datetime.strptime(data.date, "%Y-%m-%d") if data.date else datetime.now()
         weekday_cn = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"][date_obj.weekday()]
         
+        # 安全处理 title 中的双引号
+        if '"' in title and "'" not in title:
+            safe_title_line = f"title: '{title}'"
+        else:
+            safe_title = title.replace('"', '\\"')
+            safe_title_line = f'title: "{safe_title}"'
+                
         lines = [
             "---",
-            f"title: \"{title}\"",
+            safe_title_line,
             f"published: {data.date}T08:00:00+08:00",
             "tags: [news, trendradar, hot, daily-digest]",
             "category: news",
@@ -1290,6 +1300,85 @@ class GitHubStorageBackend(StorageBackend):
             logger.warning(f"[进化系统] 评估失败: {e}")
         
         return ai_content
+    
+    def _sanitize_frontmatter(self, content: str, date_str: str, fallback_title: str) -> str:
+        """
+        修复 frontmatter 中的 YAML 格式问题，确保 Astro 能正确解析。
+        
+        处理的问题：
+        1. title/description 中的双引号嵌套（导致 YAML 解析失败）
+        2. 缺少 frontmatter（AI 未输出或后续处理破坏）
+        3. 缺少必要字段
+        """
+        import re
+        
+        # 检查是否有 frontmatter
+        has_frontmatter = content.startswith("---")
+        
+        if has_frontmatter:
+            m = re.match(r'^---\n(.*?)\n---\n', content, re.DOTALL)
+            if not m:
+                # frontmatter 格式异常，重新生成
+                has_frontmatter = False
+        
+        if not has_frontmatter:
+            # 缺少 frontmatter，添加默认的
+            safe_title = fallback_title.replace('"', '\\"')
+            default_fm = f"""---
+title: "{safe_title}"
+published: {date_str}T08:00:00+08:00
+tags: [新闻, 热点]
+category: news
+draft: false
+image: https://picsum.photos/seed/trendradar-{int(datetime.now().timestamp())}/1600/900
+description: "TrendRadar 自动生成的热点聚合报告"
+---
+
+"""
+            return default_fm + content
+        
+        # 提取并修复 frontmatter
+        m = re.match(r'^---\n(.*?)\n---\n', content, re.DOTALL)
+        fm = m.group(1)
+        body = content[m.end():]
+        
+        # 修复 YAML 字符串值中的引号嵌套
+        def fix_yaml_string(match):
+            key = match.group(1)
+            quote = match.group(2)
+            value = match.group(3)
+            
+            if quote == '"' and '"' in value:
+                # 外层双引号，内部也有双引号
+                if "'" not in value:
+                    # 内部没有单引号，改用单引号包裹
+                    return f'{key}: \'{value}\''
+                else:
+                    # 同时有单双引号，转义内部双引号
+                    safe = value.replace('"', '\\"')
+                    return f'{key}: "{safe}"'
+            return match.group(0)
+        
+        # 修复被引号包裹的字符串字段（title, description, excerpt, image 等）
+        fm = re.sub(
+            r'^([a-zA-Z_][a-zA-Z0-9_]*):\s*(["\'])(.*?)\2\s*$',
+            fix_yaml_string,
+            fm,
+            flags=re.MULTILINE
+        )
+        
+        # 确保必要字段存在
+        required_fields = {
+            'title': f'title: "{fallback_title.replace(chr(34), chr(92)+chr(34))}"',
+            'published': f'published: {date_str}T08:00:00+08:00',
+            'category': 'category: news',
+            'draft': 'draft: false',
+        }
+        for field, default_value in required_fields.items():
+            if not re.search(rf'^{field}:', fm, re.MULTILINE):
+                fm += f"\n{default_value}"
+        
+        return f"---\n{fm}\n---\n{body}"
     
     def _push_to_github(self, filepath: str, content: str, commit_message: str) -> None:
         """
