@@ -496,6 +496,116 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
+      # 🌐 多语言自动翻译 - Lv49 扩大全球受众
+      # ═══════════════════════════════════════════════════════════
+      - name: Multilingual Translation
+        env:
+          GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
+        run: |
+          echo "🌐 启动多语言翻译系统..."
+          uv run python -c "
+          import sys
+          import os
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🌐 多语言翻译系统 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.multilingual_translator import batch_translate
+              
+              # 翻译最近7天的文章
+              translated = batch_translate('src/content/posts', days=7)
+              if translated:
+                  print(f'[翻译] 成功翻译 {len(translated)} 篇文章')
+                  for t in translated:
+                      print(f'  ✓ {t}')
+              else:
+                  print('[翻译] 暂无需要翻译的新文章')
+              
+              print('[翻译] Lv49 翻译完成')
+          except Exception as e:
+              print(f'[翻译] Lv49 失败: {e}')
+          
+          print('='*60)
+          print('🌐 多语言翻译完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 📊 内容健康度仪表盘 - Lv50 系统体检报告
+      # ═══════════════════════════════════════════════════════════
+      - name: Health Dashboard
+        env:
+          GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
+          ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
+          ASTRO_REPO_NAME: ${{ secrets.ASTRO_REPO_NAME }}
+        run: |
+          echo "📊 生成内容健康度仪表盘..."
+          uv run python -c "
+          import sys
+          import os
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('📊 内容健康度仪表盘 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.health_dashboard import save_dashboard
+              
+              token = os.environ.get('GH_MEMORY_TOKEN')
+              owner = os.environ.get('ASTRO_REPO_OWNER', 'garcci')
+              repo = os.environ.get('ASTRO_REPO_NAME', 'Astro')
+              
+              save_dashboard(owner, repo, token)
+              print('[仪表盘] Lv50 报告生成完成')
+          except Exception as e:
+              print(f'[仪表盘] Lv50 失败: {e}')
+          
+          print('='*60)
+          print('📊 仪表盘生成完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # ⏰ 智能发布时间优化 - Lv51 数据驱动优化
+      # ═══════════════════════════════════════════════════════════
+      - name: Publish Time Optimizer
+        env:
+          GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
+          ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
+          ASTRO_REPO_NAME: ${{ secrets.ASTRO_REPO_NAME }}
+        run: |
+          echo "⏰ 启动发布时间优化分析..."
+          uv run python -c "
+          import sys
+          import os
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('⏰ 智能发布时间优化器 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.publish_time_optimizer import optimize_publish_time
+              
+              token = os.environ.get('GH_MEMORY_TOKEN')
+              owner = os.environ.get('ASTRO_REPO_OWNER', 'garcci')
+              repo = os.environ.get('ASTRO_REPO_NAME', 'Astro')
+              
+              optimize_publish_time(owner, repo, token)
+              print('[时间优化] Lv51 分析完成')
+          except Exception as e:
+              print(f'[时间优化] Lv51 失败: {e}')
+          
+          print('='*60)
+          print('⏰ 发布时间优化完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 🤖 自动代码迭代 - Lv28升级
       # ═══════════════════════════════════════════════════════════
       - name: Auto Code Evolution
