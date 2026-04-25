@@ -367,6 +367,16 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             logger.warning(f"[标题优化] 失败: {e}")
         
+        # 🚀 多模型协作优化 frontmatter — 让每个模型做它百分百擅长的事
+        try:
+            original_fm = markdown_content.split('---', 2)[1] if markdown_content.startswith('---') else ""
+            markdown_content = self._enhance_frontmatter_multi_model(markdown_content)
+            new_fm = markdown_content.split('---', 2)[1] if markdown_content.startswith('---') else ""
+            if original_fm != new_fm:
+                logger.info("[多模型增强] frontmatter 已被多模型优化")
+        except Exception as e:
+            logger.warning(f"[多模型增强] 优化失败，保留原 frontmatter: {e}")
+        
         # 🧹 Frontmatter 清理 - 修复 YAML 引号嵌套等问题
         markdown_content = self._sanitize_frontmatter(markdown_content, data.date, article_title)
         
@@ -1778,6 +1788,177 @@ description: "一句话概括文章核心价值"
             logger.warning(f"[进化系统] 评估失败: {e}")
         
         return ai_content
+    
+    def _enhance_frontmatter_multi_model(self, content: str) -> str:
+        """
+        多模型协作优化文章 frontmatter — 让每个模型做它百分百擅长的事
+        
+        分工策略:
+        - Gemini (title_optimization): 标题创意、description 提炼
+        - GitHub Models (keyword_extraction): tags 结构化提取
+        - 失败时保留原 frontmatter，不影响主体文章
+        """
+        import re
+        
+        if not content or not content.startswith('---'):
+            return content
+        
+        parts = content.split('---', 2)
+        if len(parts) < 3:
+            return content
+        
+        frontmatter = parts[1]
+        body = parts[2]
+        
+        # 提取当前 frontmatter 字段
+        current_title_match = re.search(r'^title:\s*"([^"]+)"', frontmatter, re.MULTILINE)
+        current_title = current_title_match.group(1) if current_title_match else ""
+        
+        current_desc_match = re.search(r'^description:\s*"([^"]+)"', frontmatter, re.MULTILINE)
+        current_desc = current_desc_match.group(1) if current_desc_match else ""
+        
+        current_tags_match = re.search(r'^tags:\s*\[([^\]]*)\]', frontmatter, re.MULTILINE)
+        current_tags = current_tags_match.group(1) if current_tags_match else ""
+        
+        # 正文摘要（限制长度，控制成本）
+        body_summary = body[:3000]
+        
+        # 创建 AI 客户端
+        try:
+            from ..ai.smart_client import SmartAIClient
+            from ..core.loader import load_config
+            config = load_config()
+            ai_client = SmartAIClient(config.get("ai", {}))
+        except Exception as e:
+            logger.warning(f"[多模型增强] AI客户端创建失败: {e}")
+            return content
+        
+        new_title = current_title
+        new_desc = current_desc
+        new_tags = current_tags
+        
+        # ═══════════════════════════════════════════════════════════
+        # Step 1: Gemini — 优化 title + description（创意+提炼）
+        # ═══════════════════════════════════════════════════════════
+        try:
+            title_desc_prompt = f"""基于以下文章正文，优化标题和描述。
+
+当前标题: {current_title}
+当前描述: {current_desc}
+
+优化要求:
+1. 标题: 15-25字，具体有料，优先包含数字/核心事件/公司名称，禁止"每日科技热点"这类泛泛标题
+2. 描述: 30-50字，一句话概括文章核心科技价值，不要复制标题
+
+正文摘要:
+{body_summary}
+
+请严格按以下格式输出，不要有任何多余解释:
+TITLE: <优化后的标题>
+DESCRIPTION: <优化后的描述>"""
+            
+            result = ai_client.chat(
+                [{"role": "user", "content": title_desc_prompt}],
+                task_type="title_optimization",
+                temperature=0.7,
+                max_tokens=200
+            )
+            
+            # 解析结果
+            title_m = re.search(r'TITLE:\s*(.+?)(?:\n|$)', result)
+            desc_m = re.search(r'DESCRIPTION:\s*(.+?)(?:\n|$)', result)
+            
+            if title_m:
+                candidate = title_m.group(1).strip().strip('"').strip("'")
+                # 质量校验: 长度、非空、有变化、不是泛泛标题
+                if (5 <= len(candidate) <= 35 and 
+                    candidate != current_title and
+                    not any(v in candidate for v in ['每日科技热点', '科技日报', '热点聚合', 'TrendRadar Report'])):
+                    new_title = candidate
+                    logger.info(f"[多模型增强] Gemini优化标题: '{current_title[:30]}...' → '{new_title[:30]}...'")
+            
+            if desc_m:
+                candidate = desc_m.group(1).strip().strip('"').strip("'")
+                if (10 <= len(candidate) <= 80 and candidate != current_desc):
+                    new_desc = candidate
+                    logger.info(f"[多模型增强] Gemini优化描述: '{current_desc[:25]}...' → '{new_desc[:25]}...'")
+                    
+        except Exception as e:
+            logger.warning(f"[多模型增强] Gemini title/description 优化失败: {e}")
+        
+        # ═══════════════════════════════════════════════════════════
+        # Step 2: GitHub Models — 提取 tags（结构化输出）
+        # ═══════════════════════════════════════════════════════════
+        try:
+            tags_prompt = f"""从以下科技文章中提取3-6个中文标签。
+
+要求:
+- 必须是中文标签
+- 至少50%是科技类标签（如: AI, 芯片, 开源, 云计算, 大模型, 自动驾驶等）
+- 输出格式严格为: ["标签1", "标签2", "标签3"]
+- 只输出标签数组，不要任何解释
+
+正文摘要:
+{body_summary}
+
+当前标签: [{current_tags}]"""
+            
+            result = ai_client.chat(
+                [{"role": "user", "content": tags_prompt}],
+                task_type="keyword_extraction",
+                temperature=0.3,
+                max_tokens=100
+            )
+            
+            # 解析方括号中的标签
+            tags_m = re.search(r'\[([^\]]+)\]', result)
+            if tags_m:
+                raw = tags_m.group(1).strip()
+                tag_list = [t.strip().strip('"').strip("'") for t in raw.split(',')]
+                # 过滤有效中文标签
+                valid_tags = []
+                for t in tag_list:
+                    if any('\u4e00' <= c <= '\u9fff' for c in t) and len(t) >= 1 and len(t) <= 12:
+                        valid_tags.append(t)
+                if len(valid_tags) >= 3:
+                    new_tags = ', '.join(f'"{t}"' for t in valid_tags[:6])
+                    logger.info(f"[多模型增强] GitHub Models优化标签: [{current_tags}] → [{new_tags}]")
+                    
+        except Exception as e:
+            logger.warning(f"[多模型增强] GitHub Models tags 提取失败: {e}")
+        
+        # ═══════════════════════════════════════════════════════════
+        # Step 3: 组装新的 frontmatter
+        # ═══════════════════════════════════════════════════════════
+        new_frontmatter = frontmatter
+        
+        if new_title != current_title:
+            new_frontmatter = re.sub(
+                r'^title:\s*"([^"]+)"',
+                f'title: "{new_title}"',
+                new_frontmatter,
+                flags=re.MULTILINE
+            )
+        
+        if new_desc != current_desc:
+            new_frontmatter = re.sub(
+                r'^description:\s*"([^"]+)"',
+                f'description: "{new_desc}"',
+                new_frontmatter,
+                flags=re.MULTILINE
+            )
+        
+        if new_tags != current_tags:
+            new_frontmatter = re.sub(
+                r'^tags:\s*\[([^\]]*)\]',
+                f'tags: [{new_tags}]',
+                new_frontmatter,
+                flags=re.MULTILINE
+            )
+        
+        enhanced = f"---{new_frontmatter}---{body}"
+        logger.info(f"[多模型增强] frontmatter 优化完成")
+        return enhanced
     
     def _sanitize_frontmatter(self, content: str, date_str: str, fallback_title: str) -> str:
         """

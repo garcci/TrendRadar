@@ -181,15 +181,32 @@ class SmartAIClient:
         选择Provider（带额度保护）
         绝不超过免费额度！
         """
+        # ═══════════════════════════════════════════════════════════
+        # 第一步：核心任务直接判定 — 质量优先，不受FreeAIRouter影响
+        # ═══════════════════════════════════════════════════════════
+        
         # 高质量要求 → DeepSeek
         if require_high_quality:
             return "deepseek"
         
-        # 🔥 Lv70: 使用 FreeAIRouter 增强额度决策
+        # 1. 文章主体生成 — DeepSeek（深度分析、长文、中文质量最高）
+        if task_type == "article_generation":
+            logger.info("[模型路由] article_generation → DeepSeek（深度写作）")
+            return "deepseek"
+        
+        # 2. 质量评估 — DeepSeek（需要深度理解能力才能准确评估）
+        if task_type == "quality_evaluation":
+            logger.info("[模型路由] quality_evaluation → DeepSeek（深度评估）")
+            return "deepseek"
+        
+        # ═══════════════════════════════════════════════════════════
+        # 第二步：辅助任务 — 先用FreeAIRouter，再按模型特长细分
+        # ═══════════════════════════════════════════════════════════
+        
+        # 🔥 Lv70: 使用 FreeAIRouter 增强额度决策（仅辅助任务）
         if self.free_ai_router:
             try:
-                estimated_tokens = kwargs.get("estimated_tokens", 2000)
-                result = self.free_ai_router.select_provider(task_type, estimated_tokens, require_high_quality)
+                result = self.free_ai_router.select_provider(task_type, 2000, require_high_quality)
                 selected = result.get("provider", "deepseek")
                 # 映射 provider 名称
                 provider_map = {
@@ -200,7 +217,9 @@ class SmartAIClient:
                 mapped = provider_map.get(selected, selected)
                 if mapped != "deepseek":
                     logger.info(f"[Lv70] FreeAIRouter 推荐: {result.get('name', mapped)} ({result.get('reason', '')})")
-                return mapped
+                # FreeAIRouter推荐deepseek时，继续按模型特长细分
+                if mapped != "deepseek":
+                    return mapped
             except Exception as e:
                 logger.debug(f"[Lv70] FreeAIRouter 决策失败: {e}，回退到默认逻辑")
         
@@ -209,32 +228,98 @@ class SmartAIClient:
         github_available = self.github_models_enabled  # GitHub Models暂无额度限制，只需检查Token
         gemini_available = self.gemini_enabled and self._check_quota("google_gemini")
         
-        # 任务路由（免费API优先，GitHub Models排最前）
-        # 降级链: GitHub Models → Cloudflare → Gemini → DeepSeek
-        if task_type in ["summarization", "content_dedup", "rss_analysis"]:
+        # ═══════════════════════════════════════════════════════════
+        # 多模型协作路由 — 每个模型做它百分百擅长的事
+        # ═══════════════════════════════════════════════════════════
+        
+        # 3. 摘要生成 — Gemini（多语言摘要能力强，速度快）
+        if task_type == "summarization":
+            if gemini_available:
+                logger.info("[模型路由] summarization → Gemini（多语言摘要）")
+                return "gemini"
             if github_available:
                 return "github_models"
-            elif cf_available:
+            if cf_available:
                 return "cloudflare"
-            elif gemini_available:
-                return "gemini"
-        
-        elif task_type in ["translation", "quality_evaluation"]:
-            if github_available:
-                return "github_models"
-            elif gemini_available:
-                return "gemini"
-            elif cf_available:
-                return "cloudflare"
-        
-        elif task_type == "article_generation":
-            # 文章生成：质量第一，永远用DeepSeek
-            # 免费模型(LLaMA/Gemini)生成文章质量不稳定，绝不用在核心内容生成
-            # 免费模型只用于 summarization/content_dedup/rss_analysis/translation 等辅助任务
-            logger.info("[模型路由] 文章生成任务 → DeepSeek（质量优先）")
             return "deepseek"
         
-        # 默认兜底：DeepSeek（付费但稳定）
+        # 4. 翻译 — Gemini（Google 翻译基因，多语言最强）
+        if task_type == "translation":
+            if gemini_available:
+                logger.info("[模型路由] translation → Gemini（多语言翻译）")
+                return "gemini"
+            if github_available:
+                return "github_models"
+            if cf_available:
+                return "cloudflare"
+            return "deepseek"
+        
+        # 5. 内容去重 — GitHub Models（结构化判断，LLaMA逻辑清晰）
+        if task_type == "content_dedup":
+            if github_available:
+                logger.info("[模型路由] content_dedup → GitHub Models（结构化判断）")
+                return "github_models"
+            if cf_available:
+                return "cloudflare"
+            if gemini_available:
+                return "gemini"
+            return "deepseek"
+        
+        # 6. RSS分析 — GitHub Models（结构化数据处理）
+        if task_type == "rss_analysis":
+            if github_available:
+                logger.info("[模型路由] rss_analysis → GitHub Models（结构化分析）")
+                return "github_models"
+            if cf_available:
+                return "cloudflare"
+            if gemini_available:
+                return "gemini"
+            return "deepseek"
+        
+        # 7. 标题优化 — Gemini（创意+多语言，标题更吸引人）
+        if task_type == "title_optimization":
+            if gemini_available:
+                logger.info("[模型路由] title_optimization → Gemini（创意标题）")
+                return "gemini"
+            if github_available:
+                return "github_models"
+            if cf_available:
+                return "cloudflare"
+            return "deepseek"
+        
+        # 8. 关键词/标签提取 — GitHub Models（结构化提取）
+        if task_type in ["keyword_extraction", "tag_generation", "classification"]:
+            if github_available:
+                logger.info(f"[模型路由] {task_type} → GitHub Models（结构化提取）")
+                return "github_models"
+            if cf_available:
+                return "cloudflare"
+            if gemini_available:
+                return "gemini"
+            return "deepseek"
+        
+        # 9. 代码相关 — GitHub Models（LLaMA代码能力强）或 DeepSeek
+        if task_type in ["code_generation", "code_review", "code_explanation"]:
+            if github_available:
+                logger.info(f"[模型路由] {task_type} → GitHub Models（代码能力）")
+                return "github_models"
+            if cf_available:
+                return "cloudflare"
+            return "deepseek"
+        
+        # 10. 数据提取/格式化 — GitHub Models（结构化输出）
+        if task_type in ["data_extraction", "format_conversion", "json_generation"]:
+            if github_available:
+                logger.info(f"[模型路由] {task_type} → GitHub Models（结构化输出）")
+                return "github_models"
+            if cf_available:
+                return "cloudflare"
+            if gemini_available:
+                return "gemini"
+            return "deepseek"
+        
+        # 默认兜底：DeepSeek（付费但稳定，任何任务都能做）
+        logger.info(f"[模型路由] {task_type} → DeepSeek（默认兜底）")
         return "deepseek"
     
     def _call_cloudflare(self, messages, kwargs, start_time, task_type):
