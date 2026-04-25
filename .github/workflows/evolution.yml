@@ -697,6 +697,32 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
+      # 🔬 跨源观点聚合 - Lv55 多源信息融合
+      # ═══════════════════════════════════════════════════════════
+      - name: Cross Source Synthesis
+        run: |
+          echo "🔬 启动跨源观点聚合..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🔬 跨源观点聚合器 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.cross_source_synthesizer import run_cross_source_synthesis
+              run_cross_source_synthesis('.')
+              print('[观点聚合] Lv55 完成')
+          except Exception as e:
+              print(f'[观点聚合] Lv55 失败: {e}')
+          
+          print('='*60)
+          print('🔬 观点聚合完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 🤖 自动代码迭代 - Lv28升级
       # ═══════════════════════════════════════════════════════════
       - name: Auto Code Evolution
