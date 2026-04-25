@@ -831,94 +831,77 @@ class GitHubStorageBackend(StorageBackend):
         date_obj = datetime.strptime(data.date, "%Y-%m-%d") if data.date else datetime.now()
         weekday_cn = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"][date_obj.weekday()]
         
-        system_prompt = """你是一位资深的新闻主编和深度内容创作者，拥有10年以上的媒体经验。你的任务是将热点资讯转化为一篇**有深度、有洞察、有价值**的专业文章。"""
+        # ═══════════════════════════════════════════════════════════
+        # 🔥 关键：输出格式要求必须前置，防止 Prompt 过长被截断
+        # ═══════════════════════════════════════════════════════════
+        system_prompt = f"""你是一位资深科技媒体主编。你的任务是将热点数据转化为一篇**有深度、有洞察**的专业文章。
+
+## ⚠️ 输出格式（必须严格遵守，否则文章无效）
+
+1. **首先输出 Frontmatter**（以 `---` 开始和结束）：
+```yaml
+---
+title: "有吸引力的标题"  # 禁止纯日期标题
+published: {data.date}T08:00:00+08:00
+tags: [科技, AI, 相关标签]  # 3-6个中文标签，科技类≥50%
+category: news
+draft: false
+image: https://picsum.photos/seed/英文关键词/1600/900
+description: "一句话概括文章核心价值"
+---
+```
+2. **封面图后不要添加图片**
+3. **每个深度分析板块配1张图**，seed 必须与内容相关（英文关键词）
+4. **使用中文标签**，禁止英文标签
+5. **提到GitHub项目时用** `::github{{repo="owner/repo"}}`
+
+## 文章结构
+
+### 开篇引言（200-300字）
+提炼核心特征，设置悬念，**禁止罗列热点**。
+
+### 深度分析（2-3个板块，每段400-600字）
+- 小标题概括核心观点
+- 解释技术原理，引用具体数据
+- 预测3-6个月趋势
+- 每板块至少1个表格 + 1个 `:::note[💡 关键洞察]`
+- 跨领域关联
+
+### 平台热点精选（5-8个）
+格式：`**平台名**：[标题](链接) - 一句话锐评`
+
+### 趋势观察（3-4条，有序列表）
+
+### 结语（200-300字）
+呼应开篇，形成闭环。
+
+## 内容策略
+- 优先：AI技术 > 开源生态 > 科技商业 > 产品创新
+- 避免：政治流水账、娱乐八卦、与科技无关的国际冲突
+- 科技内容占比 ≥ 70%
+- 没有重磅科技新闻时，写技术趋势分析/开源推荐/AI工具评测
+
+## 禁忌
+- ❌ 把输入的热点问题直接复制到核心观点中
+- ❌ 把输入数据原样输出（你不是复读机）
+- ❌ 流水账、模糊表述（"据悉""据报道"）
+- ❌ 关键词使用无意义的词（如"有了更多的了""了解"）
+- ❌ 超过2000字
+
+记住：你是**主编**，你有决策权。选择最有价值的科技话题，用你最擅长的角度深入分析。提供**经过筛选、分析、提炼的高价值内容**！"""
         
         # 🧬 动态Prompt优化 - 根据历史评分自动调整
         try:
             from evolution.prompt_optimizer import get_optimized_prompt_params
-            system_prompt, optimized_temp, optimized_tokens = get_optimized_prompt_params(
+            _, optimized_temp, optimized_tokens = get_optimized_prompt_params(
                 system_prompt, 
                 base_temp=optimized_params['temperature'],
                 base_tokens=optimized_params['max_tokens']
             )
-            # 更新参数
             optimized_params['temperature'] = optimized_temp
             optimized_params['max_tokens'] = optimized_tokens
         except Exception as e:
             logger.warning(f"Prompt优化失败，使用默认参数: {e}")
-        
-        system_prompt += """
-
-## 核心要求
-
-### 1. 不要简单罗列！分析热点背后的逻辑、趋势、影响
-
-### 2. 内容策略
-你拥有完全的内容决策权。从今日热点中挖掘最有价值的科技/AI/开源内容，用不同分析框架写作。
-- 优先选题：AI技术突破 > 开源生态 > 科技商业 > 产品创新 > 技术深度
-- 避免：纯政治流水账、娱乐八卦、与科技无关的国际冲突
-- 科技内容占比 ≥ 70%，否则写技术趋势分析/开源推荐/AI工具评测
-
-### 3. 文章结构（必须包含）
-
-#### 开篇引言（200-300字）
-提炼今日舆情核心特征，设置悬念，不要罗列。
-
-#### 深度分析板块（每个400-600字，2-3个）
-- 小标题有吸引力，概括核心观点
-- 每板块配1张Picsum图片（seed用内容相关英文关键词，如 `ai-chip-breakthrough`）
-- 🔬 科技话题必须解释技术原理，不要停留在概念
-- 📊 引用具体数据（利润率、增长率、市场份额等）
-- 🔮 预测未来3-6个月趋势，给出判断
-- 📋 每板块至少1个对比表格
-- 📝 至少1个 `:::note[💡 关键洞察]` Admonition
-- 跨领域关联，发现隐藏逻辑
-
-#### 平台热点精选（5-8个）
-格式：`**平台名**：[标题](链接) - 一句话锐评`（有观点、有态度）
-
-#### 趋势观察（300-400字）
-3-4条趋势线，用有序列表，每条有热点支撑。
-
-#### 结语思考（200-300字）
-呼应开篇，形成闭环，提出深层次思考。
-
-### 4. Markdown 格式规范
-- **Frontmatter 必须在文章最开头**：
-  ```yaml
-  ---
-  title: "有吸引力的标题"  # 禁止机械日期标题
-  published: {data.date}T08:00:00+08:00
-  tags: [新闻, 热点, 趋势雷达]  # 中文标签3-6个，科技标签≥50%
-  category: news
-  draft: false
-  image: https://picsum.photos/seed/英文关键词/1600/900
-  description: "一句话概括核心价值"
-  ---
-  ```
-- 封面图后不要添加图片（已自动显示在顶部）
-- 正文图片seed必须与板块内容相关，禁止通用seed如`news`/`image`
-- 提到GitHub项目时用 `::github{repo="owner/repo"}`
-- 善用表格、引用块 `>`、加粗、Emoji（适度）
-
-### 5. 质量自查（生成后自检）
-- [ ] 标题有吸引力（非机械日期）
-- [ ] 科技内容 ≥ 70%
-- [ ] ≥2个深度分析板块，每板块有表格
-- [ ] 有具体数据支撑
-- [ ] 有预测性分析
-- [ ] 有 Admonition 引用块
-- [ ] 结语呼应开篇
-
-### 6. 去重规则
-- 检查历史记录，已写过的热点今天绝对不要重复
-- 同一话题持续多日，只写"新变化"和"新进展"
-- 首次出现的新话题优先
-
-### 7. 禁忌
-- ❌ 重复同一事件、流水账、模糊表述（"据悉""据报道"）、超过2000字
-
-记住：提供**经过筛选、分析、提炼的高价值内容**，不是信息搬运工！"""
         
         user_prompt = f"""请为以下日期生成一篇专业的热点聚合文章：
 
@@ -1132,8 +1115,6 @@ class GitHubStorageBackend(StorageBackend):
         # 🎯 Prompt片段追踪记录（Lv39）
         try:
             from evolution.prompt_tracker import record_prompt_fragments
-            
-            # 根据实际注入的内容推断使用的片段
             fragments_used = []
             fragment_markers = {
                 "quality_feedback": "历史文章质量反馈",
@@ -1153,51 +1134,41 @@ class GitHubStorageBackend(StorageBackend):
                 "repo_size": "### 📦 仓库体积监控",
                 "cross_project": "### 🔭 跨项目技术趋势洞察",
             }
-            
             for fragment_id, marker in fragment_markers.items():
                 if marker in user_prompt:
                     fragments_used.append(fragment_id)
-            
-            # 生成文章ID（基于日期和标题）
             article_id = f"{data.date}_{hash(title) % 10000}"
             record_prompt_fragments(article_id, fragments_used)
             logger.info(f"[Prompt追踪] 记录{len(fragments_used)}个片段: {fragments_used}")
         except Exception as e:
             logger.warning(f"[Prompt追踪] 记录失败: {e}")
         
-        user_prompt += """
+        # 🔥 Prompt 长度控制 — 防止输出要求被截断
+        MAX_USER_PROMPT_LEN = 8000
+        prompt_len = len(user_prompt)
+        if prompt_len > MAX_USER_PROMPT_LEN:
+            logger.warning(f"[Prompt控制] user_prompt 过长 ({prompt_len} 字符)，截断辅助上下文")
+            # 保留核心数据（前面部分），截断后面的辅助注入
+            # 找到 "热点数据" 部分结束的位置，从那里截断
+            core_end = user_prompt.find("\n\n**⚠️ 输出")
+            if core_end == -1:
+                core_end = user_prompt.find("\n\n**⚠️ 重要")
+            if core_end == -1:
+                core_end = len(user_prompt) // 2
+            user_prompt = user_prompt[:core_end] + f"""
 
-**⚠️ 重要提醒**：
-1. **你是主编，你有决策权**：选择今日最有价值的科技话题，用你最擅长的角度分析
-2. **风格多样化**：这篇文章用什么结构、什么角度，由你决定（不要每次都用相同的结构）
-3. **深度优先**：宁可在 1-2 个话题上写得深入，也不要罗列 5-6 个话题每个都浅尝辄止
-4. **利用你的知识**：调用你的专业知识做分析，不要只描述表面现象
-5. **如果没有重磅科技新闻**：可以写技术趋势分析、开源项目推荐、AI 工具评测、编程语言新特性等
+（辅助上下文因长度限制已截断，共 {prompt_len} 字符）
 
-**⚠️ 输出要求（必须遵守）：**
-1. **首先输出完整的 Frontmatter**，以 `---` 开始和结束
-2. **使用中文标签**：tags 必须是中文，如 `[新闻, 热点, 国际局势]`
-3. **🖼️ 图片规则（极其重要）**：
-   - Frontmatter 中的 `image` 字段设置封面图 seed
-   - **Frontmatter 后不要添加任何图片**，封面图会自动显示在文章顶部
-   - 每个深度分析板块的图片 seed 也必须互不相同
-   - **示例**：如果封面是 `iran-tension-negotiation`，深度分析板块配图必须是其他词如 `diplomacy-talks`
-4. **图片 seed 必须与内容相关**：
-   - 封面图：使用文章核心主题的英文关键词
-   - 分析配图：每个板块的图片 seed 必须与该板块内容直接相关
-   - 禁止使用通用 seed（如 `news`、`image`），必须使用具体内容关键词
-5. **📝 Astro 博客特性利用**：
-   - 每个深度分析板块至少使用 1 个 Admonition 引用块（`:::note[...]` 或 `:::tip[...]`，使用方括号）
-   - 使用引用块 `>` 突出金句
-   - 使用表格进行对比分析
-6. 然后才是文章内容
-7. 严格按照系统提示中的结构和要求创作
-8. **不要流水账**：要提供深度分析和独到见解，跨领域关联不同热点
-9. **🖼️ 图片增强**：每个深度分析板块配 1 张相关图片（Picsum Photos，所有 seed 必须唯一不重复）
-10. **📚 利用历史上下文**：如果有持续关注的热点，请在文章中体现其演变和延续性
-11. **💰 成本控制**：文章精炼有力，控制在 {optimized_params['max_tokens']//4} 字以内
+**⚠️ 提醒**：你是主编。基于以上热点数据，创作一篇深度科技分析文章。
+- 先输出 Frontmatter（格式要求见系统提示）
+- 然后写正文：引言 → 2-3个深度分析板块（每板块有表格+Admonition） → 平台热点精选 → 趋势观察 → 结语
+- 不要复制输入的热点问题作为核心观点
+- 关键词必须是中文，3-6个，科技类≥50%
+"""
+        
+        user_prompt += f"""
 
-请立即开始输出完整的 Markdown 文章！"""
+请立即输出完整 Markdown 文章（控制字数在 {optimized_params['max_tokens']//4} 字以内）！"""
         
         messages = [
             {"role": "system", "content": system_prompt},
@@ -1231,6 +1202,19 @@ class GitHubStorageBackend(StorageBackend):
                 # 不强制重写以避免额外API成本
         except Exception as e:
             logger.warning(f"[科技检测] 检测失败: {e}")
+        
+        # 🔍 强制输出格式验证
+        is_valid, validation_msg = self._validate_article_format(ai_content, data.date)
+        if not is_valid:
+            logger.warning(f"[格式验证] 文章格式不合格: {validation_msg}")
+            # 记录到异常监控供后续分析
+            try:
+                from evolution.exception_monitor import record_exception
+                record_exception("ARTICLE_FORMAT_INVALID", validation_msg, {"title": title, "date": data.date})
+            except Exception:
+                pass
+        else:
+            logger.info(f"[格式验证] 文章格式检查通过: {validation_msg}")
         
         # Cache the response
         cost_optimizer.cache_response(cache_key, ai_content, estimated_tokens)
@@ -1431,6 +1415,108 @@ description: "TrendRadar 自动生成的热点聚合报告"
                 fm += f"\n{default_value}"
         
         return f"---\n{fm}\n---\n{body}"
+    
+    def _validate_article_format(self, content: str, date_str: str) -> tuple:
+        """
+        验证AI生成文章的输出格式是否符合要求。
+        检查 frontmatter、核心观点、关键词质量等。
+        
+        Returns:
+            (is_valid: bool, message: str)
+        """
+        import re
+        
+        issues = []
+        
+        # 1. 检查 Frontmatter 存在性
+        if not content.startswith('---'):
+            issues.append("缺少 Frontmatter 开头标记")
+        
+        # 2. 提取 Frontmatter
+        fm_match = re.search(r'^---\n(.*?)\n---', content, re.DOTALL)
+        if not fm_match:
+            issues.append("Frontmatter 格式错误（未找到 ---...---）")
+        else:
+            fm = fm_match.group(1)
+            
+            # 3. 检查必要字段
+            required = ['title:', 'published:', 'tags:', 'category:', 'draft:', 'image:', 'description:']
+            for field in required:
+                if field not in fm:
+                    issues.append(f"Frontmatter 缺少字段: {field}")
+            
+            # 4. 检查 title 是否为纯日期格式
+            title_match = re.search(r'title:\s*["\']?([^"\'\n]+)', fm)
+            if title_match:
+                title_val = title_match.group(1).strip()
+                if re.match(r'^\d{4}-\d{2}-\d{2}', title_val) or '每日热点' in title_val:
+                    issues.append(f"标题机械无吸引力: {title_val[:30]}")
+            else:
+                issues.append("无法解析 title 字段")
+            
+            # 5. 检查 tags 质量
+            tags_match = re.search(r'tags:\s*\[(.*?)\]', fm)
+            if tags_match:
+                tags_str = tags_match.group(1)
+                tags = [t.strip().strip('"').strip("'") for t in tags_str.split(',')]
+                # 检查是否有无意义标签
+                meaningless = {'了解', '的', '了', '和', '与', '或', '是', '有了', '有了更多的了'}
+                bad_tags = [t for t in tags if t in meaningless or len(t) < 2]
+                if bad_tags:
+                    issues.append(f"标签质量差: {bad_tags}")
+                # 允许常见英文科技缩写
+                tech_abbreviations = {'AI', 'API', 'GPU', 'LLM', 'GPT', 'CPU', 'NLP', 'CV', 'ML', 'DL', 'IoT', '5G', 'AR', 'VR', 'XR', 'OS', 'UI', 'UX', 'SaaS', 'PaaS', 'IaaS'}
+                has_chinese = any(len(t) >= 2 and '\\u4e00' <= t[0] <= '\\u9fa5' for t in tags)
+                has_tech_abbr = any(t.upper() in tech_abbreviations for t in tags)
+                if not has_chinese and not has_tech_abbr:
+                    issues.append("标签非中文且无科技含义")
+            else:
+                issues.append("无法解析 tags 字段")
+            
+            # 6. 检查 description
+            desc_match = re.search(r'description:\s*["\']?([^"\'\n]+)', fm)
+            if desc_match:
+                desc = desc_match.group(1).strip()
+                if len(desc) < 10 or desc.startswith('====') or desc.startswith('---'):
+                    issues.append(f"description 无效: {desc[:30]}")
+            else:
+                issues.append("缺少 description")
+        
+        # 7. 检查正文是否复制了输入数据（知乎问题列表等）
+        body = content.split('---', 2)[-1] if '---' in content else content
+        # 检测常见的问题列表模式
+        question_patterns = [
+            r'具体是怎么回事\?',
+            r'如何看待这一事件\?',
+            r'背后有什么科学原理\?',
+            r'我们为何要研究',
+            r'这种相处模式为什么',
+        ]
+        for pattern in question_patterns:
+            if re.search(pattern, body):
+                issues.append("正文包含未加工的热搜问题（复制输入数据）")
+                break
+        
+        # 8. 检查核心观点是否变成问题列表
+        if '核心观点' in body:
+            # 提取核心观点部分
+            kp_match = re.search(r'核心观点[:：]\s*\n(.*?)(?:\n##|\n###|</aside>|$)', body, re.DOTALL)
+            if kp_match:
+                kp_section = kp_match.group(1)
+                # 如果核心观点中有太多问号，说明是问题列表
+                question_count = kp_section.count('？') + kp_section.count('?')
+                line_count = kp_section.count('\\n')
+                if question_count > 2 and question_count > line_count * 0.3:
+                    issues.append("核心观点被替换为问题列表（AI未正确理解任务）")
+        
+        # 9. 检查文章长度（frontmatter 约 200 字符，正文至少 300 字符）
+        body_only = content.split('---', 2)[-1] if '---' in content else content
+        if len(body_only.strip()) < 200:
+            issues.append(f"正文过短: {len(body_only)} 字符")
+        
+        if issues:
+            return False, "; ".join(issues[:3])  # 最多返回3个问题
+        return True, "格式检查通过"
     
     def _push_to_github(self, filepath: str, content: str, commit_message: str) -> None:
         """
