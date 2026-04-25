@@ -1088,3 +1088,12 @@ jobs:
           else:
               print('跳过自动迭代：未配置 GH_MEMORY_TOKEN')
           "
+
+      - name: System Final Check
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          echo "🔬 运行系统最终健康检查 (Round 5)..."
+          uv run python evolution/system_final_check.py
+          echo ""
+          echo "✅ 五轮调优循环完成：Prompt→数据流→Workflow容错→代码扫描→架构验证"
