@@ -160,17 +160,17 @@ class AICostOptimizer:
         params = {
             'high': {
                 'temperature': 0.7,
-                'max_tokens': 8000,
+                'max_tokens': 4000,  # 控制字数，防止AI重复凑字数
                 'model_priority': 'deepseek/deepseek-chat'  # 高质量模型
             },
             'medium': {
                 'temperature': 0.6,
-                'max_tokens': 6000,
+                'max_tokens': 3500,
                 'model_priority': 'deepseek/deepseek-chat'
             },
             'low': {
                 'temperature': 0.5,
-                'max_tokens': 4000,
+                'max_tokens': 3000,
                 'model_priority': 'deepseek/deepseek-chat'  # 可以使用更便宜的模型
             }
         }

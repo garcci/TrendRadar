@@ -865,7 +865,7 @@ class GitHubStorageBackend(StorageBackend):
 1. **首先输出 Frontmatter**（以 `---` 开始和结束）：
 ```yaml
 ---
-title: "有吸引力的标题"  # 禁止纯日期标题
+title: "有吸引力的标题"  # 禁止纯日期标题，禁止"TrendRadar Report"格式
 published: {data.date}T08:00:00+08:00
 tags: [科技, AI, 相关标签]  # 3-6个中文标签，科技类≥50%
 category: news
@@ -879,24 +879,24 @@ description: "一句话概括文章核心价值"
 4. **使用中文标签**，禁止英文标签
 5. **提到GitHub项目时用** `::github{{repo="owner/repo"}}`
 
-## 文章结构
+## 文章结构（每个部分只出现一次，严禁重复）
 
-### 开篇引言（200-300字）
+### 开篇引言（150-250字）
 提炼核心特征，设置悬念，**禁止罗列热点**。
 
-### 深度分析（2-3个板块，每段400-600字）
+### 深度分析（2-3个板块，每段300-500字）
 - 小标题概括核心观点
 - 解释技术原理，引用具体数据
 - 预测3-6个月趋势
 - 每板块至少1个表格 + 1个 `:::note[💡 关键洞察]`
 - 跨领域关联
 
-### 平台热点精选（5-8个）
+### 平台热点精选（只出现一次，5-8个）
 格式：`**平台名**：[标题](链接) - 一句话锐评`
 
-### 趋势观察（3-4条，有序列表）
+### 趋势观察（3-4条，有序列表，只出现一次）
 
-### 结语（200-300字）
+### 结语（150-250字，只出现一次）
 呼应开篇，形成闭环。
 
 ## 内容策略
@@ -905,14 +905,34 @@ description: "一句话概括文章核心价值"
 - 科技内容占比 ≥ 70%
 - 没有重磅科技新闻时，写技术趋势分析/开源推荐/AI工具评测
 
-## 禁忌
-- ❌ 把输入的热点问题直接复制到核心观点中
-- ❌ 把输入数据原样输出（你不是复读机）
-- ❌ 流水账、模糊表述（"据悉""据报道"）
-- ❌ 关键词使用无意义的词（如"有了更多的了""了解"）
-- ❌ 超过2000字
+## ⚠️ 核心质量要求（违反任何一条文章作废）
+- ❌ **严禁重复**：同一章节标题、同一热点列表、同一结语禁止出现两次以上
+- ❌ **严禁复制输入**：核心观点必须是你的洞察，不能把热点标题直接复制进去
+- ❌ **严禁垃圾关键词**：关键词必须是具体技术/产品/公司名，禁止"了解""有了更多的了""让我们"等无意义词
+- ❌ **严禁模板化废话**：禁止每段结尾都是"让我们有了更多的了解""这表明了...的关系"等空洞表述
+- ❌ **严禁流水账**：禁止"据悉""据报道"等模糊表述，必须有具体数据或事实支撑
+- ❌ **字数限制**：全文（含frontmatter）不超过1800字
 
-记住：你是**主编**，你有决策权。选择最有价值的科技话题，用你最擅长的角度深入分析。提供**经过筛选、分析、提炼的高价值内容**！"""
+## 快速阅读区格式（紧跟frontmatter后）
+```
+:::tip[📋 快速阅读]
+**一句话总结**: 用20-40字精准概括今日最有价值的科技趋势
+
+**阅读时间**: ⏱️ X 分钟
+
+**核心观点**:
+1. 你的洞察1（不是热点标题）
+2. 你的洞察2
+3. 你的洞察3
+4. 你的洞察4
+5. 你的洞察5
+
+**关键词**: 具体技术名, 产品名, 公司名, 领域名（3-6个，中文）
+
+:::
+```
+
+记住：你是**主编**，你有决策权。选择最有价值的科技话题，用你最擅长的角度深入分析。提供**经过筛选、分析、提炼的高价值内容**！文章贵在精炼，不在冗长。"""
         
         # 🧬 动态Prompt优化 - 根据历史评分自动调整
         try:
@@ -1192,7 +1212,7 @@ description: "一句话概括文章核心价值"
         
         user_prompt += f"""
 
-请立即输出完整 Markdown 文章（控制字数在 {optimized_params['max_tokens']//4} 字以内）！"""
+请立即输出完整 Markdown 文章（控制字数在 {optimized_params['max_tokens']//3} 字以内）！"""
         
         messages = [
             {"role": "system", "content": system_prompt},
@@ -1569,11 +1589,40 @@ description: "TrendRadar 自动生成的热点聚合报告"
                 kp_section = kp_match.group(1)
                 # 如果核心观点中有太多问号，说明是问题列表
                 question_count = kp_section.count('？') + kp_section.count('?')
-                line_count = kp_section.count('\\n')
+                line_count = kp_section.count('\n')
                 if question_count > 2 and question_count > line_count * 0.3:
                     issues.append("核心观点被替换为问题列表（AI未正确理解任务）")
         
-        # 9. 检查文章长度（frontmatter 约 200 字符，正文至少 300 字符）
+        # 9. 检查内容重复（同一章节标题出现多次是严重质量问题）
+        section_headers = re.findall(r'^(#{2,3}\s+.+)$', body, re.MULTILINE)
+        seen_headers = set()
+        duplicates = []
+        for h in section_headers:
+            h_clean = h.strip()
+            if h_clean in seen_headers:
+                duplicates.append(h_clean)
+            seen_headers.add(h_clean)
+        if duplicates:
+            issues.append(f"内容重复: {duplicates[:2]} 等章节出现多次")
+        
+        # 10. 检查关键词质量（快速阅读区的关键词列表）
+        kw_match = re.search(r'\*\*关键词\*\*[:：]\s*(.+?)(?:\n\n|\n\*\*|$)', body, re.DOTALL)
+        if kw_match:
+            kw_text = kw_match.group(1)
+            # 检测无意义词
+            meaningless_kws = ['有了更多的了', '了解', '的了解', '让我们', '对国际', '了更多的了解']
+            found_bad = [w for w in meaningless_kws if w in kw_text]
+            if found_bad:
+                issues.append(f"关键词包含无意义词汇: {found_bad}")
+        
+        # 11. 检查一句话总结质量
+        summary_match = re.search(r'\*\*一句话总结\*\*[:：]\s*(.+?)(?:\n\n|\n\*\*|$)', body, re.DOTALL)
+        if summary_match:
+            summary = summary_match.group(1).strip()
+            if summary.startswith('====') or summary.startswith('---') or len(summary) < 10:
+                issues.append(f"一句话总结无效: {summary[:30]}")
+        
+        # 12. 检查文章长度（frontmatter 约 200 字符，正文至少 300 字符）
         body_only = content.split('---', 2)[-1] if '---' in content else content
         if len(body_only.strip()) < 200:
             issues.append(f"正文过短: {len(body_only)} 字符")
