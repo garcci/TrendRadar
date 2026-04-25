@@ -287,6 +287,23 @@ class GitHubStorageBackend(StorageBackend):
                 markdown_content = tip_blocks[0] + first_tip + body_after_tips
                 logger.info("[清理] 已删除重复的快速阅读区")
         
+        # 🧹 修复核心观点编号格式（AI有时会输出 `: 内容` 或 `：内容`）
+        import re
+        # 在快速阅读区内，将 `: 内容` 或 `：内容` 修复为正常编号
+        def fix_bullet_numbers(match):
+            section = match.group(0)
+            # 修复空的编号行（如 `3. : ` 或 `4. ：`）
+            section = re.sub(r'(\d+\.\s*)[:：]\s*', r'\1', section)
+            return section
+        
+        # 只修复快速阅读区内的核心观点部分
+        markdown_content = re.sub(
+            r'(\*\*核心观点\*\*[:：]\s*\n)(.*?)(\n\n\*\*关键词)',
+            lambda m: m.group(1) + fix_bullet_numbers(m.group(2)) + m.group(3),
+            markdown_content,
+            flags=re.DOTALL
+        )
+        
         # ✅ Frontmatter 预验证 — 防止格式错误导致 Astro 构建失败
         try:
             from evolution.frontmatter_validator import validate_article
