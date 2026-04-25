@@ -766,6 +766,18 @@ class GitHubStorageBackend(StorageBackend):
         if diversity_instructions:
             context_summary += diversity_instructions
         
+        # 🔮 热点预测注入 — Lv67 进化
+        try:
+            from evolution.trend_forecast import get_trend_predictions
+            trend_prediction = get_trend_predictions('.')
+            if trend_prediction:
+                context_summary += trend_prediction
+                logger.info("[热点预测] Lv67 已注入预测内容")
+            else:
+                logger.info("[热点预测] Lv67 暂无即将到来的热点")
+        except Exception as e:
+            logger.warning(f"[热点预测] Lv67 加载失败: {e}")
+        
         # Check cache before generating
         cache_key = cost_optimizer.generate_cache_key(news_text, context_summary)
         cached_response = cost_optimizer.get_cached_response(cache_key)

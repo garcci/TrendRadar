@@ -943,6 +943,95 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
+      # 🧪 A/B 测试管理 - Lv68
+      # ═══════════════════════════════════════════════════════════
+      - name: A/B Testing Monitor
+        timeout-minutes: 3
+        run: |
+          echo "🧪 启动 A/B 测试监控..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🧪 A/B 测试监控 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.ab_testing import ABTestingFramework
+              framework = ABTestingFramework('.')
+              
+              # 获取活跃测试
+              active = framework.get_active_tests()
+              print(f'活跃测试数: {len(active)}')
+              
+              for test in active[:3]:
+                  print(f\"  - {test['test_id']}: {test['dimension']} (样本: {test['samples']})\")
+              
+              # 获取已完成测试的推荐
+              recommendations = framework.get_recommendations()
+              if recommendations:
+                  print('\\n📋 基于 A/B 测试的推荐:')
+                  for rec in recommendations[:3]:
+                      print(f\"  - {rec['dimension']}: 使用 {rec['winner']} (改进 {rec['improvement']:.1f}分)\")
+              
+              print('[A/B测试] Lv68 完成')
+          except Exception as e:
+              print(f'[A/B测试] Lv68 失败: {e}')
+          
+          print('='*60)
+          print('🧪 A/B 测试监控完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 🧠 模型路由成本优化 - Lv69
+      # ═══════════════════════════════════════════════════════════
+      - name: Model Router Optimization
+        timeout-minutes: 3
+        run: |
+          echo "🧠 启动模型路由成本优化..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🧠 模型路由成本优化 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.model_router import ModelRouter
+              router = ModelRouter('.')
+              
+              # 获取成本报告
+              report = router.get_cost_report(days=7)
+              print(f\"周成本: ¥{report['total_cost']:.2f}\")
+              print(f\"总请求: {report['total_requests']} 次\")
+              print(f\"平均延迟: {report['avg_latency']:.1f}s\")
+              print(f\"成功率: {report['success_rate']*100:.0f}%\")
+              
+              # 按任务分类
+              if report.get('by_task'):
+                  print('\\n📊 按任务分类:')
+                  for task, data in report['by_task'].items():
+                      print(f\"  - {task}: ¥{data['cost']:.2f} ({data['count']}次)\")
+              
+              # 优化建议
+              suggestions = router.get_optimization_suggestions()
+              print('\\n💡 优化建议:')
+              for s in suggestions[:5]:
+                  print(f'  - {s}')
+              
+              print('[模型路由] Lv69 完成')
+          except Exception as e:
+              print(f'[模型路由] Lv69 失败: {e}')
+          
+          print('='*60)
+          print('🧠 模型路由优化完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 🤖 自动代码迭代 - Lv28升级
       # ═══════════════════════════════════════════════════════════
       - name: Auto Code Evolution
