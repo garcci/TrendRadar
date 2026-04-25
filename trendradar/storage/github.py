@@ -214,8 +214,8 @@ class GitHubStorageBackend(StorageBackend):
                         module='github.py'
                     )
                     monitor._save_knowledge_base()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"[异常监控] 保存失败: {e}")
             
             # 📦 记录检测结果到数据管道 — Round 2
             try:
@@ -226,8 +226,8 @@ class GitHubStorageBackend(StorageBackend):
                     "unit": "boolean",
                     "module": "tech_content_guard",
                 })
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"[数据管道] 写入失败: {e}")
         except Exception as e:
             logger.warning(f"[科技检测] 检查失败: {e}")
         
@@ -299,8 +299,8 @@ class GitHubStorageBackend(StorageBackend):
                                 module='github.py'
                             )
                             monitor._save_knowledge_base()
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.debug(f"[异常监控] 保存失败: {e}")
                         # 阻止推送，避免破坏 Astro 构建
                         logger.error("[Frontmatter验证] 阻止推送：frontmatter 格式严重错误")
                         return False
@@ -330,8 +330,8 @@ class GitHubStorageBackend(StorageBackend):
                         module='github.py'
                     )
                     monitor._save_knowledge_base()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"[异常监控] 保存失败: {e}")
                 return False
             logger.info("[构建预检] ✅ 通过")
         except Exception as e:
@@ -420,8 +420,8 @@ class GitHubStorageBackend(StorageBackend):
                                     'description': desc_match,
                                     'filename': file_info.get('name')
                                 })
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.debug(f"[已有文章] 获取内容失败: {e}")
             
             return existing
         except Exception as e:
