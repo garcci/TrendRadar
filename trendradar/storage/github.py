@@ -154,16 +154,36 @@ class GitHubStorageBackend(StorageBackend):
             logger.warning(f"[智能调度] 决策失败，使用默认策略: {e}")
             is_draft = False
         
-        # Check if we already generated an article today
-        # If yes, skip to avoid duplicates (simple and reliable)
-        # NOTE: Temporarily disabled for testing
-        # try:
-        #     existing_articles = self._check_existing_articles(date_str)
-        #     if existing_articles:
-        #         logger.warning(f"Found {len(existing_articles)} existing article(s) for {date_str}, skipping to avoid duplicates")
-        #         return False
-        # except Exception as e:
-        #     logger.warning(f"Could not check existing articles: {e}, proceeding anyway")
+        # 🔍 语义去重检查 — Lv60 进化
+        try:
+            from evolution.semantic_deduplicator import check_content_duplication
+            
+            topics = []
+            for source_id, items in data.items.items():
+                for item in items[:5]:
+                    if hasattr(item, 'title'):
+                        topics.append(item.title)
+            
+            dup_result = check_content_duplication(
+                topics,
+                github_owner=self.owner,
+                github_repo=self.repo,
+                github_token=self.token,
+                threshold=0.65,
+            )
+            
+            if dup_result.get("is_duplicate"):
+                logger.warning(f"[语义去重] {dup_result['recommendation']}")
+                for sim in dup_result.get("similar_articles", [])[:3]:
+                    logger.warning(f"  - {sim['title']} ({sim['date']}, 相似度: {sim['similarity']})")
+                # 高相似度时跳过生成
+                if dup_result.get("max_similarity", 0) >= 0.85:
+                    logger.error("[语义去重] 话题高度重复，跳过今日生成")
+                    return False
+            else:
+                logger.info(f"[语义去重] {dup_result['recommendation']}")
+        except Exception as e:
+            logger.warning(f"[语义去重] 检查失败: {e}，继续生成")
         
         # Generate article title and filename
         article_title = f"TrendRadar Report - {date_str}"
@@ -297,8 +317,16 @@ class GitHubStorageBackend(StorageBackend):
                 slug = os.path.basename(filepath).replace('.md', '')
                 date_str = data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') else ''
                 
-                # 异步验证（不阻塞，记录结果）
-                verify_after_push(slug, date_str, logger)
+                # 验证并支持自动回滚（Lv58）
+                verify_after_push(
+                    slug, date_str, logger,
+                    filepath=filepath,
+                    github_token=self.token,
+                    github_owner=self.owner,
+                    github_repo=self.repo,
+                    github_branch=self.branch,
+                    rollback_on_failure=True,
+                )
             except Exception as e:
                 logger.warning(f"[部署验证] 验证过程出错: {e}")
             

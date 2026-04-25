@@ -191,9 +191,26 @@ def verify_after_push(
     article_slug: str,
     expected_date: Optional[str] = None,
     logger=None,
+    filepath: Optional[str] = None,
+    github_token: Optional[str] = None,
+    github_owner: str = "garcci",
+    github_repo: str = "Astro",
+    github_branch: str = "master",
+    rollback_on_failure: bool = True,
 ) -> bool:
     """
     推送文章后执行部署验证（便捷函数）
+
+    Args:
+        article_slug: 文章 slug
+        expected_date: 期望日期
+        logger: 日志对象
+        filepath: 文件路径（用于回滚）
+        github_token: GitHub Token（用于回滚）
+        github_owner: 仓库所有者
+        github_repo: 仓库名
+        github_branch: 分支名
+        rollback_on_failure: 验证失败时是否自动回滚
 
     Returns:
         True if verification passed, False otherwise
@@ -228,4 +245,97 @@ def verify_after_push(
         except Exception:
             pass
 
+        # 🔄 自动回滚 — 删除有问题的文章文件
+        if rollback_on_failure and filepath and github_token:
+            try:
+                rollback_success = _rollback_article(
+                    filepath, github_token, github_owner, github_repo, github_branch, logger
+                )
+                if rollback_success:
+                    logger.info(f"[自动回滚] ✅ 已删除有问题的文章: {filepath}")
+                else:
+                    logger.error(f"[自动回滚] ❌ 回滚失败: {filepath}")
+            except Exception as e:
+                logger.error(f"[自动回滚] 回滚过程出错: {e}")
+
     return result["success"]
+
+
+def _rollback_article(
+    filepath: str,
+    token: str,
+    owner: str = "garcci",
+    repo: str = "Astro",
+    branch: str = "master",
+    logger=None,
+) -> bool:
+    """
+    通过 GitHub API 删除文章文件（回滚）
+
+    Args:
+        filepath: 文件路径，如 src/content/posts/news/2026-04-25-xxx.md
+        token: GitHub Token
+        owner: 仓库所有者
+        repo: 仓库名
+        branch: 分支名
+        logger: 日志对象
+
+    Returns:
+        True if rollback succeeded
+    """
+    import json
+    import urllib.request
+
+    base_url = f"https://api.github.com/repos/{owner}/{repo}"
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "TrendRadar-DeployVerifier/1.0",
+    }
+
+    try:
+        # Step 1: 获取文件当前 SHA
+        get_url = f"{base_url}/contents/{filepath}?ref={branch}"
+        req = urllib.request.Request(get_url, headers=headers)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            file_data = json.loads(resp.read().decode())
+        file_sha = file_data.get("sha")
+
+        if not file_sha:
+            if logger:
+                logger.warning(f"[回滚] 无法获取文件 SHA: {filepath}")
+            return False
+
+        # Step 2: 删除文件
+        delete_url = f"{base_url}/contents/{filepath}"
+        delete_data = json.dumps({
+            "message": f"rollback: remove failed article - {filepath.split('/')[-1]}",
+            "sha": file_sha,
+            "branch": branch,
+        }).encode()
+
+        req = urllib.request.Request(
+            delete_url,
+            data=delete_data,
+            headers={**headers, "Content-Type": "application/json"},
+            method="DELETE",
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            resp.read()
+
+        if logger:
+            logger.info(f"[回滚] 已删除文件: {filepath}")
+        return True
+
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            if logger:
+                logger.warning(f"[回滚] 文件不存在（可能已被删除）: {filepath}")
+            return True  # 文件已不存在，视为回滚成功
+        if logger:
+            logger.error(f"[回滚] HTTP {e.code}: {e.reason}")
+        return False
+    except Exception as e:
+        if logger:
+            logger.error(f"[回滚] 失败: {e}")
+        return False
