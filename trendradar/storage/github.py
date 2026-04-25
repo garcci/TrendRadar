@@ -184,13 +184,114 @@ class GitHubStorageBackend(StorageBackend):
         filename = f"{date_str}-trendradar-{timestamp}.md"
         filepath = f"src/content/posts/news/{filename}"
         
-        # Generate Markdown content using AI
-        try:
-            markdown_content = self._generate_ai_article(data, article_title)
-            logger.info("AI-generated article created successfully")
-        except Exception as e:
-            logger.warning(f"AI generation failed, falling back to template: {e}")
-            markdown_content = self._generate_markdown(data, article_title)
+        # ═══════════════════════════════════════════════════════════
+        # 🛡️ 质量门槛拦截 — 低质量文章绝不上线
+        # ═══════════════════════════════════════════════════════════
+        MAX_QUALITY_RETRIES = 3
+        QUALITY_MIN_OVERALL = 4.0
+        QUALITY_MIN_TECH = 3.0
+        QUALITY_MAX_DUPLICATE_PENALTY = 3.0
+        
+        markdown_content = None
+        last_quality_reason = ""
+        
+        for attempt in range(1, MAX_QUALITY_RETRIES + 1):
+            logger.info(f"[质量门槛] 第 {attempt}/{MAX_QUALITY_RETRIES} 次尝试生成文章...")
+            
+            # Generate Markdown content using AI
+            try:
+                markdown_content = self._generate_ai_article(data, article_title)
+                logger.info(f"[质量门槛] AI生成成功（第{attempt}次）")
+            except Exception as e:
+                logger.warning(f"[质量门槛] AI生成失败: {e}")
+                last_quality_reason = f"AI生成异常: {e}"
+                continue  # 尝试下一次
+            
+            # 立即质量评分
+            try:
+                scores = self._auto_score_article(markdown_content, article_title)
+                logger.info(f"[质量门槛] 评分: overall={scores['overall_score']:.1f}, tech={scores['tech_content_ratio']:.1f}, dup_penalty={scores['penalties']['duplicate']:.1f}")
+                
+                # 硬性门槛检查
+                fail_reasons = []
+                penalties = scores['penalties']
+                
+                if scores['overall_score'] < QUALITY_MIN_OVERALL:
+                    fail_reasons.append(f"综合评分过低 ({scores['overall_score']:.1f} < {QUALITY_MIN_OVERALL})")
+                if scores['tech_content_ratio'] < QUALITY_MIN_TECH:
+                    fail_reasons.append(f"科技含量过低 ({scores['tech_content_ratio']:.1f} < {QUALITY_MIN_TECH})")
+                if penalties['duplicate'] >= QUALITY_MAX_DUPLICATE_PENALTY:
+                    fail_reasons.append(f"重复内容过多 (惩罚={penalties['duplicate']:.1f})")
+                
+                # 新增惩罚项门槛检查
+                if penalties.get('total', 0) >= 8.0:
+                    fail_reasons.append(f"总惩罚过高 ({penalties['total']:.1f} >= 8.0)")
+                if penalties.get('length', 0) >= 2.0:
+                    fail_reasons.append(f"内容长度过短 (惩罚={penalties['length']:.1f})")
+                if penalties.get('template', 0) >= 2.0:
+                    fail_reasons.append(f"模板痕迹过重 (惩罚={penalties['template']:.1f})")
+                if penalties.get('promo', 0) >= 1.5:
+                    fail_reasons.append(f"推广内容 detected (惩罚={penalties['promo']:.1f})")
+                
+                if fail_reasons:
+                    last_quality_reason = "; ".join(fail_reasons)
+                    logger.warning(f"[质量门槛] ❌ 第{attempt}次未通过: {last_quality_reason}")
+                    
+                    # 记录到异常知识库
+                    try:
+                        from evolution.exception_monitor import ExceptionMonitor
+                        monitor = ExceptionMonitor('.')
+                        monitor.record_exception(
+                            'QualityGateRejection',
+                            f'文章质量未通过门槛: {last_quality_reason}',
+                            f'标题: {article_title}\n评分: {scores}',
+                            context=f'attempt:{attempt},file:{filepath}',
+                            module='github.py'
+                        )
+                        monitor._save_knowledge_base()
+                    except Exception as e:
+                        logger.debug(f"[异常监控] 保存失败: {e}")
+                    
+                    # 记录质量数据到数据管道（即使被拦截也记录，用于趋势分析）
+                    try:
+                        from evolution.data_pipeline import write_record
+                        write_record("metric", {
+                            "name": "quality_gate_rejection",
+                            "value": 1,
+                            "unit": "count",
+                            "module": "quality_gate",
+                            "context": last_quality_reason,
+                        })
+                    except Exception:
+                        pass
+                    
+                    # 清除内容，准备下一次重试
+                    markdown_content = None
+                    continue
+                else:
+                    logger.info(f"[质量门槛] ✅ 通过，准备后续处理")
+                    # 同时保存评分结果，避免后续重复计算
+                    self._save_article_metrics(
+                        date=data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') else '',
+                        title=article_title,
+                        scores=scores
+                    )
+                    break  # 质量合格，跳出循环
+            except Exception as e:
+                logger.warning(f"[质量门槛] 评分失败: {e}")
+                last_quality_reason = f"评分异常: {e}"
+                markdown_content = None
+                continue
+        
+        # 循环结束后检查是否成功
+        if markdown_content is None:
+            logger.error(f"[质量门槛] ❌ {MAX_QUALITY_RETRIES}次尝试均失败，当天不发布。最后原因: {last_quality_reason}")
+            # 创建 Issue 通知（如果配置允许）
+            try:
+                self._create_quality_alert_issue(date_str, last_quality_reason)
+            except Exception:
+                pass
+            return False
         
         # 🔬 科技内容检测 — Lv62 进化
         tech_check_result = None
@@ -414,17 +515,8 @@ class GitHubStorageBackend(StorageBackend):
             except Exception as e:
                 logger.warning(f"[数据管道] 写入失败: {e}")
             
-            # ⭐ 自动文章质量评分 — 解决退化检测数据不足问题
-            try:
-                scores = self._auto_score_article(markdown_content, article_title)
-                self._save_article_metrics(
-                    date=data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') else '',
-                    title=article_title,
-                    scores=scores
-                )
-                logger.info(f"[自动评分] 文章评分完成: overall={scores['overall_score']:.1f}, tech={scores['tech_content_ratio']:.1f}")
-            except Exception as e:
-                logger.warning(f"[自动评分] 评分失败: {e}")
+            # ⭐ 质量评分已在质量门槛拦截阶段完成，此处不再重复评分
+            # 如需查看评分，请检查日志中的 [质量门槛] 输出
             
             return True
         except Exception as e:
@@ -531,6 +623,55 @@ class GitHubStorageBackend(StorageBackend):
         if len(section_headers) > len(unique_headers):
             repeat_section_penalty = 2.0
         
+        # 6b. 新增低质量特征检测
+        # 内容长度惩罚 — 正文太短=低质量
+        # 计算有效文本长度（中文字符 + 英文单词 + 数字）
+        meaningful_chars = len(re.findall(r'[\u4e00-\u9fa5a-zA-Z0-9]', body))
+        length_penalty = 0
+        if meaningful_chars < 600:
+            length_penalty = 3.0  # 严重不足（<600有效字符）
+        elif meaningful_chars < 1200:
+            length_penalty = 1.5  # 偏短
+        elif meaningful_chars < 2000:
+            length_penalty = 0.3  # 略短
+        
+        # 模板痕迹惩罚 — 检测AI模板化输出
+        template_phrases = [
+            '随着...的发展', '在当今时代', '在这个快速变化的时代', '在这个信息爆炸的时代',
+            '引起了广泛关注', '成为了热门话题', '再次成为焦点', '备受瞩目',
+            '不仅...而且', '一方面...另一方面', '首先...其次...最后',
+            '值得注意的是', '需要指出的是', '不可否认的是', '毫无疑问',
+            '总而言之', '综上所述', '总的来说', '一言以蔽之',
+        ]
+        template_count = 0
+        for phrase in template_phrases:
+            # 支持"随着...的发展"这种变体匹配
+            if '...' in phrase:
+                parts = phrase.split('...')
+                pattern = re.escape(parts[0]) + r'[^，。]{1,10}' + re.escape(parts[1])
+                template_count += len(re.findall(pattern, body))
+            else:
+                template_count += body.count(phrase)
+        template_penalty = min(4.0, template_count * 0.8)
+        
+        # 空洞段落惩罚 — 段落中实质内容占比过低
+        empty_paragraph_penalty = 0
+        for p in paragraphs:
+            p_len = len(p)
+            if p_len > 30:
+                # 计算有效字符（中文字符+数字+英文单词）
+                meaningful_chars = len(re.findall(r'[\u4e00-\u9fa5a-zA-Z0-9]', p))
+                ratio = meaningful_chars / p_len if p_len > 0 else 1.0
+                if ratio < 0.5:  # 一半以上是无意义符号/空格
+                    empty_paragraph_penalty += 1.0
+        empty_paragraph_penalty = min(3.0, empty_paragraph_penalty)
+        
+        # 广告/推广惩罚
+        promo_phrases = ['点击了解', '立即下载', '免费试用', '限时优惠', '抢购', '爆款', '网红',
+                         '关注我', '私信', '加微信', '扫码', '关注我们', '订阅', '推广', ' sponsored']
+        promo_count = sum(1 for p in promo_phrases if p in body)
+        promo_penalty = min(3.0, promo_count * 1.5)
+        
         # 7. 总分（加权）— 校准后与历史均值6.86对齐
         base_score = (
             tech_ratio * 0.30 +
@@ -539,8 +680,12 @@ class GitHubStorageBackend(StorageBackend):
             insightfulness * 0.25 +
             readability * 0.10
         )
-        # 轻微 boost + 惩罚项
-        overall = min(9.5, max(2.0, base_score * 1.15 - duplicate_penalty - filler_penalty - repeat_section_penalty))
+        # 所有惩罚项汇总
+        total_penalty = (
+            duplicate_penalty + filler_penalty + repeat_section_penalty +
+            length_penalty + template_penalty + empty_paragraph_penalty + promo_penalty
+        )
+        overall = min(9.5, max(2.0, base_score * 1.15 - total_penalty))
         
         return {
             'overall_score': round(overall, 1),
@@ -554,6 +699,11 @@ class GitHubStorageBackend(StorageBackend):
                 'duplicate': round(duplicate_penalty, 1),
                 'filler': round(filler_penalty, 1),
                 'repeat_section': round(repeat_section_penalty, 1),
+                'length': round(length_penalty, 1),
+                'template': round(template_penalty, 1),
+                'empty_paragraph': round(empty_paragraph_penalty, 1),
+                'promo': round(promo_penalty, 1),
+                'total': round(total_penalty, 1),
             }
         }
     
@@ -596,6 +746,47 @@ class GitHubStorageBackend(StorageBackend):
         # 写入文件
         with open(metrics_file, 'w') as f:
             json.dump(metrics, f, ensure_ascii=False, indent=2)
+    
+    def _create_quality_alert_issue(self, date_str: str, reason: str):
+        """质量拦截失败时创建告警 Issue"""
+        import requests
+        
+        issue_title = f"🚨 质量门槛拦截: {date_str} 文章未通过审核"
+        issue_body = f"""## 质量拦截告警
+
+**日期**: {date_str}
+**拦截原因**: {reason}
+
+### 说明
+文章在连续3次生成尝试后，均未能达到质量门槛标准，已被自动拦截，当天不会发布低质量文章。
+
+### 建议处理
+1. 检查当天 RSS 数据源是否正常
+2. 检查 AI 服务（DeepSeek/Gemini）响应质量
+3. 如连续多天触发此告警，请检查 Prompt 模板是否需要优化
+
+---
+*此 Issue 由 TrendRadar 质量门槛系统自动创建*
+"""
+        
+        try:
+            url = f"https://api.github.com/repos/{self.owner}/TrendRadar/issues"
+            headers = {
+                "Authorization": f"token {self.token}",
+                "Accept": "application/vnd.github.v3+json"
+            }
+            response = requests.post(url, headers=headers, json={
+                "title": issue_title,
+                "body": issue_body,
+                "labels": ["quality-gate", "auto-alert"]
+            }, timeout=30)
+            
+            if response.status_code == 201:
+                logger.info(f"[质量告警] 已创建 Issue: {response.json().get('html_url')}")
+            else:
+                logger.warning(f"[质量告警] Issue 创建失败: {response.status_code}")
+        except Exception as e:
+            logger.warning(f"[质量告警] Issue 创建异常: {e}")
     
     def _check_existing_articles(self, date_str: str) -> list:
         """
