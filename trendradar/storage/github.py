@@ -199,9 +199,11 @@ class GitHubStorageBackend(StorageBackend):
             markdown_content = self._generate_markdown(data, article_title)
         
         # 🔬 科技内容检测 — Lv62 进化
+        tech_check_result = None
         try:
             from evolution.tech_content_guard import check_tech_content
             passed, message = check_tech_content(markdown_content, min_ratio=0.7)
+            tech_check_result = {"passed": passed, "message": message[:200]}
             if passed:
                 logger.info(f"[科技检测] ✅ {message}")
             else:
@@ -220,6 +222,18 @@ class GitHubStorageBackend(StorageBackend):
                     monitor._save_knowledge_base()
                 except Exception:
                     pass
+            
+            # 📦 记录检测结果到数据管道 — Round 2
+            try:
+                from evolution.data_pipeline import write_record
+                write_record("metric", {
+                    "name": "tech_content_ratio",
+                    "value": 1 if passed else 0,
+                    "unit": "boolean",
+                    "module": "tech_content_guard",
+                })
+            except Exception:
+                pass
         except Exception as e:
             logger.warning(f"[科技检测] 检查失败: {e}")
         
@@ -354,6 +368,22 @@ class GitHubStorageBackend(StorageBackend):
                 )
             except Exception as e:
                 logger.warning(f"[部署验证] 验证过程出错: {e}")
+            
+            # 📦 记录文章数据到统一管道 — Round 2 数据流调优
+            try:
+                from evolution.data_pipeline import write_record
+                write_record("article", {
+                    "id": filepath.split('/')[-1].replace('.md', ''),
+                    "title": article_title,
+                    "date": data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') else '',
+                    "source_count": len(data.items),
+                    "total_items": sum(len(items) for items in data.items.values()),
+                    "length": len(markdown_content),
+                    "is_draft": is_draft,
+                })
+                logger.info("[数据管道] 文章记录已写入")
+            except Exception as e:
+                logger.warning(f"[数据管道] 写入失败: {e}")
             
             return True
         except Exception as e:
