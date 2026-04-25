@@ -1089,6 +1089,31 @@ jobs:
               print('跳过自动迭代：未配置 GH_MEMORY_TOKEN')
           "
 
+      - name: Auto Healing
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          echo "🩹 Lv72: 启动自动错误修复系统..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from evolution.auto_healing import AutoHealingSystem, get_system_health
+          
+          # 扫描系统健康状态
+          health = get_system_health('.', days=7)
+          print(f'系统健康评分: {health.get(\"health_score\", \"N/A\")}/100')
+          
+          # 尝试修复近期异常
+          healer = AutoHealingSystem('.')
+          if health.get('recent_errors'):
+              for error in health['recent_errors'][:5]:
+                  result = healer.handle_error(error.get('message', ''), error)
+                  status = '✅ 已修复' if result.get('auto_fixed') else '⚠️ 需人工处理'
+                  print(f'{status}: {error.get(\"category\", \"unknown\")} — {error.get(\"message\", \"\")[:60]}')
+          else:
+              print('近期无异常，系统健康')
+          "
+
       - name: System Final Check
         continue-on-error: true
         timeout-minutes: 3

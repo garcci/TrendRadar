@@ -64,6 +64,15 @@ class SmartAIClient:
             "cooldown_after_fail": 10   # 失败后冷却10秒
         }
         
+        # 🔥 Lv70: 免费AI智能路由器 — 精细化额度追踪
+        self.free_ai_router = None
+        try:
+            from evolution.free_ai_router import FreeAIRouter
+            self.free_ai_router = FreeAIRouter(".")
+            logger.info("[Lv70] FreeAIRouter 已加载")
+        except Exception as e:
+            logger.debug(f"[Lv70] FreeAIRouter 加载失败: {e}")
+        
         self._init_providers()
     
     def _check_quota(self, provider: str) -> bool:
@@ -143,13 +152,23 @@ class SmartAIClient:
         
         try:
             if provider == "cloudflare" and self.cf_enabled:
-                return self._call_cloudflare(messages, kwargs, start_time, task_type)
+                result = self._call_cloudflare(messages, kwargs, start_time, task_type)
             elif provider == "github_models" and self.github_models_enabled:
-                return self._call_github_models(messages, kwargs, start_time, task_type)
+                result = self._call_github_models(messages, kwargs, start_time, task_type)
             elif provider == "gemini" and self.gemini_enabled:
-                return self._call_gemini(messages, kwargs, start_time, task_type)
+                result = self._call_gemini(messages, kwargs, start_time, task_type)
             else:
-                return self._call_deepseek(messages, kwargs, start_time, task_type)
+                result = self._call_deepseek(messages, kwargs, start_time, task_type)
+            
+            # 🔥 Lv70: 记录使用量到 FreeAIRouter
+            if self.free_ai_router:
+                try:
+                    latency = time.time() - start_time
+                    self.free_ai_router.record_usage(provider, task_type, len(str(result)), 0.0 if provider != "deepseek" else 0.001, latency, True)
+                except Exception:
+                    pass
+            
+            return result
         except Exception as e:
             logger.warning(f"[SmartAI] {provider} 调用失败: {e}，降级到DeepSeek")
             return self._call_deepseek(messages, kwargs, start_time, task_type)
@@ -162,6 +181,25 @@ class SmartAIClient:
         # 高质量要求 → DeepSeek
         if require_high_quality:
             return "deepseek"
+        
+        # 🔥 Lv70: 使用 FreeAIRouter 增强额度决策
+        if self.free_ai_router:
+            try:
+                estimated_tokens = kwargs.get("estimated_tokens", 2000)
+                result = self.free_ai_router.select_provider(task_type, estimated_tokens, require_high_quality)
+                selected = result.get("provider", "deepseek")
+                # 映射 provider 名称
+                provider_map = {
+                    "cloudflare_workers_ai": "cloudflare",
+                    "google_gemini": "gemini",
+                    "deepseek": "deepseek"
+                }
+                mapped = provider_map.get(selected, selected)
+                if mapped != "deepseek":
+                    logger.info(f"[Lv70] FreeAIRouter 推荐: {result.get('name', mapped)} ({result.get('reason', '')})")
+                return mapped
+            except Exception as e:
+                logger.debug(f"[Lv70] FreeAIRouter 决策失败: {e}，回退到默认逻辑")
         
         # 检查各免费API额度（有额度才用）
         cf_available = self.cf_enabled and self._check_quota("cloudflare_workers_ai")

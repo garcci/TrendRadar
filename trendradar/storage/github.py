@@ -1105,6 +1105,20 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             logger.warning(f"[Prompt优化] 失败: {e}")
         
+        # 🧬 Lv71: 注入结构化Prompt版本反馈 — 替代文本追加
+        try:
+            from evolution.prompt_versioning import PromptVersionManager
+            pvm = PromptVersionManager('.')
+            from evolution.data_pipeline import DataPipeline
+            dp = DataPipeline('.')
+            metrics = dp.query_records("metric", hours=168)  # 最近7天指标
+            structured_feedback = pvm.generate_structured_feedback(metrics)
+            if structured_feedback:
+                user_prompt += f"\n\n{structured_feedback}"
+                logger.info("[Lv71] PromptVersionManager 结构化反馈已注入")
+        except Exception as e:
+            logger.debug(f"[Lv71] PromptVersionManager 反馈注入失败: {e}")
+        
         # 🧬 注入Prompt进化引擎报告（Lv41）
         try:
             from evolution.prompt_evolution import get_prompt_evolution_report
