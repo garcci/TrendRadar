@@ -272,7 +272,7 @@ class GitHubStorageBackend(StorageBackend):
                     logger.info(f"[质量门槛] ✅ 通过，准备后续处理")
                     # 同时保存评分结果，避免后续重复计算
                     self._save_article_metrics(
-                        date=data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') else '',
+                        date=data.date if isinstance(data.date, str) else (data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') and data.date else ''),
                         title=article_title,
                         scores=scores
                     )
@@ -494,7 +494,7 @@ class GitHubStorageBackend(StorageBackend):
                 import os
                 
                 slug = os.path.basename(filepath).replace('.md', '')
-                date_str = data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') else ''
+                date_str = data.date if isinstance(data.date, str) else (data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') and data.date else '')
                 
                 # 验证并支持自动回滚（Lv58）
                 verify_after_push(
@@ -515,7 +515,7 @@ class GitHubStorageBackend(StorageBackend):
                 write_record("article", {
                     "id": filepath.split('/')[-1].replace('.md', ''),
                     "title": article_title,
-                    "date": data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') else '',
+                    "date": data.date if isinstance(data.date, str) else (data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') and data.date else ''),
                     "source_count": len(data.items),
                     "total_items": sum(len(items) for items in data.items.values()),
                     "length": len(markdown_content),
