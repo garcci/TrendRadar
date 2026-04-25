@@ -402,6 +402,100 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
+      # 📊 免费资源智能调度 - Lv46 榨干每一滴免费额度
+      # ═══════════════════════════════════════════════════════════
+      - name: Free Resource Scheduler
+        run: |
+          echo "📊 启动免费资源智能调度..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('📊 免费资源智能调度器 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.free_resource_scheduler import show_today_strategy
+              show_today_strategy()
+              print('[额度调度] Lv46 策略生成完成')
+          except Exception as e:
+              print(f'[额度调度] Lv46 失败: {e}')
+          
+          print('='*60)
+          print('📊 免费资源调度完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 🔧 自动校准系统 - Lv47 根据质量反馈调整参数
+      # ═══════════════════════════════════════════════════════════
+      - name: Auto Calibration
+        env:
+          GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
+          ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
+          ASTRO_REPO_NAME: ${{ secrets.ASTRO_REPO_NAME }}
+        run: |
+          echo "🔧 启动自动校准系统..."
+          uv run python -c "
+          import sys
+          import os
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🔧 自动校准系统 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.auto_calibration import auto_calibrate
+              
+              token = os.environ.get('GH_MEMORY_TOKEN')
+              owner = os.environ.get('ASTRO_REPO_OWNER', 'garcci')
+              repo = os.environ.get('ASTRO_REPO_NAME', 'Astro')
+              
+              auto_calibrate(owner, repo, token)
+              print('[自动校准] Lv47 校准完成')
+          except Exception as e:
+              print(f'[自动校准] Lv47 失败: {e}')
+          
+          print('='*60)
+          print('🔧 自动校准完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 🩹 AI代码修复器 - Lv48 自动诊断和修复代码
+      # ═══════════════════════════════════════════════════════════
+      - name: AI Code Healer
+        env:
+          GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
+        run: |
+          echo "🩹 启动AI代码修复器..."
+          uv run python -c "
+          import sys
+          import os
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🩹 AI代码修复器 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.ai_code_healer import heal_codebase
+              
+              # 扫描trendradar目录
+              report = heal_codebase('trendradar', use_ai=False)
+              print(report)
+              print('[代码修复] Lv48 扫描完成')
+          except Exception as e:
+              print(f'[代码修复] Lv48 失败: {e}')
+          
+          print('='*60)
+          print('🩹 AI代码修复完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 🤖 自动代码迭代 - Lv28升级
       # ═══════════════════════════════════════════════════════════
       - name: Auto Code Evolution
