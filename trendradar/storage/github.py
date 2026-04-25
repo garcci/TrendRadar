@@ -263,6 +263,20 @@ class GitHubStorageBackend(StorageBackend):
         try:
             self._push_to_github(filepath, markdown_content, f"feat: add TrendRadar report - {article_title}")
             logger.info(f"Successfully pushed article to GitHub: {filepath}")
+            
+            # 🚀 部署后验证 — 确保文章成功上线
+            try:
+                from trendradar.storage.deploy_verifier import verify_after_push
+                import os
+                
+                slug = os.path.basename(filepath).replace('.md', '')
+                date_str = data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') else ''
+                
+                # 异步验证（不阻塞，记录结果）
+                verify_after_push(slug, date_str, logger)
+            except Exception as e:
+                logger.warning(f"[部署验证] 验证过程出错: {e}")
+            
             return True
         except Exception as e:
             logger.error(f"Failed to push to GitHub: {e}")
