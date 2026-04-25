@@ -1340,23 +1340,25 @@ description: "一句话概括文章核心价值"
     def _sanitize_frontmatter(self, content: str, date_str: str, fallback_title: str) -> str:
         """
         修复 frontmatter 中的 YAML 格式问题，确保 Astro 能正确解析。
-        
+
         处理的问题：
         1. title/description 中的双引号嵌套（导致 YAML 解析失败）
-        2. 缺少 frontmatter（AI 未输出或后续处理破坏）
-        3. 缺少必要字段
+        2. title/description 没有用引号包裹（含有特殊字符时 YAML 解析失败）
+        3. 中文引号污染（AI 可能输出中文引号）
+        4. 缺少 frontmatter（AI 未输出或后续处理破坏）
+        5. 缺少必要字段
         """
         import re
-        
+
         # 检查是否有 frontmatter
         has_frontmatter = content.startswith("---")
-        
+
         if has_frontmatter:
             m = re.match(r'^---\n(.*?)\n---\n', content, re.DOTALL)
             if not m:
                 # frontmatter 格式异常，重新生成
                 has_frontmatter = False
-        
+
         if not has_frontmatter:
             # 缺少 frontmatter，添加默认的
             safe_title = fallback_title.replace('"', '\\"')
@@ -1372,37 +1374,74 @@ description: "TrendRadar 自动生成的热点聚合报告"
 
 """
             return default_fm + content
-        
+
         # 提取并修复 frontmatter
         m = re.match(r'^---\n(.*?)\n---\n', content, re.DOTALL)
         fm = m.group(1)
         body = content[m.end():]
-        
-        # 修复 YAML 字符串值中的引号嵌套
-        def fix_yaml_string(match):
-            key = match.group(1)
-            quote = match.group(2)
-            value = match.group(3)
-            
-            if quote == '"' and '"' in value:
-                # 外层双引号，内部也有双引号
-                if "'" not in value:
-                    # 内部没有单引号，改用单引号包裹
-                    return f'{key}: \'{value}\''
+
+        # ═══════════════════════════════════════════════════════════
+        # 逐行处理 frontmatter，强制修复关键字段
+        # ═══════════════════════════════════════════════════════════
+        lines = fm.split('\n')
+        fixed_lines = []
+
+        for line in lines:
+            line_stripped = line.strip()
+            if not line_stripped or line_stripped.startswith('#'):
+                fixed_lines.append(line)
+                continue
+
+            # 只处理 key: value 格式的行
+            if ':' not in line_stripped:
+                fixed_lines.append(line)
+                continue
+
+            key = line_stripped.split(':', 1)[0].strip()
+            val_part = line_stripped.split(':', 1)[1].strip()
+
+            # 只处理需要强制引号的字符串字段
+            if key not in ('title', 'description', 'excerpt', 'image'):
+                fixed_lines.append(line)
+                continue
+
+            # 如果值已经被引号包裹，修复嵌套引号
+            if (val_part.startswith('"') and val_part.endswith('"')) or \
+               (val_part.startswith("'") and val_part.endswith("'")):
+                quote_char = val_part[0]
+                inner = val_part[1:-1]
+
+                # 中文引号 → 英文引号
+                inner = inner.replace('"', '"').replace('"', '"')
+
+                if quote_char == '"' and '"' in inner:
+                    # 双引号嵌套
+                    if "'" not in inner:
+                        line = f'{key}: \'{inner}\''
+                    else:
+                        safe = inner.replace('"', '\\"')
+                        line = f'{key}: "{safe}"'
                 else:
-                    # 同时有单双引号，转义内部双引号
-                    safe = value.replace('"', '\\"')
-                    return f'{key}: "{safe}"'
-            return match.group(0)
-        
-        # 修复被引号包裹的字符串字段（title, description, excerpt, image 等）
-        fm = re.sub(
-            r'^([a-zA-Z_][a-zA-Z0-9_]*):\s*(["\'])(.*?)\2\s*$',
-            fix_yaml_string,
-            fm,
-            flags=re.MULTILINE
-        )
-        
+                    line = f'{key}: {quote_char}{inner}{quote_char}'
+            else:
+                # 值没有被引号包裹 —— 这是最常见的问题！
+                # 先清理中文引号
+                val_part = val_part.replace('"', '"').replace('"', '"')
+
+                # 如果值包含英文双引号，用单引号包裹；否则用双引号
+                if '"' in val_part:
+                    if "'" not in val_part:
+                        line = f"{key}: '{val_part}'"
+                    else:
+                        safe = val_part.replace('"', '\\"')
+                        line = f'{key}: "{safe}"'
+                else:
+                    line = f'{key}: "{val_part}"'
+
+            fixed_lines.append(line)
+
+        fm = '\n'.join(fixed_lines)
+
         # 确保必要字段存在
         required_fields = {
             'title': f'title: "{fallback_title.replace(chr(34), chr(92)+chr(34))}"',
@@ -1413,7 +1452,7 @@ description: "TrendRadar 自动生成的热点聚合报告"
         for field, default_value in required_fields.items():
             if not re.search(rf'^{field}:', fm, re.MULTILINE):
                 fm += f"\n{default_value}"
-        
+
         return f"---\n{fm}\n---\n{body}"
     
     def _validate_article_format(self, content: str, date_str: str) -> tuple:

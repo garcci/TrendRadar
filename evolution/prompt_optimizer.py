@@ -242,6 +242,61 @@ def get_prompt_optimization_report(trendradar_path: str = ".") -> str:
     return optimizer.generate_optimization_report()
 
 
+def get_optimized_prompt_params(system_prompt: str, base_temp: float = 0.7, base_tokens: int = 4000) -> tuple:
+    """
+    基于Prompt优化历史数据，返回建议的生成参数。
+    
+    Returns:
+        (analysis_summary, suggested_temperature, suggested_max_tokens)
+    """
+    import os
+    trendradar_path = "."
+    # 查找 trendradar 根目录
+    for check in [".", "..", "../..", "../../.."]:
+        if os.path.exists(f"{check}/evolution/prompt_optimization.json"):
+            trendradar_path = check
+            break
+    
+    optimizer = PromptOptimizer(trendradar_path)
+    history = optimizer._load_optimization_history()
+    
+    # 默认参数
+    temp = base_temp
+    tokens = base_tokens
+    
+    # 根据 system_prompt 长度微调
+    prompt_len = len(system_prompt)
+    if prompt_len > 6000:
+        # Prompt 很长，可能需要更多 tokens 来输出完整文章
+        tokens = min(6000, base_tokens + 1000)
+        # 同时略微降低 temperature，减少随机性导致的格式错误
+        temp = max(0.3, base_temp - 0.1)
+    elif prompt_len < 2000:
+        # Prompt 较短，可以适当提高 temperature 增加创意
+        temp = min(1.0, base_temp + 0.05)
+    
+    # 如果有历史优化数据，根据最近的趋势调整
+    if history:
+        recent = history[-3:]  # 最近3次
+        avg_boost_weight = 0
+        for opt in recent:
+            boosts = opt.get("boost", [])
+            if boosts:
+                avg_boost_weight += sum(b.get("weight", 0) for b in boosts) / len(boosts)
+        
+        if len(recent) > 0:
+            avg_boost_weight /= len(recent)
+            # 高效片段多 = 当前Prompt质量好 = 可以稍微降低 temperature 保持稳定性
+            if avg_boost_weight > 2.0:
+                temp = max(0.3, temp - 0.05)
+            # 高效片段少 = 需要更多创造性探索
+            elif avg_boost_weight < 0.5:
+                temp = min(1.0, temp + 0.05)
+    
+    summary = f"Prompt长度{prompt_len}字符，建议temperature={temp:.2f}, max_tokens={tokens}"
+    return summary, round(temp, 2), tokens
+
+
 if __name__ == "__main__":
     optimizer = PromptOptimizer()
     print(optimizer.generate_optimization_report())
