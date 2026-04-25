@@ -723,6 +723,32 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
+      # 📝 智能摘要增强 - Lv56 多层级摘要生成
+      # ═══════════════════════════════════════════════════════════
+      - name: Smart Summarizer
+        run: |
+          echo "📝 启动智能摘要增强..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('📝 智能摘要增强器 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.smart_summarizer import run_smart_summarizer
+              run_smart_summarizer('.')
+              print('[摘要增强] Lv56 完成')
+          except Exception as e:
+              print(f'[摘要增强] Lv56 失败: {e}')
+          
+          print('='*60)
+          print('📝 摘要增强完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 🤖 自动代码迭代 - Lv28升级
       # ═══════════════════════════════════════════════════════════
       - name: Auto Code Evolution
