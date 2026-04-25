@@ -877,7 +877,7 @@ description: "一句话概括文章核心价值"
 
 然后输出正文，结构如下（每个部分只出现一次）：
 
-### 快速阅读区
+### 快速阅读区（只在这里输出一次，正文中不要再重复）
 ```
 :::tip[📋 快速阅读]
 **一句话总结**: 20-40字概括核心科技趋势
@@ -1489,6 +1489,9 @@ description: "TrendRadar 自动生成的热点聚合报告"
         for field, default_value in required_fields.items():
             if not re.search(rf'^{field}:', fm, re.MULTILINE):
                 fm += f"\n{default_value}"
+        
+        # 强制覆盖 draft: true → draft: false（智能调度草稿模式在验证通过后发布）
+        fm = re.sub(r'^draft:\s*true\s*$', 'draft: false', fm, flags=re.MULTILINE)
 
         return f"---\n{fm}\n---\n{body}"
     
