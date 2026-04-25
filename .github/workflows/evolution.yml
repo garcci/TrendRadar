@@ -18,6 +18,7 @@ permissions:
 jobs:
   evolve:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       # ═══════════════════════════════════════════════════════════
       # 基础设置
@@ -882,6 +883,62 @@ jobs:
           
           print('='*60)
           print('📊 仪表盘生成完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 📈 闲置模块价值评估 - Lv65
+      # ═══════════════════════════════════════════════════════════
+      - name: Module Value Assessment
+        timeout-minutes: 3
+        run: |
+          echo "📈 评估闲置模块价值..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('📈 闲置模块价值评估 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.module_value_assessor import assess_idle_modules
+              report = assess_idle_modules('.')
+              print(report)
+              print('[价值评估] Lv65 完成')
+          except Exception as e:
+              print(f'[价值评估] Lv65 失败: {e}')
+          
+          print('='*60)
+          print('📈 评估完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 📦 数据管道总览 - Lv66
+      # ═══════════════════════════════════════════════════════════
+      - name: Data Pipeline Summary
+        timeout-minutes: 2
+        run: |
+          echo "📦 数据管道总览..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('📦 统一数据管道 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.data_pipeline import DataPipeline
+              pipeline = DataPipeline('.')
+              print(pipeline.get_pipeline_summary())
+              print('[数据管道] Lv66 完成')
+          except Exception as e:
+              print(f'[数据管道] Lv66 失败: {e}')
+          
+          print('='*60)
+          print('📦 数据管道总览完成')
           print('='*60)
           "
 
