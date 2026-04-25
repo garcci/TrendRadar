@@ -414,10 +414,188 @@ class GitHubStorageBackend(StorageBackend):
             except Exception as e:
                 logger.warning(f"[数据管道] 写入失败: {e}")
             
+            # ⭐ 自动文章质量评分 — 解决退化检测数据不足问题
+            try:
+                scores = self._auto_score_article(markdown_content, article_title)
+                self._save_article_metrics(
+                    date=data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') else '',
+                    title=article_title,
+                    scores=scores
+                )
+                logger.info(f"[自动评分] 文章评分完成: overall={scores['overall_score']:.1f}, tech={scores['tech_content_ratio']:.1f}")
+            except Exception as e:
+                logger.warning(f"[自动评分] 评分失败: {e}")
+            
             return True
         except Exception as e:
             logger.error(f"Failed to push to GitHub: {e}")
             return False
+    
+    def _auto_score_article(self, content: str, title: str) -> dict:
+        """
+        基于规则自动评估文章质量 — 校准后与历史数据分布对齐
+        
+        历史数据参考：overall_score 均值6.86(2.7-9.4), tech_ratio 均值4.66(0.5-8.5)
+        """
+        import re
+        
+        # 提取正文（去掉 frontmatter）
+        body = content
+        if content.startswith('---'):
+            parts = content.split('---', 2)
+            if len(parts) >= 3:
+                body = parts[2]
+        
+        # 1. 科技内容占比评分（扩大关键词库，降低阈值）
+        tech_keywords = [
+            'AI', '人工智能', '大模型', 'LLM', '机器学习', '深度学习', '神经网络',
+            '开源', 'GitHub', '代码', '算法', '芯片', 'GPU', 'CPU', 'NPU', '算力',
+            '云计算', '云原生', '容器', 'Kubernetes', 'Docker', 'K8s',
+            '区块链', 'Web3', '加密货币', '比特币', '以太坊', 'DeFi',
+            '自动驾驶', '机器人', '具身智能', '人形机器人', '智能驾驶',
+            '量子计算', '生物技术', '基因编辑', '太空', '星链', '卫星',
+            '数据', '隐私', '安全', '漏洞', '攻击', '防护', '加密',
+            '融资', '估值', 'IPO', '并购', '独角兽', '投资', '上市',
+            'Python', 'JavaScript', 'Rust', 'Go', 'TypeScript', 'Java', 'C++',
+            'ChatGPT', 'Claude', 'Gemini', 'GPT', 'Transformer', 'Diffusion',
+            '生成式', '多模态', 'Agent', 'RAG', '微调', 'Fine-tuning',
+            'SaaS', 'PaaS', 'IaaS', 'FaaS', 'Serverless', '微服务',
+            '元宇宙', 'VR', 'AR', 'XR', 'MR', '数字孪生',
+            '新能源', '电动车', '光伏', '储能', '锂电池', '固态电池',
+            '脑机接口', 'Neuralink', '合成生物', 'mRNA', 'CRISPR',
+            '5G', '6G', '物联网', 'IoT', '边缘计算', '联邦学习',
+            '推荐算法', '搜索引擎', '社交媒体', '电商平台', '直播',
+            '框架', '库', '工具链', 'IDE', '编译器', '运行时',
+            '并发', '异步', '分布式', '高可用', '容错', '负载均衡',
+            '监控', '日志', '链路追踪', '可观测性', 'DevOps', 'CI/CD',
+        ]
+        body_lower = body.lower()
+        tech_count = sum(1 for kw in tech_keywords if kw.lower() in body_lower)
+        # 校准：历史均值4.66，高质量文章应有5-8分
+        tech_ratio = min(8.5, max(0.5, tech_count * 0.6))
+        
+        # 2. 分析深度评分（更宽松）
+        analysis_markers = ['###', '|', '对比', '趋势', '预测', '展望', '分析', '原因', '影响', '核心观点', '关键数据', '数据显示', '研究表明', '报告指出', '调研']
+        analysis_count = sum(1 for m in analysis_markers if m in body)
+        analysis_depth = min(9.0, max(1.0, analysis_count * 0.8))
+        
+        # 3. Markdown元素多样性
+        md_elements = {
+            'table': len(re.findall(r'\|.*\|.*\|', body)),
+            'code_block': body.count('```'),
+            'list': len(re.findall(r'^\s*[-*\d+]', body, re.MULTILINE)),
+            'quote': body.count('>'),
+            'link': len(re.findall(r'\[.*?\]\(.*?\)', body)),
+            'image': len(re.findall(r'!\[.*?\]\(.*?\)', body)),
+            'tip': body.count(':::tip'),
+            'heading': len(re.findall(r'^#{2,4}\s+', body, re.MULTILINE)),
+        }
+        element_types = sum(1 for v in md_elements.values() if v > 0)
+        style_diversity = min(9.0, max(2.0, element_types * 1.2))
+        
+        # 4. 洞察/预测性
+        insight_markers = ['预测', '未来', '趋势', '将', '可能', '预计', '展望', '信号', '拐点', '爆发', '颠覆', '变革', '值得', '关键', '核心', '深度']
+        insight_count = sum(1 for m in insight_markers if m in body)
+        insightfulness = min(10.0, max(0.0, insight_count * 0.7))
+        
+        # 5. 可读性（句子长度适中=高分）
+        sentences = re.split(r'[。！？\n]', body)
+        sentences = [s.strip() for s in sentences if len(s.strip()) > 5]
+        if sentences:
+            avg_sentence_len = sum(len(s) for s in sentences) / len(sentences)
+            readability = max(4.0, min(10.0, 15 - avg_sentence_len / 6))
+        else:
+            readability = 5.0
+        
+        # 6. 内容质量惩罚项（检测重复和空洞填充）
+        # 检测重复段落
+        paragraphs = [p.strip() for p in re.split(r'\n\n+', body) if len(p.strip()) > 20]
+        duplicate_penalty = 0
+        if len(paragraphs) > 3:
+            seen = set()
+            for p in paragraphs:
+                p_short = p[:50]
+                if p_short in seen:
+                    duplicate_penalty += 1.5
+                seen.add(p_short)
+        
+        # 检测空洞填充词密度
+        filler_words = ['了解', '有了', '让我们', '值得一提的是', '不得不说', '众所周知', '总而言之', '综上所述']
+        filler_count = sum(body.count(w) for w in filler_words)
+        filler_penalty = min(3.0, filler_count * 0.5)
+        
+        # 检测"平台热点精选"等重复章节（低质量文章标志）
+        section_headers = re.findall(r'^#{2,3}\s+(.+)$', body, re.MULTILINE)
+        unique_headers = set(section_headers)
+        repeat_section_penalty = 0
+        if len(section_headers) > len(unique_headers):
+            repeat_section_penalty = 2.0
+        
+        # 7. 总分（加权）— 校准后与历史均值6.86对齐
+        base_score = (
+            tech_ratio * 0.30 +
+            analysis_depth * 0.20 +
+            style_diversity * 0.15 +
+            insightfulness * 0.25 +
+            readability * 0.10
+        )
+        # 轻微 boost + 惩罚项
+        overall = min(9.5, max(2.0, base_score * 1.15 - duplicate_penalty - filler_penalty - repeat_section_penalty))
+        
+        return {
+            'overall_score': round(overall, 1),
+            'tech_content_ratio': round(tech_ratio, 1),
+            'analysis_depth': round(analysis_depth, 1),
+            'style_diversity': round(style_diversity, 1),
+            'insightfulness': round(insightfulness, 1),
+            'readability': round(readability, 1),
+            'word_count': len(body),
+            'penalties': {
+                'duplicate': round(duplicate_penalty, 1),
+                'filler': round(filler_penalty, 1),
+                'repeat_section': round(repeat_section_penalty, 1),
+            }
+        }
+    
+    def _save_article_metrics(self, date: str, title: str, scores: dict):
+        """保存文章评分到 metrics 文件"""
+        import json
+        import os
+        
+        metrics_file = os.path.join("evolution", "article_metrics.json")
+        
+        # 读取现有数据
+        metrics = []
+        if os.path.exists(metrics_file):
+            try:
+                with open(metrics_file, 'r') as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        metrics = data
+            except Exception:
+                metrics = []
+        
+        # 添加新记录
+        record = {
+            'date': date,
+            'timestamp': datetime.now().isoformat(),
+            'title': title,
+            'overall_score': scores['overall_score'],
+            'tech_content_ratio': scores['tech_content_ratio'],
+            'analysis_depth': scores['analysis_depth'],
+            'style_diversity': scores['style_diversity'],
+            'insightfulness': scores['insightfulness'],
+            'readability': scores['readability'],
+            'word_count': scores['word_count'],
+        }
+        metrics.append(record)
+        
+        # 只保留最近100条
+        metrics = metrics[-100:]
+        
+        # 写入文件
+        with open(metrics_file, 'w') as f:
+            json.dump(metrics, f, ensure_ascii=False, indent=2)
     
     def _check_existing_articles(self, date_str: str) -> list:
         """
