@@ -606,6 +606,71 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
+      # 👤 读者行为分析 - Lv52 深度内容洞察
+      # ═══════════════════════════════════════════════════════════
+      - name: Reader Behavior Analysis
+        run: |
+          echo "👤 启动读者行为分析..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('👤 读者行为分析器 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.reader_behavior_analyzer import run_reader_analysis
+              run_reader_analysis('.')
+              print('[读者分析] Lv52 完成')
+          except Exception as e:
+              print(f'[读者分析] Lv52 失败: {e}')
+          
+          print('='*60)
+          print('👤 读者行为分析完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 🎨 自动配图生成 - Lv53 AI 封面图
+      # ═══════════════════════════════════════════════════════════
+      - name: Auto Image Generation
+        env:
+          GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
+          ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
+          ASTRO_REPO_NAME: ${{ secrets.ASTRO_REPO_NAME }}
+        run: |
+          echo "🎨 启动自动配图生成..."
+          uv run python -c "
+          import sys
+          import os
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🎨 自动配图生成器 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.auto_image_generator import run_auto_image_generation
+              
+              token = os.environ.get('GH_MEMORY_TOKEN')
+              owner = os.environ.get('ASTRO_REPO_OWNER', 'garcci')
+              repo = os.environ.get('ASTRO_REPO_NAME', 'Astro')
+              
+              updated = run_auto_image_generation(token, owner, repo, max_articles=2)
+              if updated:
+                  print(f'[配图] Lv53 成功更新 {len(updated)} 篇文章配图')
+              else:
+                  print('[配图] Lv53 暂无需要更新的文章')
+          except Exception as e:
+              print(f'[配图] Lv53 失败: {e}')
+          
+          print('='*60)
+          print('🎨 自动配图生成完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 🤖 自动代码迭代 - Lv28升级
       # ═══════════════════════════════════════════════════════════
       - name: Auto Code Evolution
