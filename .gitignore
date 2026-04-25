@@ -45,6 +45,11 @@ data/temp/
 *.db
 *.sqlite
 
+# Runtime generated files
+evolution/*.json
+evolution/data_pipeline/*.json
+trendradar/storage/*.json
+
 # Large files that shouldn't be in git
 output/
 _image/
