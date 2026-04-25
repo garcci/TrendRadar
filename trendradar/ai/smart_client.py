@@ -110,6 +110,10 @@ class SmartAIClient:
         # Google Gemini
         gemini_key = os.environ.get("GEMINI_API_KEY", "")
         self.gemini_enabled = bool(gemini_key)
+        
+        # GitHub Models（免费AI推理API）
+        github_token = os.environ.get("GITHUB_TOKEN", "")
+        self.github_models_enabled = bool(github_token)
     
     def validate_config(self) -> tuple[bool, str]:
         """验证配置（代理到DeepSeek客户端）"""
@@ -136,6 +140,8 @@ class SmartAIClient:
         try:
             if provider == "cloudflare" and self.cf_enabled:
                 return self._call_cloudflare(messages, kwargs, start_time, task_type)
+            elif provider == "github_models" and self.github_models_enabled:
+                return self._call_github_models(messages, kwargs, start_time, task_type)
             elif provider == "gemini" and self.gemini_enabled:
                 return self._call_gemini(messages, kwargs, start_time, task_type)
             else:
@@ -155,25 +161,33 @@ class SmartAIClient:
         
         # 检查各免费API额度（有额度才用）
         cf_available = self.cf_enabled and self._check_quota("cloudflare_workers_ai")
+        github_available = self.github_models_enabled  # GitHub Models暂无额度限制，只需检查Token
         gemini_available = self.gemini_enabled and self._check_quota("google_gemini")
         
-        # 任务路由（只使用有额度的Provider）
+        # 任务路由（免费API优先，按能力排序）
+        # 降级链: Cloudflare → GitHub Models → Gemini → DeepSeek
         if task_type in ["summarization", "content_dedup", "rss_analysis"]:
             if cf_available:
                 return "cloudflare"
+            elif github_available:
+                return "github_models"
             elif gemini_available:
                 return "gemini"
         
         elif task_type in ["translation", "quality_evaluation"]:
             if gemini_available:
                 return "gemini"
+            elif github_available:
+                return "github_models"
             elif cf_available:
                 return "cloudflare"
         
         elif task_type == "article_generation":
-            # 文章生成默认用DeepSeek，但可尝试Gemini（如果有额度）
+            # 文章生成：优先尝试Gemini，其次GitHub Models
             if gemini_available:
                 return "gemini"
+            elif github_available:
+                return "github_models"
         
         # 默认兜底：DeepSeek（付费但稳定）
         return "deepseek"
@@ -205,6 +219,44 @@ class SmartAIClient:
             return content
         else:
             raise Exception(f"Cloudflare API错误: {result.get('errors', [])}")
+    
+    def _call_github_models(self, messages, kwargs, start_time, task_type):
+        """调用GitHub Models（免费AI推理API）"""
+        import requests
+        
+        github_token = os.environ.get("GITHUB_TOKEN", "")
+        model = kwargs.get("model", "meta-llama-3.1-8b-instruct")
+        
+        url = "https://models.inference.ai.azure.com/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {github_token}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": kwargs.get("temperature", self.temperature),
+            "max_tokens": kwargs.get("max_tokens", self.max_tokens)
+        }
+        
+        response = requests.post(url, headers=headers, json=payload, timeout=60)
+        response.raise_for_status()
+        result = response.json()
+        
+        if "choices" in result and result["choices"]:
+            content = result["choices"][0]["message"]["content"]
+            latency = time.time() - start_time
+            
+            # 估算token使用量
+            input_tokens = result.get("usage", {}).get("prompt_tokens", 0)
+            output_tokens = result.get("usage", {}).get("completion_tokens", 0)
+            
+            self._record_usage("github_models", task_type, input_tokens, output_tokens, latency, True)
+            print(f"[SmartAI] GitHub Models调用成功，模型: {model}")
+            return content
+        else:
+            raise Exception(f"GitHub Models API错误: {result}")
     
     def _call_gemini(self, messages, kwargs, start_time, task_type):
         """调用Google Gemini（带频率控制和重试）"""
