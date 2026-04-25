@@ -269,6 +269,24 @@ class GitHubStorageBackend(StorageBackend):
         # 🧹 Frontmatter 清理 - 修复 YAML 引号嵌套等问题
         markdown_content = self._sanitize_frontmatter(markdown_content, data.date, article_title)
         
+        # 🧹 清理重复的快速阅读区（AI有时会输出两次）
+        tip_blocks = markdown_content.split(':::tip[📋 快速阅读]')
+        if len(tip_blocks) > 2:
+            # 保留第一个，删除后面的
+            first_tip_end = tip_blocks[1].find(':::')
+            if first_tip_end != -1:
+                first_tip = ':::tip[📋 快速阅读]' + tip_blocks[1][:first_tip_end+3]
+                # 重建内容：frontmatter + 第一个tip + 正文其余部分
+                body_after_tips = ''
+                for i, block in enumerate(tip_blocks[2:], 2):
+                    tip_end = block.find(':::')
+                    if tip_end != -1:
+                        body_after_tips += block[tip_end+3:]
+                    else:
+                        body_after_tips += block
+                markdown_content = tip_blocks[0] + first_tip + body_after_tips
+                logger.info("[清理] 已删除重复的快速阅读区")
+        
         # ✅ Frontmatter 预验证 — 防止格式错误导致 Astro 构建失败
         try:
             from evolution.frontmatter_validator import validate_article
