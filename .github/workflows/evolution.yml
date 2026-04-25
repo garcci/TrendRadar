@@ -181,11 +181,13 @@ jobs:
           try:
               from evolution.build_health_monitor import get_build_health_report
               
-              token = os.environ.get('GH_MEMORY_TOKEN')
-              owner = os.environ.get('ASTRO_REPO_OWNER', 'garcci')
-              repo = os.environ.get('ASTRO_REPO_NAME', 'Astro')
-              
-              report = get_build_health_report()
+              report = get_build_health_report(
+                  github_token=os.environ.get('GH_MEMORY_TOKEN') or os.environ.get('GITHUB_TOKEN'),
+                  github_owner=os.environ.get('ASTRO_REPO_OWNER', 'garcci'),
+                  github_repo=os.environ.get('ASTRO_REPO_NAME', 'Astro'),
+                  cf_api_token=os.environ.get('CF_API_TOKEN'),
+                  cf_account_id=os.environ.get('CF_ACCOUNT_ID'),
+              )
               print(report)
               
               # 如果构建不健康，记录到异常知识库

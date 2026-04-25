@@ -113,9 +113,50 @@ class BuildHealthMonitor:
             return {"healthy": False, "message": f"检查 GitHub Actions 失败: {e}"}
 
     def _check_cloudflare_pages(self) -> Dict:
-        """检查 Cloudflare Pages 部署状态（通过 GitHub check runs）"""
+        """检查 Cloudflare Pages 部署状态（优先使用 Cloudflare API，回退到 GitHub check runs）"""
+        # 优先尝试 Cloudflare API 直接查询
+        cf_token = os.environ.get("CF_API_TOKEN")
+        cf_account = os.environ.get("CF_ACCOUNT_ID", "298718290c935a26d5016d3abe0b1c56")
+        if cf_token:
+            try:
+                url = f"https://api.cloudflare.com/client/v4/accounts/{cf_account}/pages/projects/astro/deployments?per_page=1"
+                req = urllib.request.Request(
+                    url,
+                    headers={
+                        "Authorization": f"Bearer {cf_token}",
+                        "Content-Type": "application/json",
+                    }
+                )
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    data = json.loads(resp.read().decode())
+
+                deployments = data.get("result", [])
+                if deployments:
+                    latest = deployments[0]
+                    stage = latest.get("latest_stage", {})
+                    status = stage.get("status", "unknown")
+                    env = latest.get("environment", "unknown")
+                    result = {
+                        "healthy": status == "success",
+                        "status": status,
+                        "environment": env,
+                        "deployment_id": latest.get("id"),
+                        "url": latest.get("url"),
+                        "created_at": latest.get("created_on"),
+                    }
+                    if status == "success":
+                        result["message"] = f"Cloudflare Pages {env} 部署成功"
+                    elif status == "failure":
+                        result["message"] = f"Cloudflare Pages {env} 部署失败"
+                    else:
+                        result["message"] = f"Cloudflare Pages {env} 状态: {status}"
+                    return result
+            except Exception as e:
+                # Cloudflare API 失败，回退到 GitHub check runs
+                pass
+
+        # 回退：通过 GitHub check runs 检查
         try:
-            # 获取最新 commit 的 check runs
             url = f"https://api.github.com/repos/{self.owner}/{self.repo}/commits/master/check-runs"
             req = urllib.request.Request(url, headers=self.headers)
             with urllib.request.urlopen(req, timeout=30) as resp:
@@ -138,13 +179,6 @@ class BuildHealthMonitor:
                 "started_at": latest.get("started_at"),
                 "completed_at": latest.get("completed_at"),
             }
-
-            # 提取 preview URL（如果存在）
-            output = latest.get("output", {})
-            summary = output.get("summary", "")
-            preview_match = re.search(r'href=\'([^\']+)\'', summary)
-            if preview_match:
-                result["preview_url"] = preview_match.group(1)
 
             if status == "success":
                 result["message"] = "Cloudflare Pages 部署标记为成功"
@@ -329,9 +363,26 @@ class BuildHealthMonitor:
             return {"healthy": False, "message": f"检查 frontmatter 健康度失败: {e}"}
 
 
-def get_build_health_report() -> str:
+def get_build_health_report(
+    github_token: Optional[str] = None,
+    github_owner: str = "garcci",
+    github_repo: str = "Astro",
+    blog_url: str = "https://www.gjqqq.com",
+    cf_api_token: Optional[str] = None,
+    cf_account_id: Optional[str] = None,
+) -> str:
     """生成构建健康报告"""
-    monitor = BuildHealthMonitor()
+    monitor = BuildHealthMonitor(
+        github_owner=github_owner,
+        github_repo=github_repo,
+        blog_url=blog_url,
+        github_token=github_token,
+    )
+    # 如果提供了 Cloudflare API token，设置到环境变量供内部方法使用
+    if cf_api_token:
+        os.environ["CF_API_TOKEN"] = cf_api_token
+    if cf_account_id:
+        os.environ["CF_ACCOUNT_ID"] = cf_account_id
     results = monitor.check_all()
     
     lines = [
