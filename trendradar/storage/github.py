@@ -259,6 +259,31 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             logger.warning(f"[Frontmatter验证] 验证过程出错: {e}，跳过验证继续推送")
         
+        # 🛡️ Astro 构建预检 — 推送前模拟验证
+        try:
+            from evolution.astro_preflight import preflight_check
+            passed, report = preflight_check(markdown_content, filepath)
+            if not passed:
+                logger.error(f"[构建预检] ❌ 未通过:\n{report}")
+                # 记录到异常知识库
+                try:
+                    from evolution.exception_monitor import ExceptionMonitor
+                    monitor = ExceptionMonitor('.')
+                    monitor.record_exception(
+                        'AstroPreflightError',
+                        f'构建预检失败: {filepath}',
+                        report,
+                        context=f'file:{filepath}',
+                        module='github.py'
+                    )
+                    monitor._save_knowledge_base()
+                except Exception:
+                    pass
+                return False
+            logger.info("[构建预检] ✅ 通过")
+        except Exception as e:
+            logger.warning(f"[构建预检] 检查过程出错: {e}，跳过继续推送")
+        
         # Push to GitHub
         try:
             self._push_to_github(filepath, markdown_content, f"feat: add TrendRadar report - {article_title}")

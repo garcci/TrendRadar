@@ -69,6 +69,10 @@ class BuildHealthMonitor:
         results["overall"] = "healthy" if not failed else "unhealthy"
         results["failed_checks"] = failed
 
+        # 如果构建不健康，发送实时告警
+        if results["overall"] == "unhealthy":
+            self._send_alert(results)
+
         return results
 
     def _check_github_actions(self) -> Dict:
@@ -361,6 +365,95 @@ class BuildHealthMonitor:
 
         except Exception as e:
             return {"healthy": False, "message": f"检查 frontmatter 健康度失败: {e}"}
+
+    def _send_alert(self, results: Dict):
+        """发送构建失败告警 — 创建 GitHub Issue"""
+        try:
+            # 构建告警内容
+            failed_checks = results.get("failed_checks", [])
+            check_details = results.get("checks", {})
+            
+            title = f"🚨 Astro 博客构建异常 — {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            body_lines = [
+                "## 构建健康检查异常",
+                "",
+                f"**检查时间**: {results.get('timestamp', 'unknown')}",
+                f"**失败项**: {', '.join(failed_checks)}",
+                "",
+                "### 详细检查结果",
+                "",
+            ]
+            
+            for check_name in failed_checks:
+                detail = check_details.get(check_name, {})
+                body_lines.append(f"#### ❌ {check_name}")
+                body_lines.append(f"{detail.get('message', '无详细信息')}")
+                if "issues" in detail:
+                    for issue in detail["issues"]:
+                        body_lines.append(f"- **{issue.get('file', 'unknown')}**: {', '.join(issue.get('errors', []))}")
+                body_lines.append("")
+            
+            body_lines.extend([
+                "---",
+                "*此 Issue 由 TrendRadar 构建健康监控系统自动创建*",
+                "*当构建恢复正常后，此 Issue 将被自动关闭*",
+            ])
+            
+            body = '\n'.join(body_lines)
+            
+            # 尝试创建 GitHub Issue（在 Astro 仓库）
+            if self.token:
+                try:
+                    # 先检查是否已有未关闭的同类 Issue
+                    search_url = f"https://api.github.com/search/issues?q=repo:{self.owner}/{self.repo}+is:open+label:build-alert+🚨+Astro+博客构建异常"
+                    req = urllib.request.Request(search_url, headers=self.headers)
+                    with urllib.request.urlopen(req, timeout=15) as resp:
+                        search_data = json.loads(resp.read().decode())
+                    
+                    existing = search_data.get("items", [])
+                    if existing:
+                        # 已有未关闭的告警 Issue，更新它而不是创建新的
+                        issue_number = existing[0].get("number")
+                        update_url = f"https://api.github.com/repos/{self.owner}/{self.repo}/issues/{issue_number}"
+                        update_data = json.dumps({
+                            "body": body,
+                            "labels": ["build-alert", "automated", "critical"]
+                        }).encode()
+                        req = urllib.request.Request(
+                            update_url,
+                            data=update_data,
+                            headers={**self.headers, "Content-Type": "application/json"},
+                            method="PATCH"
+                        )
+                        with urllib.request.urlopen(req, timeout=15):
+                            pass
+                        return
+                    
+                    # 创建新 Issue
+                    issue_url = f"https://api.github.com/repos/{self.owner}/{self.repo}/issues"
+                    issue_data = json.dumps({
+                        "title": title,
+                        "body": body,
+                        "labels": ["build-alert", "automated", "critical"]
+                    }).encode()
+                    req = urllib.request.Request(
+                        issue_url,
+                        data=issue_data,
+                        headers={**self.headers, "Content-Type": "application/json"}
+                    )
+                    with urllib.request.urlopen(req, timeout=15) as resp:
+                        issue_result = json.loads(resp.read().decode())
+                    
+                    # 记录告警已发送
+                    results["alert_sent"] = True
+                    results["alert_issue_url"] = issue_result.get("html_url")
+                except Exception as e:
+                    results["alert_error"] = f"创建 Issue 失败: {e}"
+            else:
+                results["alert_error"] = "未配置 GITHUB_TOKEN，无法创建告警 Issue"
+                
+        except Exception as e:
+            results["alert_error"] = f"发送告警失败: {e}"
 
 
 def get_build_health_report(

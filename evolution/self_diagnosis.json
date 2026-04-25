@@ -1,0 +1,107 @@
+[
+  {
+    "timestamp": "2026-04-25T13:59:36.950186",
+    "observation_period_days": 7,
+    "overall_health": "critical",
+    "dimensions": {
+      "content_quality": {
+        "status": "unknown",
+        "score": 0,
+        "issues": [],
+        "trend": "stable"
+      },
+      "system_stability": {
+        "status": "good",
+        "error_rate": 0,
+        "fallback_rate": 0,
+        "issues": [],
+        "suggestions": []
+      },
+      "cost_efficiency": {
+        "status": "poor",
+        "estimated_api_calls": 0.0,
+        "fallback_count": 0,
+        "issues": [],
+        "suggestions": []
+      },
+      "feature_coverage": {
+        "status": "poor",
+        "evolution_level": 12,
+        "active_modules": [
+          {
+            "id": "prompt_optimizer",
+            "name": "Prompt动态优化",
+            "status": "active"
+          },
+          {
+            "id": "tech_content_guard",
+            "name": "科技内容检测",
+            "status": "active"
+          },
+          {
+            "id": "data_enhancer",
+            "name": "数据增强",
+            "status": "active"
+          },
+          {
+            "id": "smart_scheduler",
+            "name": "智能调度",
+            "status": "active"
+          },
+          {
+            "id": "cross_source_analyzer",
+            "name": "跨源关联",
+            "status": "active"
+          },
+          {
+            "id": "smart_summary",
+            "name": "智能摘要",
+            "status": "active"
+          },
+          {
+            "id": "trend_predictor",
+            "name": "趋势预测",
+            "status": "active"
+          },
+          {
+            "id": "emotion_analyzer",
+            "name": "情感分析",
+            "status": "active"
+          },
+          {
+            "id": "title_optimizer",
+            "name": "标题优化",
+            "status": "active"
+          },
+          {
+            "id": "knowledge_graph",
+            "name": "知识图谱",
+            "status": "active"
+          },
+          {
+            "id": "reader_analytics",
+            "name": "读者画像",
+            "status": "active"
+          },
+          {
+            "id": "retime_tracker",
+            "name": "实时追踪",
+            "status": "active"
+          }
+        ],
+        "missing_modules": [],
+        "issues": [],
+        "suggestions": [
+          "建议定期审查模块效果，停用低效模块"
+        ]
+      }
+    },
+    "identified_issues": [],
+    "optimization_suggestions": [
+      {
+        "dimension": "feature_coverage",
+        "suggestion": "建议定期审查模块效果，停用低效模块"
+      }
+    ]
+  }
+]
