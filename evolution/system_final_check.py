@@ -51,13 +51,11 @@ class SystemFinalCheck:
         import sys
         sys.path.insert(0, str(self.trendradar_path))
 
-        py_files = list(self.evolution_dir.glob("*.py"))
+        py_files = [f for f in self.evolution_dir.glob("*.py") if not f.name.startswith("_")]
         success = 0
         failed = []
 
         for py_file in py_files:
-            if py_file.name.startswith("_"):
-                continue
             module_name = f"evolution.{py_file.stem}"
             try:
                 __import__(module_name)
