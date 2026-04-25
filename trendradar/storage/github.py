@@ -131,15 +131,9 @@ class GitHubStorageBackend(StorageBackend):
                 rss_success_rate=0.8
             )
             
-            print(f"\n{'='*50}")
-            print(f"🧠 智能调度决策")
-            print(f"{'='*50}")
-            print(f"决策: {decision['action'].upper()}")
-            print(f"评分: {decision['score']}/10")
-            print(f"原因: {decision['reason']}")
+            logger.info(f"[智能调度] 决策={decision['action'].upper()} 评分={decision['score']}/10 原因={decision['reason']}")
             if decision['issues']:
-                print(f"问题: {'; '.join(decision['issues'])}")
-            print(f"{'='*50}\n")
+                logger.info(f"[智能调度] 问题: {'; '.join(decision['issues'])}")
             
             if decision['action'] == 'skip':
                 logger.warning(f"[智能调度] 跳过今日生成: {decision['reason']}")

@@ -9,11 +9,14 @@
 4. 使用情况记录 → 额度监控
 """
 
+import logging
 import os
 import time
 from typing import Any, Dict, List
 
 from .client import AIClient
+
+logger = logging.getLogger(__name__)
 
 
 class SmartAIClient:
@@ -83,7 +86,7 @@ class SmartAIClient:
             
             # 检查是否超过安全阈值
             if used >= limit * threshold:
-                print(f"[额度保护] {provider} 额度即将耗尽: {used}/{limit} ({used/limit*100:.0f}%)，切换到DeepSeek")
+                logger.warning(f"[额度保护] {provider} 额度即将耗尽: {used}/{limit} ({used/limit*100:.0f}%)，切换到DeepSeek")
                 return False
             
             return True
@@ -148,7 +151,7 @@ class SmartAIClient:
             else:
                 return self._call_deepseek(messages, kwargs, start_time, task_type)
         except Exception as e:
-            print(f"[SmartAI] {provider} 调用失败: {e}，降级到DeepSeek")
+            logger.warning(f"[SmartAI] {provider} 调用失败: {e}，降级到DeepSeek")
             return self._call_deepseek(messages, kwargs, start_time, task_type)
     
     def _select_provider(self, task_type: str, require_high_quality: bool) -> str:
