@@ -160,6 +160,61 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
+      # 🏗️ Astro 构建健康检查 — 跨仓库部署监控
+      # ═══════════════════════════════════════════════════════════
+      - name: Astro Build Health Check
+        env:
+          GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
+          ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
+          ASTRO_REPO_NAME: ${{ secrets.ASTRO_REPO_NAME }}
+        run: |
+          echo "🏗️ 启动 Astro 构建健康检查..."
+          uv run python -c "
+          import sys
+          import os
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🏗️ Astro 构建健康监控系统 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.build_health_monitor import get_build_health_report
+              
+              token = os.environ.get('GH_MEMORY_TOKEN')
+              owner = os.environ.get('ASTRO_REPO_OWNER', 'garcci')
+              repo = os.environ.get('ASTRO_REPO_NAME', 'Astro')
+              
+              report = get_build_health_report()
+              print(report)
+              
+              # 如果构建不健康，记录到异常知识库
+              if '❌ 异常' in report:
+                  from evolution.exception_monitor import ExceptionMonitor
+                  monitor = ExceptionMonitor('.')
+                  monitor.record_exception(
+                      'BuildHealthMonitor',
+                      'Astro 博客构建或部署异常',
+                      report,
+                      context='build_health_check',
+                      module='build_health_monitor'
+                  )
+                  monitor._save_knowledge_base()
+                  print('[构建监控] ⚠️ 已记录构建异常到知识库')
+                  sys.exit(1)  # 标记 workflow 为失败，触发告警
+              else:
+                  print('[构建监控] ✅ Astro 博客构建健康')
+          except Exception as e:
+              print(f'[构建监控] 失败: {e}')
+              import traceback
+              traceback.print_exc()
+          
+          print('='*60)
+          print('🏗️ 构建健康检查完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 📦 仓库精简 - Lv36-Lv38
       # ═══════════════════════════════════════════════════════════
       - name: Repo Cleanup

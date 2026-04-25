@@ -216,6 +216,49 @@ class GitHubStorageBackend(StorageBackend):
         # 🧹 Frontmatter 清理 - 修复 YAML 引号嵌套等问题
         markdown_content = self._sanitize_frontmatter(markdown_content, data.date, article_title)
         
+        # ✅ Frontmatter 预验证 — 防止格式错误导致 Astro 构建失败
+        try:
+            from evolution.frontmatter_validator import validate_article
+            valid, errors, fixed_content = validate_article(markdown_content, filepath)
+            if not valid:
+                logger.warning(f"[Frontmatter验证] 发现 {len(errors)} 个问题:")
+                for err in errors:
+                    logger.warning(f"  - {err}")
+                # 使用修复后的内容
+                if fixed_content != markdown_content:
+                    markdown_content = fixed_content
+                    logger.info("[Frontmatter验证] 已自动修复问题")
+                    # 再次验证
+                    valid2, errors2, _ = validate_article(markdown_content, filepath)
+                    if not valid2:
+                        logger.error(f"[Frontmatter验证] 自动修复后仍有 {len(errors2)} 个问题:")
+                        for err in errors2:
+                            logger.error(f"  - {err}")
+                        # 记录到异常知识库
+                        try:
+                            from evolution.exception_monitor import ExceptionMonitor
+                            monitor = ExceptionMonitor('.')
+                            monitor.record_exception(
+                                'FrontmatterValidationError',
+                                f'Frontmatter 验证失败: {"; ".join(errors2)}',
+                                '',
+                                context=f'file:{filepath}',
+                                module='github.py'
+                            )
+                            monitor._save_knowledge_base()
+                        except Exception:
+                            pass
+                        # 阻止推送，避免破坏 Astro 构建
+                        logger.error("[Frontmatter验证] 阻止推送：frontmatter 格式严重错误")
+                        return False
+                else:
+                    logger.error("[Frontmatter验证] 无法自动修复，阻止推送")
+                    return False
+            else:
+                logger.info("[Frontmatter验证] ✅ 通过")
+        except Exception as e:
+            logger.warning(f"[Frontmatter验证] 验证过程出错: {e}，跳过验证继续推送")
+        
         # Push to GitHub
         try:
             self._push_to_github(filepath, markdown_content, f"feat: add TrendRadar report - {article_title}")

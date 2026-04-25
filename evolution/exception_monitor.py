@@ -77,6 +77,19 @@ class ExceptionMonitor:
         "resource": {
             "keywords": ["Memory", "Disk", "resource", "out of", "insufficient", "quota"],
             "severity": "high"
+        },
+        "build_failure": {
+            "keywords": ["build", "compilation", "syntax error", "yaml", "frontmatter",
+                        "InvalidContentEntryDataError", "does not match collection schema",
+                        "bad indentation", "mapping entry", "Node.js", "not supported",
+                        "Astro", "astro build"],
+            "severity": "critical"
+        },
+        "deploy_failure": {
+            "keywords": ["deploy", "deployment", "publish", "Cloudflare Pages",
+                        "GitHub Pages", "HttpError", "Not Found", "pages.dev",
+                        "404", "not found", "unreachable"],
+            "severity": "critical"
         }
     }
     

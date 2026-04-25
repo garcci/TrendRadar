@@ -98,6 +98,41 @@ class ExceptionHealer:
                 "check_permissions"
             ],
             "description": "权限错误，检查环境变量和权限配置"
+        },
+        "build_frontmatter": {
+            "name": "Frontmatter格式修复",
+            "category": "build_failure",
+            "pattern_keywords": ["frontmatter", "yaml", "bad indentation", "mapping entry",
+                               "InvalidContentEntryDataError", "schema", "title: Required"],
+            "actions": [
+                "fix_frontmatter_quotes",
+                "add_missing_fields",
+                "validate_before_push"
+            ],
+            "description": "Astro frontmatter YAML格式错误，修复引号嵌套和缺少字段"
+        },
+        "build_node_version": {
+            "name": "Node.js版本修复",
+            "category": "build_failure",
+            "pattern_keywords": ["Node.js", "not supported", ">=22", ">=20",
+                               "astro build", "compilation"],
+            "actions": [
+                "update_node_version",
+                "update_workflow_config"
+            ],
+            "description": "Node.js版本不兼容Astro要求，升级workflow和package.json"
+        },
+        "deploy_cloudflare": {
+            "name": "Cloudflare部署修复",
+            "category": "deploy_failure",
+            "pattern_keywords": ["Cloudflare Pages", "pages.dev", "404",
+                               "Not Found", "deployment", "unreachable"],
+            "actions": [
+                "check_cf_pages_settings",
+                "verify_build_output",
+                "trigger_redeploy"
+            ],
+            "description": "Cloudflare Pages部署异常，检查构建设置和触发重新部署"
         }
     }
     
