@@ -165,30 +165,30 @@ class SmartAIClient:
         github_available = self.github_models_enabled  # GitHub Models暂无额度限制，只需检查Token
         gemini_available = self.gemini_enabled and self._check_quota("google_gemini")
         
-        # 任务路由（免费API优先，按能力排序）
-        # 降级链: Cloudflare → GitHub Models → Gemini → DeepSeek
+        # 任务路由（免费API优先，GitHub Models排最前）
+        # 降级链: GitHub Models → Cloudflare → Gemini → DeepSeek
         if task_type in ["summarization", "content_dedup", "rss_analysis"]:
-            if cf_available:
-                return "cloudflare"
-            elif github_available:
+            if github_available:
                 return "github_models"
+            elif cf_available:
+                return "cloudflare"
             elif gemini_available:
                 return "gemini"
         
         elif task_type in ["translation", "quality_evaluation"]:
-            if gemini_available:
-                return "gemini"
-            elif github_available:
+            if github_available:
                 return "github_models"
+            elif gemini_available:
+                return "gemini"
             elif cf_available:
                 return "cloudflare"
         
         elif task_type == "article_generation":
-            # 文章生成：优先尝试Gemini，其次GitHub Models
-            if gemini_available:
-                return "gemini"
-            elif github_available:
+            # 文章生成：优先GitHub Models，其次Gemini
+            if github_available:
                 return "github_models"
+            elif gemini_available:
+                return "gemini"
         
         # 默认兜底：DeepSeek（付费但稳定）
         return "deepseek"
