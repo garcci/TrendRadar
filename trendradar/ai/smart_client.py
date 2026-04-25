@@ -1,12 +1,15 @@
 # coding=utf-8
 """
-智能AI客户端 - 自动选择免费API降低成本
+智能AI客户端 - 质量优先的模型路由
 
 集成策略：
 1. 任务分类 → 选择最优Provider
-2. 免费API优先 → 降低成本
-3. 失败自动降级 → 保证可用性
-4. 使用情况记录 → 额度监控
+2. 核心任务(文章生成) → DeepSeek优先，质量第一
+3. 辅助任务(摘要/分类/翻译) → 免费API优先，降低成本
+4. 失败自动降级 → 保证可用性
+5. 使用情况记录 → 额度监控
+
+原则：免费模型只做它能100%做好的事，博客文章质量 > 额度消费
 """
 
 import logging
@@ -225,11 +228,11 @@ class SmartAIClient:
                 return "cloudflare"
         
         elif task_type == "article_generation":
-            # 文章生成：优先GitHub Models，其次Gemini
-            if github_available:
-                return "github_models"
-            elif gemini_available:
-                return "gemini"
+            # 文章生成：质量第一，永远用DeepSeek
+            # 免费模型(LLaMA/Gemini)生成文章质量不稳定，绝不用在核心内容生成
+            # 免费模型只用于 summarization/content_dedup/rss_analysis/translation 等辅助任务
+            logger.info("[模型路由] 文章生成任务 → DeepSeek（质量优先）")
+            return "deepseek"
         
         # 默认兜底：DeepSeek（付费但稳定）
         return "deepseek"
