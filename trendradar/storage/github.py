@@ -30,7 +30,7 @@ class GitHubStorageBackend(StorageBackend):
         self.token = os.getenv("ASTRO_GITHUB_TOKEN")
         self.owner = os.getenv("ASTRO_REPO_OWNER", "garcci")
         self.repo = os.getenv("ASTRO_REPO_NAME", "Astro")
-        self.branch = os.getenv("ASTRO_BRANCH", "master")
+        self.branch = os.getenv("ASTRO_BRANCH", "main")
         
         if not self.token:
             raise ValueError("ASTRO_GITHUB_TOKEN environment variable is required")
