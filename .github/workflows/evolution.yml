@@ -749,6 +749,32 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
+      # 🏷️ 自动标签优化 - Lv57 提升标签相关性
+      # ═══════════════════════════════════════════════════════════
+      - name: Tag Optimizer
+        run: |
+          echo "🏷️ 启动自动标签优化..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🏷️ 自动标签优化器 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.tag_optimizer import run_tag_optimizer
+              run_tag_optimizer('.')
+              print('[标签优化] Lv57 完成')
+          except Exception as e:
+              print(f'[标签优化] Lv57 失败: {e}')
+          
+          print('='*60)
+          print('🏷️ 标签优化完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 🤖 自动代码迭代 - Lv28升级
       # ═══════════════════════════════════════════════════════════
       - name: Auto Code Evolution
