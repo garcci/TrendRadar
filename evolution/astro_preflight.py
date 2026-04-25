@@ -96,9 +96,10 @@ class AstroPreflight:
         if not match:
             return None, content
 
-        end_pos = 3 + match.end()
-        frontmatter = content[3:end_pos - 4].strip()
-        body = content[end_pos:].strip()
+        # match.start() 是 \n---\n 中第一个 \n 在 content[3:] 中的位置
+        # frontmatter 内容就是 content[3:3+match.start()]，再 strip 去掉首尾换行
+        frontmatter = content[3:3 + match.start()].strip()
+        body = content[3 + match.end():].strip()
         return frontmatter, body
 
     def _check_yaml_syntax(self, frontmatter: str, filename: str) -> Optional[Dict]:
