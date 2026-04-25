@@ -832,6 +832,60 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
+      # 🧬 系统自动优化 - Lv61
+      # ═══════════════════════════════════════════════════════════
+      - name: Auto Optimization
+        run: |
+          echo "🧬 启动系统自动优化..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('🧬 系统自动优化器 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.auto_optimizer import run_auto_optimization
+              report = run_auto_optimization('.')
+              print(report)
+              print('[系统优化] Lv61 完成')
+          except Exception as e:
+              print(f'[系统优化] Lv61 失败: {e}')
+          
+          print('='*60)
+          print('🧬 系统优化完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 📊 模块健康度仪表盘 - Lv63
+      # ═══════════════════════════════════════════════════════════
+      - name: Module Health Dashboard
+        run: |
+          echo "📊 生成模块健康度仪表盘..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('='*60)
+          print('📊 模块健康度仪表盘 v1.0')
+          print('='*60)
+          
+          try:
+              from evolution.module_health_dashboard import generate_health_dashboard
+              report = generate_health_dashboard('.')
+              print(report)
+              print('[健康仪表盘] Lv63 完成')
+          except Exception as e:
+              print(f'[健康仪表盘] Lv63 失败: {e}')
+          
+          print('='*60)
+          print('📊 仪表盘生成完成')
+          print('='*60)
+          "
+
+      # ═══════════════════════════════════════════════════════════
       # 🤖 自动代码迭代 - Lv28升级
       # ═══════════════════════════════════════════════════════════
       - name: Auto Code Evolution

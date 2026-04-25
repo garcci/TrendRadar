@@ -198,6 +198,31 @@ class GitHubStorageBackend(StorageBackend):
             logger.warning(f"AI generation failed, falling back to template: {e}")
             markdown_content = self._generate_markdown(data, article_title)
         
+        # 🔬 科技内容检测 — Lv62 进化
+        try:
+            from evolution.tech_content_guard import check_tech_content
+            passed, message = check_tech_content(markdown_content, min_ratio=0.7)
+            if passed:
+                logger.info(f"[科技检测] ✅ {message}")
+            else:
+                logger.warning(f"[科技检测] ⚠️ 科技占比不足:\n{message}")
+                # 记录到异常知识库但不阻止发布（避免消耗额外额度重写）
+                try:
+                    from evolution.exception_monitor import ExceptionMonitor
+                    monitor = ExceptionMonitor('.')
+                    monitor.record_exception(
+                        'TechContentGuardWarning',
+                        '文章科技占比不足',
+                        message,
+                        context=f'file:{filepath}',
+                        module='github.py'
+                    )
+                    monitor._save_knowledge_base()
+                except Exception:
+                    pass
+        except Exception as e:
+            logger.warning(f"[科技检测] 检查失败: {e}")
+        
         # 📝 草稿模式处理 - 将draft设为true
         if is_draft:
             if "draft: false" in markdown_content:
