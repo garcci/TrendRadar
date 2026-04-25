@@ -113,11 +113,17 @@ class AstroPreflight:
         except yaml.YAMLError as e:
             # 提取具体错误信息
             error_msg = str(e)
+            # 输出 frontmatter 内容用于调试（截断显示）
+            fm_preview = frontmatter[:500].replace('\n', '\\n')
+            self.warnings.append(f"[DEBUG] 原始frontmatter: {fm_preview}")
             # 简化错误信息
             if "mapping values are not allowed" in error_msg:
                 self.issues.append(f"YAML 语法错误: 冒号后缺少空格或缩进错误")
             elif "could not determine a constructor" in error_msg:
                 self.issues.append(f"YAML 语法错误: 特殊字符未转义")
+            elif "while parsing a block mapping" in error_msg:
+                # 可能是缩进错误或存在未关闭的引号
+                self.issues.append(f"YAML 语法错误: frontmatter中存在未关闭的引号或缩进错误")
             else:
                 self.issues.append(f"YAML 语法错误: {error_msg[:100]}")
             return None
