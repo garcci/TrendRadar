@@ -112,7 +112,8 @@ class SmartAIClient:
         self.gemini_enabled = bool(gemini_key)
         
         # GitHub Models（免费AI推理API）
-        github_token = os.environ.get("GITHUB_TOKEN", "")
+        # 注意：GitHub Secrets不允许以GITHUB_开头的名称，使用GH_MODELS_TOKEN
+        github_token = os.environ.get("GH_MODELS_TOKEN", "")
         self.github_models_enabled = bool(github_token)
     
     def validate_config(self) -> tuple[bool, str]:
@@ -224,7 +225,7 @@ class SmartAIClient:
         """调用GitHub Models（免费AI推理API）"""
         import requests
         
-        github_token = os.environ.get("GITHUB_TOKEN", "")
+        github_token = os.environ.get("GH_MODELS_TOKEN", "")
         model = kwargs.get("model", "meta-llama-3.1-8b-instruct")
         
         url = "https://models.inference.ai.azure.com/chat/completions"
