@@ -472,9 +472,9 @@ class GitHubStorageBackend(StorageBackend):
                     logger.error("[Frontmatter验证] 无法自动修复，阻止推送")
                     return False
             else:
-                logger.info("[Frontmatter验证] ✅ 通过")
+                print("[Frontmatter验证] ✅ 通过")
         except Exception as e:
-            logger.warning(f"[Frontmatter验证] 验证过程出错: {e}，跳过验证继续推送")
+            print(f"[Frontmatter验证] 验证过程出错: {e}，跳过验证继续推送")
         
         # 🛡️ Astro 构建预检 — 推送前模拟验证
         try:
@@ -497,14 +497,15 @@ class GitHubStorageBackend(StorageBackend):
                 except Exception as e:
                     logger.debug(f"[异常监控] 保存失败: {e}")
                 return False
-            logger.info("[构建预检] ✅ 通过")
+            print("[构建预检] ✅ 通过")
         except Exception as e:
-            logger.warning(f"[构建预检] 检查过程出错: {e}，跳过继续推送")
+            print(f"[构建预检] 检查过程出错: {e}，跳过继续推送")
         
         # Push to GitHub
+        print(f"[文章推送] 开始推送到 GitHub: {filepath}")
         try:
             self._push_to_github(filepath, markdown_content, f"feat: add TrendRadar report - {article_title}")
-            logger.info(f"Successfully pushed article to GitHub: {filepath}")
+            print(f"[文章推送] ✅ 成功推送文章到 GitHub: {filepath}")
             
             # 🚀 部署后验证 — 确保文章成功上线
             try:
