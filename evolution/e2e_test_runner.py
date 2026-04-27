@@ -113,6 +113,30 @@ def run_semantic_deduplicator_tests() -> Dict:
     return tester.run_all()
 
 
+def run_auto_calibration_tests() -> Dict:
+    """运行自动校准端到端测试"""
+    from e2e.test_auto_calibration import TestAutoCalibration
+
+    tester = TestAutoCalibration()
+    return tester.run_all()
+
+
+def run_self_observer_tests() -> Dict:
+    """运行自我观察端到端测试"""
+    from e2e.test_self_observer import TestSelfObserver
+
+    tester = TestSelfObserver()
+    return tester.run_all()
+
+
+def run_smart_summary_tests() -> Dict:
+    """运行智能摘要端到端测试"""
+    from e2e.test_smart_summary import TestSmartSummary
+
+    tester = TestSmartSummary()
+    return tester.run_all()
+
+
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     """运行所有端到端测试（并行执行优化耗时）"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
@@ -131,6 +155,9 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
         ("tag_optimizer", run_tag_optimizer_tests),
         ("trend_forecast", run_trend_forecast_tests),
         ("semantic_deduplicator", run_semantic_deduplicator_tests),
+        ("auto_calibration", run_auto_calibration_tests),
+        ("self_observer", run_self_observer_tests),
+        ("smart_summary", run_smart_summary_tests),
     ]
 
     all_results = []
@@ -149,7 +176,7 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
             return {"suite": name, "all_passed": False, "error": str(e), "elapsed": round(elapsed, 2)}
 
     # 并行运行（I/O 密集型，线程有效）
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=5) as executor:
         futures = {executor.submit(run_suite, s): s[0] for s in suites}
         for future in as_completed(futures):
             result = future.result()
