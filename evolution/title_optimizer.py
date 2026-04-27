@@ -91,14 +91,21 @@ class TitleOptimizer:
             if len(parts) >= 3:
                 content = parts[2]
         
-        # 1. 优先从科技关键词库匹配
+        # 1. 优先从科技关键词库匹配（长的、具体的词优先）
         tech_keywords = [
-            "AI", "人工智能", "大模型", "GPT", "芯片", "GPU", "半导体", "开源",
-            "云计算", "区块链", "量子计算", "自动驾驶", "机器人", "5G", "6G",
-            "新能源", "电动车", "脑机接口", "物联网", "元宇宙", "VR", "AR",
-            "英伟达", "NVIDIA", "AMD", "Intel", "OpenAI", "Google", "微软",
-            "特斯拉", "苹果", "华为", "小米", "三星", "台积电"
+            # 具体产品/公司（优先，更具体）
+            "DeepSeek", "OpenAI", "ChatGPT", "GPT-4", "GPT-4o", "Claude",
+            "NVIDIA", "英伟达", "AMD", "Intel", "华为", "特斯拉", "苹果",
+            "小米", "三星", "台积电", "Google", "微软", "字节跳动", "阿里",
+            # 技术领域
+            "大模型", "人工智能", "AI", "芯片", "GPU", "半导体", "开源",
+            "云计算", "量子计算", "自动驾驶", "机器人", "脑机接口", "物联网",
+            "5G", "6G", "新能源", "电动车", "元宇宙", "VR", "AR", "区块链",
+            # 热点概念
+            "降价", "价格战", "算力", "推理", "训练", "API", "Token",
         ]
+        # 按长度降序排列，优先匹配更具体的词
+        tech_keywords.sort(key=len, reverse=True)
         for kw in tech_keywords:
             if kw in content and kw not in topics:
                 topics.append(kw)
@@ -147,10 +154,12 @@ class TitleOptimizer:
         insight_words = ['深度解析', '真相', '背后', '趋势', '观察']
         candidates.append(f"{main_topic}：{random.choice(insight_words)}")
         
-        # 候选2: 数据型
-        numbers = re.findall(r'\d+(?:\.\d+)?(?:%|倍|万|亿)?', content)
-        if numbers:
-            candidates.append(f"{main_topic}，{numbers[0]}背后的秘密")
+        # 候选2: 数据型（过滤掉版本号、年份等不相关数字）
+        numbers = re.findall(r'\d+(?:\.\d+)?(?:%|倍|万|亿|折|折起)', content)
+        # 排除明显是版本号/年份的数字（如 V4, 2024, 2025）
+        valid_numbers = [n for n in numbers if not re.match(r'^(202\d|V?\d{1,2})$', n, re.I)]
+        if valid_numbers:
+            candidates.append(f"{main_topic}，{valid_numbers[0]}背后的秘密")
         else:
             candidates.append(f"{main_topic}：3个关键变化")
         

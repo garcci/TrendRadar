@@ -1922,6 +1922,31 @@ DESCRIPTION: <优化后的描述>"""
                     
         except Exception as e:
             logger.warning(f"[多模型增强] Gemini title/description 优化失败: {e}")
+            # Fallback: 尝试用 DeepSeek 直接生成（不限制格式）
+            try:
+                fallback_prompt = f"""请为以下文章生成一个吸引人的中文标题（15-25字）和一句话描述（30-50字）。
+
+文章摘要: {body_summary[:1500]}
+
+直接输出标题和描述，不要加标签前缀。"""
+                fb_result = ai_client.chat(
+                    [{"role": "user", "content": fallback_prompt}],
+                    temperature=0.7,
+                    max_tokens=150
+                )
+                # 宽松解析：第一行作为标题，第二行作为描述
+                lines = [l.strip() for l in fb_result.split('\n') if l.strip()]
+                if lines:
+                    fb_title = lines[0].strip('"').strip("'")
+                    if 8 <= len(fb_title) <= 35 and fb_title != current_title:
+                        new_title = fb_title
+                        print(f"[多模型增强] Fallback 标题优化: '{current_title[:30]}...' → '{new_title[:30]}...'")
+                    if len(lines) >= 2:
+                        fb_desc = lines[1].strip('"').strip("'")
+                        if 10 <= len(fb_desc) <= 80 and fb_desc != current_desc:
+                            new_desc = fb_desc
+            except Exception as fb_e:
+                logger.warning(f"[多模型增强] Fallback 标题优化也失败: {fb_e}")
         
         # ═══════════════════════════════════════════════════════════
         # Step 2: GitHub Models — 提取 tags（结构化输出）
