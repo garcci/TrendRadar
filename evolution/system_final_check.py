@@ -188,10 +188,15 @@ class SystemFinalCheck:
         github_py = self.trendradar_path / "trendradar/storage/github.py"
         if github_py.exists():
             gh_content = github_py.read_text()
-            if "if gh_token and 'memory_backend' in locals():" in gh_content and "trending_topics = []" in gh_content:
+            # 检查是否有从 memory_backend 提取 trending_topics 的代码（而非直接设为空）
+            has_memory_trending = "memory_backend.get_recent_articles" in gh_content and "topic_counts" in gh_content
+            has_empty_fallback = "trending_topics = []" in gh_content
+            if has_memory_trending:
+                self.results.append("github.py 记忆集成: ✅ trending_topics 从记忆数据提取")
+            elif has_empty_fallback and not has_memory_trending:
                 self.errors.append("github.py 严重bug: 有 memory_backend 时 trending_topics 直接设为空列表，完全不用记忆数据")
             else:
-                self.results.append("github.py 记忆集成: ✅ trending_topics 使用记忆数据")
+                self.warnings.append("github.py: 无法确认 trending_topics 是否使用记忆数据")
 
     def check_data_pipeline(self):
         """检查数据管道状态 — 确保 Lv73-Lv79 有数据可用"""
