@@ -396,9 +396,17 @@ class GitHubStorageBackend(StorageBackend):
             traceback.print_exc()
         
         # 🧹 Frontmatter 清理 - 修复 YAML 引号嵌套等问题
-        markdown_content = self._sanitize_frontmatter(markdown_content, data.date, article_title)
+        print("[文章处理] 开始 sanitize frontmatter...")
+        try:
+            markdown_content = self._sanitize_frontmatter(markdown_content, data.date, article_title)
+            print("[文章处理] ✅ sanitize 完成")
+        except Exception as e:
+            print(f"[文章处理] ❌ sanitize 失败: {e}，跳过继续")
+            import traceback
+            traceback.print_exc()
         
         # 🧹 清理重复的快速阅读区（AI有时会输出两次）
+        print("[文章处理] 检查重复快速阅读区...")
         tip_blocks = markdown_content.split(':::tip[📋 快速阅读]')
         if len(tip_blocks) > 2:
             # 保留第一个，删除后面的
@@ -414,9 +422,12 @@ class GitHubStorageBackend(StorageBackend):
                     else:
                         body_after_tips += block
                 markdown_content = tip_blocks[0] + first_tip + body_after_tips
-                logger.info("[清理] 已删除重复的快速阅读区")
+                print("[文章处理] ✅ 已删除重复的快速阅读区")
+        else:
+            print("[文章处理] 无重复快速阅读区")
         
         # 🧹 修复核心观点编号格式（AI有时会输出 `: 内容` 或 `：内容`）
+        print("[文章处理] 修复核心观点编号格式...")
         import re
         # 在快速阅读区内，将 `: 内容` 或 `：内容` 修复为正常编号
         def fix_bullet_numbers(match):
