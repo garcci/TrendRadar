@@ -656,6 +656,39 @@ jobs:
               print('近期无异常，系统健康')
           "
 
+      # ═══════════════════════════════════════════════════════════
+      # 🎛️ 进化步骤动态编排 - Lv78 根据数据动态调整步骤
+      # ═══════════════════════════════════════════════════════════
+      - name: Dynamic Scheduler
+        continue-on-error: true
+        run: |
+          echo "🎛️ Lv78: 生成进化步骤动态编排报告..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from evolution.dynamic_scheduler import generate_schedule_report
+          print(generate_schedule_report())
+          "
+
+      # ═══════════════════════════════════════════════════════════
+      # 📊 进化效果仪表盘 - Lv79 数据驱动决策
+      # ═══════════════════════════════════════════════════════════
+      - name: Effect Dashboard
+        continue-on-error: true
+        run: |
+          echo "📊 Lv79: 生成进化效果仪表盘..."
+          uv run python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from evolution.effect_dashboard import write_dashboard
+          print(write_dashboard())
+          "
+          if [ -f evolution/dashboard.md ]; then
+            echo ""
+            echo "--- 仪表盘摘要 ---"
+            head -30 evolution/dashboard.md
+          fi
+
       - name: System Final Check
         continue-on-error: true
         timeout-minutes: 3

@@ -33,6 +33,7 @@ class SystemFinalCheck:
         self.check_workflow_syntax()
         self.check_tuning_results()
         self.check_github_py_health()
+        self.check_module_activation()
 
         return {
             "status": "healthy" if not self.errors else "issues_found",
@@ -151,6 +152,84 @@ class SystemFinalCheck:
         except SyntaxError as e:
             self.errors.append(f"github.py 语法错误: {e}")
 
+    def check_module_activation(self):
+        """Lv77: 模块激活建议 — 基于 article_quality_db 数据推荐"""
+        try:
+            from evolution.article_quality_db import get_quality_trend, get_module_contribution
+
+            trend = get_quality_trend(days=14)
+            suggestions = []
+
+            # 评分维度建议
+            if trend["avg_score"] < 6.0:
+                suggestions.append({
+                    "module": "tech_content_guard",
+                    "effect": "提升科技内容占比，当前评分偏低",
+                    "confidence": 0.9,
+                })
+                suggestions.append({
+                    "module": "smart_scheduler",
+                    "effect": "优化文章生成调度，减少低质量输出",
+                    "confidence": 0.85,
+                })
+            elif trend["avg_score"] < 7.5:
+                suggestions.append({
+                    "module": "title_optimizer",
+                    "effect": "优化标题质量，提升文章吸引力",
+                    "confidence": 0.8,
+                })
+
+            # 科技占比维度
+            if trend.get("avg_tech_ratio", 10) < 6.0:
+                suggestions.append({
+                    "module": "tech_content_guard",
+                    "effect": f"科技占比仅{trend.get('avg_tech_ratio', 0)}/10，需强化",
+                    "confidence": 0.9,
+                })
+
+            # 趋势维度
+            if trend.get("score_trend") == "down":
+                suggestions.append({
+                    "module": "prompt_evolution",
+                    "effect": "质量趋势下降，需自动优化 Prompt",
+                    "confidence": 0.85,
+                })
+                suggestions.append({
+                    "module": "regression_guard",
+                    "effect": "启用退化检测，防止进一步下滑",
+                    "confidence": 0.88,
+                })
+
+            # 模块贡献度分析
+            key_modules = [
+                "smart_scheduler", "tech_content_guard", "title_optimizer",
+                "semantic_deduplicator", "trend_forecast", "ab_testing",
+            ]
+            for mod in key_modules:
+                contrib = get_module_contribution(mod, days=14)
+                if contrib["with_count"] >= 3 and contrib["contribution"] < -0.5:
+                    suggestions.append({
+                        "module": mod,
+                        "effect": f"贡献度为负({contrib['contribution']})，建议检查或替换",
+                        "confidence": 0.75,
+                    })
+                elif contrib["with_count"] >= 3 and contrib["contribution"] > 0.5:
+                    suggestions.append({
+                        "module": mod,
+                        "effect": f"贡献度为正(+{contrib['contribution']})，建议持续使用",
+                        "confidence": 0.8,
+                    })
+
+            if suggestions:
+                self.results.append(f"模块激活建议: {len(suggestions)} 条")
+                self._activation_suggestions = suggestions
+            else:
+                self.results.append("模块激活建议: 暂无（系统运行良好）")
+                self._activation_suggestions = []
+        except Exception as e:
+            self.warnings.append(f"模块激活建议生成失败: {e}")
+            self._activation_suggestions = []
+
     def generate_report(self) -> str:
         """生成最终报告"""
         result = self.run_all_checks()
@@ -179,6 +258,16 @@ class SystemFinalCheck:
             lines.append("## ❌ 错误")
             for e in result['details']['errors']:
                 lines.append(f"- {e}")
+
+        # Lv77: 模块激活建议
+        if hasattr(self, '_activation_suggestions') and self._activation_suggestions:
+            lines.append("")
+            lines.append("## 🚀 模块激活建议 (Lv77)")
+            for s in self._activation_suggestions[:8]:
+                conf_emoji = "🔥" if s["confidence"] >= 0.85 else "💡"
+                lines.append(
+                    f"- {conf_emoji} **{s['module']}** — {s['effect']} (置信度: {s['confidence']})"
+                )
 
         lines.append("")
         lines.append("---")
