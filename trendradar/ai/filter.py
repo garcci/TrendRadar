@@ -16,6 +16,13 @@ from typing import Any, Callable, Dict, List, Optional
 from trendradar.ai.smart_client import SmartAIClient
 from trendradar.ai.prompt_loader import load_prompt_template
 
+# 尝试导入 json_repair（Workflow 环境已安装），本地开发环境可能没有
+try:
+    import json_repair
+    HAS_JSON_REPAIR = True
+except ImportError:
+    HAS_JSON_REPAIR = False
+
 
 @dataclass
 class AIFilterResult:
@@ -519,7 +526,7 @@ class AIFilter:
         return results
 
     def _extract_json(self, response: str) -> Optional[str]:
-        """从 AI 响应中提取 JSON 字符串，并尝试修复截断"""
+        """从 AI 响应中提取 JSON 字符串，并尝试修复截断/语法错误"""
         if not response or not response.strip():
             return None
 
@@ -542,31 +549,72 @@ class AIFilter:
         if json_str:
             json_str = self._fix_truncated_json(json_str)
         
+        # 如果手动修复失败且 json_repair 可用，尝试更智能的修复
+        if json_str and HAS_JSON_REPAIR:
+            try:
+                json.loads(json_str)
+            except json.JSONDecodeError:
+                try:
+                    repaired = json_repair.repair_json(json_str, return_objects=False)
+                    if repaired and repaired.strip():
+                        json_str = repaired.strip()
+                except Exception:
+                    pass
+        
         return json_str if json_str else None
     
     def _fix_truncated_json(self, json_str: str) -> str:
-        """修复截断的JSON字符串"""
-        # 1. 移除尾部的不完整内容（从最后一个完整的JSON结构开始）
-        # 尝试找到最后一个完整的JSON对象/数组
+        """修复截断或语法错误的JSON字符串"""
+        original = json_str
         
-        # 检查是否以未闭合的字符串结尾
-        # 简单方法：统计引号数量
+        # 0. 先尝试直接解析，如果成功直接返回
+        try:
+            json.loads(json_str)
+            return json_str
+        except json.JSONDecodeError:
+            pass
+        
+        # 1. 修复缺少逗号的问题（对象/数组元素之间没有逗号分隔）
+        # 例如: {"a": 1} {"b": 2} -> {"a": 1}, {"b": 2}
+        # 例如: [{"a": 1} {"b": 2}] -> [{"a": 1}, {"b": 2}]
+        import re as _re
+        
+        # 修复 } { 之间缺少逗号
+        json_str = _re.sub(r'\}\s*\{', '},{', json_str)
+        # 修复 ] { 之间缺少逗号
+        json_str = _re.sub(r'\]\s*\{', '],{', json_str)
+        # 修复 } [ 之间缺少逗号
+        json_str = _re.sub(r'\}\s*\[', '},[', json_str)
+        # 修复 ] [ 之间缺少逗号
+        json_str = _re.sub(r'\]\s*\[', '],[', json_str)
+        # 修复 " { 之间缺少逗号（在数组/对象值位置）
+        json_str = _re.sub(r'"\s*\{', '",{', json_str)
+        # 修复 " [ 之间缺少逗号
+        json_str = _re.sub(r'"\s*\[', '",[', json_str)
+        # 修复 数字/布尔/null 后面直接跟 { 或 [ 缺少逗号
+        json_str = _re.sub(r'(true|false|null|\d)\s*\{', r'\1,{', json_str)
+        json_str = _re.sub(r'(true|false|null|\d)\s*\[', r'\1,[', json_str)
+        
+        # 尝试解析
+        try:
+            json.loads(json_str)
+            return json_str
+        except json.JSONDecodeError:
+            pass
+        
+        # 2. 检查是否以未闭合的字符串结尾
+        # 简单方法：统计引号数量（排除转义引号）
         quote_count = json_str.count('"') - json_str.count('\\"')
         if quote_count % 2 == 1:
             # 奇数个引号，说明有字符串未闭合
-            # 找到最后一个未配对的引号位置，截断到那里
             last_quote = json_str.rfind('"')
             if last_quote > 0:
                 # 截断到最后一个完整字符串之后
-                json_str = json_str[:last_quote]
-                # 找到该字符串开始的位置
-                prev_quote = json_str.rfind('"')
+                prev_quote = json_str[:last_quote].rfind('"')
                 if prev_quote >= 0:
-                    # 保留到字符串结束
                     json_str = json_str[:last_quote + 1]
         
-        # 2. 修复未闭合的JSON结构
-        # 统计括号
+        # 3. 修复未闭合的JSON结构
         open_braces = json_str.count('{') - json_str.count('}')
         open_brackets = json_str.count('[') - json_str.count(']')
         
@@ -579,15 +627,14 @@ class AIFilter:
         if open_brackets > 0:
             json_str += ']' * open_brackets
         
-        # 3. 如果JSON以对象或数组开始但未结束，尝试截断到最后一个完整的元素
+        # 尝试解析
         try:
             json.loads(json_str)
-            return json_str  # 解析成功，返回修复后的JSON
+            return json_str
         except json.JSONDecodeError:
             pass
         
         # 4. 如果还是失败，尝试找到最后一个有效的JSON结构
-        # 从末尾开始，逐步截断，直到找到可解析的部分
         for i in range(len(json_str) - 1, 0, -1):
             if json_str[i] in ['}', ']']:
                 try:
@@ -596,7 +643,8 @@ class AIFilter:
                 except json.JSONDecodeError:
                     continue
         
-        return json_str
+        # 5. 所有修复都失败，返回原始字符串让上层处理
+        return original
 
     def _print_formatted_json(self, response: str) -> None:
         """格式化打印 AI 响应中的 JSON，便于 debug 阅读"""
