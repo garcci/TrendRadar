@@ -33,6 +33,7 @@ class SystemFinalCheck:
         self.check_workflow_syntax()
         self.check_tuning_results()
         self.check_github_py_health()
+        self.check_data_pipeline()
         self.check_module_activation()
 
         return {
@@ -151,6 +152,46 @@ class SystemFinalCheck:
             self.results.append(f"github.py AST解析: ✅")
         except SyntaxError as e:
             self.errors.append(f"github.py 语法错误: {e}")
+
+    def check_data_pipeline(self):
+        """检查数据管道状态 — 确保 Lv73-Lv79 有数据可用"""
+        dp_dir = self.trendradar_path / "evolution" / "data_pipeline"
+        if not dp_dir.exists():
+            self.warnings.append("数据管道目录不存在")
+            return
+
+        log_file = dp_dir / "log.jsonl"
+        quality_file = dp_dir / "article_quality.jsonl"
+
+        log_count = 0
+        if log_file.exists():
+            try:
+                with open(log_file, 'r') as f:
+                    log_count = sum(1 for line in f if line.strip())
+            except Exception:
+                pass
+
+        quality_count = 0
+        if quality_file.exists():
+            try:
+                with open(quality_file, 'r') as f:
+                    quality_count = sum(1 for line in f if line.strip())
+            except Exception:
+                pass
+
+        self.results.append(f"数据管道: log={log_count} 条, quality={quality_count} 条")
+
+        if log_count == 0:
+            self.warnings.append("log.jsonl 为空: unified_logger 可能未正确写入")
+        if quality_count == 0:
+            self.warnings.append("article_quality.jsonl 为空: article_quality_db 可能未正确写入")
+
+        # 检查 .gitignore 是否排除了 jsonl
+        gitignore = self.trendradar_path / ".gitignore"
+        if gitignore.exists():
+            gi_content = gitignore.read_text()
+            if "*.jsonl" in gi_content or "data_pipeline/*.jsonl" in gi_content:
+                self.errors.append(".gitignore 排除了 *.jsonl，数据无法持久化到仓库")
 
     def check_module_activation(self):
         """Lv77: 模块激活建议 — 基于 article_quality_db 数据推荐"""

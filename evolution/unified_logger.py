@@ -44,8 +44,9 @@ def get_article_id() -> Optional[str]:
 
 
 def _log_path() -> Path:
-    """日志文件路径"""
-    return Path(".") / "evolution" / "data_pipeline" / "log.jsonl"
+    """日志文件路径 — 使用模块所在目录确保路径正确"""
+    module_dir = Path(__file__).parent.resolve()
+    return module_dir / "data_pipeline" / "log.jsonl"
 
 
 def _write_log(level: str, module: str, message: str, extra: Optional[Dict] = None) -> None:

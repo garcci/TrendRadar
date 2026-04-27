@@ -614,3 +614,28 @@ jobs:
           else:
               print(f'跳过自动迭代：未配置 GH_MEMORY_TOKEN (token类型={type(token)}, 长度={len(token) if token else 0})')
           "
+
+      # ═══════════════════════════════════════════════════════════
+      # 💾 数据管道持久化 — 将 log.jsonl / article_quality.jsonl 提交到仓库
+      # ═══════════════════════════════════════════════════════════
+      - name: Persist Data Pipeline
+        if: success()
+        continue-on-error: true
+        run: |
+          echo "💾 检查并提交数据管道文件..."
+          git config --global user.email "trendradar-auto@github.com"
+          git config --global user.name "TrendRadar Auto Evolution"
+          
+          # 添加 jsonl 数据文件（如果有变化）
+          if [ -f evolution/data_pipeline/log.jsonl ] || [ -f evolution/data_pipeline/article_quality.jsonl ]; then
+            git add evolution/data_pipeline/*.jsonl 2>/dev/null || true
+            if ! git diff --cached --quiet; then
+              git commit -m "data: 更新数据管道日志 [自动提交]" || true
+              git push origin ${{ github.ref_name }} || echo "推送失败（可能无权限或无变更）"
+              echo "✅ 数据管道已提交"
+            else
+              echo "⏭️ 数据管道无变化，跳过提交"
+            fi
+          else
+            echo "⚠️ 数据管道文件不存在，跳过提交"
+          fi

@@ -110,7 +110,7 @@ class GitHubStorageBackend(StorageBackend):
         date_str = data.date or datetime.now().strftime("%Y-%m-%d")
         article_id = f"{date_str}-{timestamp}"
         set_article_id(article_id)
-        log_info("github", f"save_news_data 开始执行", article_id=article_id)
+        log_info("github", f"save_news_data 开始执行", article_id=article_id, has_unified_logger=HAS_UNIFIED_LOGGER)
         
         if not data.items:
             log_warn("github", "data.items 为空，返回 False")

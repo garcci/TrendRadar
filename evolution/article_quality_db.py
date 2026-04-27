@@ -21,8 +21,9 @@ from typing import Any, Dict, List, Optional
 
 
 def _db_path() -> Path:
-    """质量数据库路径"""
-    return Path(".") / "evolution" / "data_pipeline" / "article_quality.jsonl"
+    """质量数据库路径 — 使用模块所在目录确保路径正确"""
+    module_dir = Path(__file__).parent.resolve()
+    return module_dir / "data_pipeline" / "article_quality.jsonl"
 
 
 def record_article_quality(
@@ -258,4 +259,5 @@ def generate_quality_report(days: int = 7) -> str:
         lines.append(f"最佳文章: {trend['best_article']['title']} ({trend['best_article']['score']}分)")
     if trend.get("worst_article"):
         lines.append(f"最差文章: {trend['worst_article']['title']} ({trend['worst_article']['score']}分)")
+    return "\n".join(lines)
     return "\n".join(lines)
