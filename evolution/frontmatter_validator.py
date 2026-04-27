@@ -63,10 +63,23 @@ class FrontmatterValidator:
         fm = parsed
 
         # 3. 检查必要字段
+        missing_fields_added = False
         for field in self.REQUIRED_FIELDS:
             if field not in fm:
                 errors.append(f"缺少必要字段: {field}")
-                fm[field] = self._get_default_value(field, filename)
+                default_val = self._get_default_value(field, filename)
+                fm[field] = default_val
+                # 将默认值添加到 fm_raw 并更新 fixed
+                if isinstance(default_val, bool):
+                    fm_raw += f"\n{field}: {str(default_val).lower()}"
+                elif isinstance(default_val, list):
+                    fm_raw += f"\n{field}: [{', '.join(default_val)}]"
+                else:
+                    fm_raw += f"\n{field}: {default_val}"
+                missing_fields_added = True
+        if missing_fields_added:
+            fixed = f"---\n{fm_raw}\n---\n{body}"
+            errors.append("已自动补全缺少的字段")
 
         # 4. 检查 title 引号嵌套
         if "title" in fm:

@@ -27,6 +27,22 @@ def run_memory_tests() -> Dict:
     return tester.run_all()
 
 
+def run_frontmatter_tests() -> Dict:
+    """运行 frontmatter 端到端测试"""
+    from e2e.test_frontmatter_pipeline import TestFrontmatterPipeline
+
+    tester = TestFrontmatterPipeline()
+    return tester.run_all()
+
+
+def run_data_pipeline_tests() -> Dict:
+    """运行数据管道端到端测试"""
+    from e2e.test_data_pipeline import TestDataPipelineConsistency
+
+    tester = TestDataPipelineConsistency()
+    return tester.run_all()
+
+
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     """运行所有端到端测试"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
@@ -37,15 +53,21 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     total_passed = 0
     total_failed = 0
 
-    # 运行记忆系统测试
-    try:
-        result = run_memory_tests()
-        all_results.append({"suite": "memory_backend", **result})
-        total_passed += result["passed"]
-        total_failed += result["failed"]
-    except Exception as e:
-        all_results.append({"suite": "memory_backend", "all_passed": False, "error": str(e)})
-        total_failed += 1
+    suites = [
+        ("memory_backend", run_memory_tests),
+        ("frontmatter_pipeline", run_frontmatter_tests),
+        ("data_pipeline", run_data_pipeline_tests),
+    ]
+
+    for suite_name, suite_func in suites:
+        try:
+            result = suite_func()
+            all_results.append({"suite": suite_name, **result})
+            total_passed += result["passed"]
+            total_failed += result["failed"]
+        except Exception as e:
+            all_results.append({"suite": suite_name, "all_passed": False, "error": str(e)})
+            total_failed += 1
 
     return {
         "all_passed": total_failed == 0,
