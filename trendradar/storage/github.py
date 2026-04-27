@@ -2399,3 +2399,13 @@ description: "TrendRadar 自动生成的热点聚合报告"
         except Exception as e:
             logger.warning(f"Failed to detect new titles from local storage: {e}")
             return {}
+
+### [AUTO-ADDED] 科技内容强化要求
+- 每个分析板块至少解释1个技术原理
+- 使用具体的技术术语而非泛化描述
+- 引用具体的技术参数和数据
+
+### [AUTO-ADDED] 洞察力强化要求
+- 每个板块必须包含未来3-6个月的预测
+- 提供至少1个反共识观点
+- 分析'为什么'而不仅是'是什么'
