@@ -689,6 +689,14 @@ jobs:
             head -30 evolution/dashboard.md
           fi
 
+      - name: End-to-End Tests
+        continue-on-error: true
+        timeout-minutes: 2
+        run: |
+          echo "🔬 运行端到端功能测试..."
+          uv run python evolution/e2e_test_runner.py
+          echo ""
+
       - name: System Final Check
         continue-on-error: true
         timeout-minutes: 3

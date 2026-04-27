@@ -34,6 +34,7 @@ class SystemFinalCheck:
         self.check_tuning_results()
         self.check_github_py_health()
         self.check_end_to_end_consistency()
+        self.run_e2e_tests()
         self.check_data_pipeline()
         self.check_module_activation()
 
@@ -197,6 +198,36 @@ class SystemFinalCheck:
                 self.errors.append("github.py 严重bug: 有 memory_backend 时 trending_topics 直接设为空列表，完全不用记忆数据")
             else:
                 self.warnings.append("github.py: 无法确认 trending_topics 是否使用记忆数据")
+
+    def run_e2e_tests(self):
+        """运行端到端功能测试 — 验证'跑的结果对不对'"""
+        try:
+            e2e_runner = self.trendradar_path / "evolution" / "e2e_test_runner.py"
+            if not e2e_runner.exists():
+                self.warnings.append("端到端测试框架不存在")
+                return
+
+            import subprocess
+            result = subprocess.run(
+                [sys.executable, str(e2e_runner)],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=str(self.trendradar_path)
+            )
+
+            if result.returncode == 0:
+                self.results.append("端到端测试: ✅ 全部通过")
+            else:
+                # 提取失败信息
+                output = result.stdout + result.stderr
+                if "❌" in output:
+                    failed_tests = [line.strip() for line in output.split('\n') if '❌' in line]
+                    self.errors.append(f"端到端测试失败: {'; '.join(failed_tests[:3])}")
+                else:
+                    self.errors.append("端到端测试失败")
+        except Exception as e:
+            self.warnings.append(f"端到端测试运行失败: {e}")
 
     def check_data_pipeline(self):
         """检查数据管道状态 — 确保 Lv73-Lv79 有数据可用"""
