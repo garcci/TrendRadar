@@ -434,8 +434,7 @@ class GitHubStorageBackend(StorageBackend):
         # 🧹 修复核心观点编号格式（AI有时会输出 `: 内容` 或 `：内容`）
         import re
         # 在快速阅读区内，将 `: 内容` 或 `：内容` 修复为正常编号
-        def fix_bullet_numbers(match):
-            section = match.group(0)
+        def fix_bullet_numbers(section):
             # 修复空的编号行（如 `3. : ` 或 `4. ：`）
             section = re.sub(r'(\d+\.\s*)[:：]\s*', r'\1', section)
             return section
