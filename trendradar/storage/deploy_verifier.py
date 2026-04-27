@@ -11,6 +11,7 @@ Astro 部署后验证器 — 推送文章后自动验证是否成功上线
 import json
 import os
 import time
+import urllib.error
 import urllib.request
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
@@ -140,6 +141,22 @@ class DeployVerifier:
                         }
                     # else: 仍在构建中，继续等待
 
+            except urllib.error.HTTPError as e:
+                if e.code == 403:
+                    return {
+                        "success": False,
+                        "message": (
+                            f"Cloudflare API 403 Forbidden: CF_API_TOKEN 缺少权限或 Account ID 错误。"
+                            f"请检查: 1) Token 是否有 'Cloudflare Pages:Read' 权限"
+                            f" 2) Account ID ({self.cf_account}) 是否正确"
+                        ),
+                        "attempts": attempts,
+                    }
+                return {
+                    "success": False,
+                    "message": f"HTTP {e.code}: {e.reason}",
+                    "attempts": attempts,
+                }
             except Exception as e:
                 return {"success": False, "message": f"查询部署状态失败: {e}", "attempts": attempts}
 

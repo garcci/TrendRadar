@@ -139,9 +139,14 @@ class GitHubStorageBackend(StorageBackend):
                 print(f"[智能调度] 问题: {'; '.join(decision['issues'])}")
             
             if decision['action'] == 'skip':
-                print(f"[智能调度] 调度建议跳过，但临时强制继续生成以验证多模型增强")
-                # 临时放宽：不跳过，改为草稿模式继续
+                print(f"[智能调度] 调度建议SKIP，降级为草稿模式（保留内容用于分析）")
                 is_draft = True
+                # 记录调度降级决策
+                try:
+                    from evolution.data_pipeline import record_step_metric
+                    record_step_metric('smart_scheduler', 'skip_downgraded_to_draft', 1)
+                except Exception:
+                    pass
             elif decision['action'] == 'draft':
                 print(f"[智能调度] 生成草稿模式: {decision['reason']}")
                 is_draft = True
@@ -240,7 +245,7 @@ class GitHubStorageBackend(StorageBackend):
                     fail_reasons.append(f"内容长度过短 (惩罚={penalties['length']:.1f})")
                 if penalties.get('template', 0) >= 2.0:
                     fail_reasons.append(f"模板痕迹过重 (惩罚={penalties['template']:.1f})")
-                if penalties.get('promo', 0) >= 3.0:
+                if penalties.get('promo', 0) >= 2.0:
                     fail_reasons.append(f"推广内容 detected (惩罚={penalties['promo']:.1f})")
                 
                 if fail_reasons:
@@ -427,7 +432,6 @@ class GitHubStorageBackend(StorageBackend):
             print("[文章处理] 无重复快速阅读区")
         
         # 🧹 修复核心观点编号格式（AI有时会输出 `: 内容` 或 `：内容`）
-        print("[文章处理] 修复核心观点编号格式...")
         import re
         # 在快速阅读区内，将 `: 内容` 或 `：内容` 修复为正常编号
         def fix_bullet_numbers(match):
@@ -444,7 +448,6 @@ class GitHubStorageBackend(StorageBackend):
                 markdown_content,
                 flags=re.DOTALL
             )
-            print("[文章处理] ✅ 核心观点编号格式修复完成")
         except Exception as e:
             print(f"[文章处理] ⚠️ 核心观点编号格式修复失败: {e}，跳过继续")
         
@@ -531,7 +534,7 @@ class GitHubStorageBackend(StorageBackend):
                 date_str = data.date if isinstance(data.date, str) else (data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') and data.date else '')
                 
                 # 验证并支持自动回滚（Lv58）
-                # 临时禁用回滚：Cloudflare API 403 问题待修复
+                # rollback_on_failure 默认 False：Cloudflare API 403 时需手动确认 Token 权限
                 verify_after_push(
                     slug, date_str, logger,
                     filepath=filepath,
@@ -711,9 +714,9 @@ class GitHubStorageBackend(StorageBackend):
                     empty_paragraph_penalty += 1.0
         empty_paragraph_penalty = min(3.0, empty_paragraph_penalty)
         
-        # 广告/推广惩罚
+        # 广告/推广惩罚 — 移除科技语境中常见的误报词
         promo_phrases = ['点击了解', '立即下载', '免费试用', '限时优惠', '抢购', '爆款', '网红',
-                         '关注我', '私信', '加微信', '扫码', '关注我们', '订阅', '推广', ' sponsored']
+                         '关注我', '私信', '加微信', '扫码', '推广', ' sponsored']
         promo_count = sum(1 for p in promo_phrases if p in body)
         promo_penalty = min(3.0, promo_count * 1.5)
         
