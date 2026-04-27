@@ -51,8 +51,10 @@ class GitHubIssuesMemory:
         Returns:
             是否成功
         """
+        title_date = metadata.get('date', '')
+        article_title = metadata.get('title', 'Untitled')[:30]
         issue_data = {
-            "title": f"[Memory] Article - {metadata['date']}",
+            "title": f"[Memory] {article_title} - {title_date}",
             "body": self._format_issue_body(metadata),
             "labels": ["memory", "article-history"]
         }
@@ -88,8 +90,8 @@ class GitHubIssuesMemory:
         cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
         
         try:
-            # 搜索带有 memory 标签的 issues
-            search_url = f"{self.base_url}?state=closed&labels=memory,article-history&per_page=100"
+            # 搜索带有 memory 标签的 issues（包含 open 和 closed）
+            search_url = f"{self.base_url}?state=all&labels=memory,article-history&per_page=100"
             response = requests.get(search_url, headers=self.headers, timeout=10)
             
             if response.status_code != 200:

@@ -1152,10 +1152,19 @@ class GitHubStorageBackend(StorageBackend):
                 context_summary = history_mgr.generate_context_summary(days=3)
                 logger.warning("Using local history manager (non-persistent)")
             
-            # Get trending topics
+            # Get trending topics from memory backend (now readable thanks to state=all fix)
             if gh_token and 'memory_backend' in locals():
-                # TODO: Implement trending topics in GitHubIssuesMemory
-                trending_topics = []
+                try:
+                    recent_articles = memory_backend.get_recent_articles(days=7)
+                    from collections import Counter
+                    topic_counts = Counter()
+                    for article in recent_articles:
+                        for topic in article.get('hot_topics', []):
+                            topic_counts[topic] += 1
+                    trending_topics = [topic for topic, count in topic_counts.items() if count >= 2]
+                except Exception as e:
+                    logger.warning(f"[记忆系统] 提取 trending topics 失败: {e}")
+                    trending_topics = []
             else:
                 history_mgr = ArticleHistoryManager()
                 trending_topics = history_mgr.get_trending_topics(window_days=7, min_mentions=2)
