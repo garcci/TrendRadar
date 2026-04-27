@@ -40,7 +40,7 @@ class SmartSummary:
         
         # 从开篇引言提取第一句话（通常是总结）
         # 移除frontmatter
-        if content.startswith("---"):
+        if content.lstrip().startswith("---"):
             parts = content.split("---", 2)
             if len(parts) >= 3:
                 content = parts[2]
@@ -177,7 +177,7 @@ class SmartSummary:
         summary_block = self.generate_summary_block(content)
         
         # 找到frontmatter结束位置
-        if content.startswith("---"):
+        if content.lstrip().startswith("---"):
             parts = content.split("---", 2)
             if len(parts) >= 3:
                 frontmatter = "---" + parts[1] + "---"

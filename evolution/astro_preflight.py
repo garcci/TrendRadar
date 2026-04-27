@@ -88,7 +88,7 @@ class AstroPreflight:
 
     def _extract_frontmatter(self, content: str) -> Tuple[Optional[str], str]:
         """提取 frontmatter 和正文"""
-        if not content.startswith("---"):
+        if not content.lstrip().startswith("---"):
             return None, content
 
         # 找到第二个 ---

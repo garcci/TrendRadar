@@ -106,7 +106,7 @@ class AutoImageGenerator:
 
     def extract_frontmatter(self, content: str) -> Dict:
         """提取 frontmatter"""
-        if not content.startswith("---"):
+        if not content.lstrip().startswith("---"):
             return {}
 
         parts = content.split("---", 2)

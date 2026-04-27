@@ -188,7 +188,7 @@ class SemanticDeduplicator:
         """解析文章 frontmatter 和正文"""
         try:
             # 提取 frontmatter
-            if not content.startswith("---"):
+            if not content.lstrip().startswith("---"):
                 return None
 
             parts = content.split("---", 2)

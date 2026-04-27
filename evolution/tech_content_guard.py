@@ -145,7 +145,7 @@ class TechContentGuard:
     def _clean_content(self, content: str) -> str:
         """清理内容，移除markdown标记和frontmatter"""
         # 移除frontmatter
-        if content.startswith("---"):
+        if content.lstrip().startswith("---"):
             parts = content.split("---", 2)
             if len(parts) >= 3:
                 content = parts[2]

@@ -362,9 +362,9 @@ class GitHubStorageBackend(StorageBackend):
         # 🚀 多模型协作优化 frontmatter
         with StepTimer("multi_model", "多模型 frontmatter 优化"):
             try:
-                original_fm = markdown_content.split('---', 2)[1] if markdown_content.startswith('---') else ""
+                original_fm = markdown_content.split('---', 2)[1] if markdown_content.lstrip().startswith('---') else ""
                 markdown_content = self._enhance_frontmatter_multi_model(markdown_content)
-                new_fm = markdown_content.split('---', 2)[1] if markdown_content.startswith('---') else ""
+                new_fm = markdown_content.split('---', 2)[1] if markdown_content.lstrip().startswith('---') else ""
                 if original_fm != new_fm:
                     log_info("multi_model", "✅ frontmatter 已被多模型优化")
                 else:
@@ -542,7 +542,7 @@ class GitHubStorageBackend(StorageBackend):
         
         # 提取正文（去掉 frontmatter）
         body = content
-        if content.startswith('---'):
+        if content.lstrip().startswith('---'):
             parts = content.split('---', 2)
             if len(parts) >= 3:
                 body = parts[2]
@@ -2168,11 +2168,11 @@ description: "TrendRadar 自动生成的热点聚合报告"
         issues = []
         
         # 1. 检查 Frontmatter 存在性
-        if not content.startswith('---'):
+        if not content.lstrip().startswith('---'):
             issues.append("缺少 Frontmatter 开头标记")
         
         # 2. 提取 Frontmatter
-        fm_match = re.search(r'^---\n(.*?)\n---', content, re.DOTALL)
+        fm_match = re.search(r'^\s*---\n(.*?)\n---', content, re.DOTALL)
         if not fm_match:
             issues.append("Frontmatter 格式错误（未找到 ---...---）")
         else:
