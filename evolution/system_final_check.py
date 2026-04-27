@@ -37,6 +37,7 @@ class SystemFinalCheck:
         self.run_e2e_tests()
         self.check_data_pipeline()
         self.check_module_activation()
+        self.check_title_quality()
 
         return {
             "status": "healthy" if not self.errors else "issues_found",
@@ -346,6 +347,80 @@ class SystemFinalCheck:
         except Exception as e:
             self.warnings.append(f"模块激活建议生成失败: {e}")
             self._activation_suggestions = []
+
+    def check_title_quality(self):
+        """P1: 标题质量预检 — 防止垃圾标题通过质量门"""
+        try:
+            title_optimizer_file = self.trendradar_path / "evolution" / "title_optimizer.py"
+            if not title_optimizer_file.exists():
+                self.errors.append("title_optimizer.py 不存在，无法检查标题质量")
+                return
+
+            to_content = title_optimizer_file.read_text()
+
+            # 检查1: 垃圾标题拦截方法是否存在
+            has_garbage_check = "def is_title_garbage" in to_content
+            has_garbage_patterns = "GARBAGE_PATTERNS" in to_content
+
+            if has_garbage_check and has_garbage_patterns:
+                self.results.append("标题质量拦截: ✅ is_title_garbage + GARBAGE_PATTERNS 已就位")
+            else:
+                missing = []
+                if not has_garbage_check:
+                    missing.append("is_title_garbage")
+                if not has_garbage_patterns:
+                    missing.append("GARBAGE_PATTERNS")
+                self.errors.append(f"标题质量拦截缺失: {', '.join(missing)} — 垃圾标题可能通过质量门")
+
+            # 检查2: 有意义数字过滤是否存在
+            has_meaningful_number = "_has_meaningful_number" in to_content
+            has_meaningful_units = "MEANINGFUL_NUMBER_UNITS" in to_content
+
+            if has_meaningful_number and has_meaningful_units:
+                self.results.append("标题数字过滤: ✅ 有意义数字单位检测已就位")
+            else:
+                self.warnings.append("标题数字过滤未完整: 数字可能缺乏业务上下文过滤")
+
+            # 检查3: github.py 是否在文章生成后调用了 title_optimizer
+            github_py = self.trendradar_path / "trendradar" / "storage" / "github.py"
+            if github_py.exists():
+                gh_content = github_py.read_text()
+                has_title_optimize = "title_optimizer" in gh_content or "optimize_article_title" in gh_content
+                if has_title_optimize:
+                    self.results.append("github.py 标题优化集成: ✅")
+                else:
+                    self.warnings.append("github.py: 未集成 title_optimizer，文章标题未经过优化")
+
+            # 检查4: 模拟测试 — 验证 is_title_garbage 能正确拦截已知垃圾标题
+            try:
+                import sys
+                sys.path.insert(0, str(self.trendradar_path))
+                from evolution.title_optimizer import TitleOptimizer
+                optimizer = TitleOptimizer()
+
+                test_cases = [
+                    ("AI，4背后的秘密", True),
+                    ("芯片，12背后的秘密", True),
+                    ("DeepSeek，V4背后的秘密", True),
+                    ("AI，2.5折背后的秘密", False),  # 有意义的数字不应判定为垃圾
+                    ("从芯片到太空：技术趋势观察", False),
+                ]
+
+                failed = []
+                for title, expected_garbage in test_cases:
+                    is_garbage = optimizer.is_title_garbage(title)
+                    if is_garbage != expected_garbage:
+                        failed.append(f"'{title}' -> 垃圾={is_garbage}, 期望={expected_garbage}")
+
+                if failed:
+                    self.errors.append(f"标题质量拦截测试失败: {'; '.join(failed[:2])}")
+                else:
+                    self.results.append(f"标题质量拦截验证: ✅ {len(test_cases)}/5 测试通过")
+            except Exception as e:
+                self.warnings.append(f"标题质量拦截验证跳过: {e}")
+
+        except Exception as e:
+            self.warnings.append(f"标题质量预检失败: {e}")
 
     def generate_report(self) -> str:
         """生成最终报告"""

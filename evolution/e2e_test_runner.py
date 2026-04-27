@@ -305,6 +305,14 @@ def run_dynamic_scheduler_tests() -> Dict:
     return tester.run_all()
 
 
+def run_repo_size_monitor_tests() -> Dict:
+    """运行仓库体积监控端到端测试"""
+    from e2e.test_repo_size_monitor import TestRepoSizeMonitor
+
+    tester = TestRepoSizeMonitor()
+    return tester.run_all()
+
+
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     """运行所有端到端测试（并行执行优化耗时）"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
@@ -347,6 +355,7 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
         ("trend_predictor", run_trend_predictor_tests),
         ("quota_monitor", run_quota_monitor_tests),
         ("dynamic_scheduler", run_dynamic_scheduler_tests),
+        ("repo_size_monitor", run_repo_size_monitor_tests),
     ]
 
     all_results = []
