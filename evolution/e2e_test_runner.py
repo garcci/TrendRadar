@@ -313,6 +313,14 @@ def run_repo_size_monitor_tests() -> Dict:
     return tester.run_all()
 
 
+def run_system_final_check_tests() -> Dict:
+    """运行系统最终健康检查端到端测试"""
+    from e2e.test_system_final_check import TestSystemFinalCheck
+
+    tester = TestSystemFinalCheck()
+    return tester.run_all()
+
+
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     """运行所有端到端测试（并行执行优化耗时）"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
@@ -356,6 +364,7 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
         ("quota_monitor", run_quota_monitor_tests),
         ("dynamic_scheduler", run_dynamic_scheduler_tests),
         ("repo_size_monitor", run_repo_size_monitor_tests),
+        ("system_final_check", run_system_final_check_tests),
     ]
 
     all_results = []
