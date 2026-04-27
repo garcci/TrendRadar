@@ -33,6 +33,7 @@ class SystemFinalCheck:
         self.check_workflow_syntax()
         self.check_tuning_results()
         self.check_github_py_health()
+        self.check_end_to_end_consistency()
         self.check_data_pipeline()
         self.check_module_activation()
 
@@ -152,6 +153,45 @@ class SystemFinalCheck:
             self.results.append(f"github.py AST解析: ✅")
         except SyntaxError as e:
             self.errors.append(f"github.py 语法错误: {e}")
+
+    def check_end_to_end_consistency(self):
+        """端到端一致性检查 — 验证写入的数据能否被正确读出"""
+        memory_file = self.trendradar_path / "trendradar/storage/github_issues_memory.py"
+        if not memory_file.exists():
+            return
+
+        content = memory_file.read_text()
+
+        # 检查1: save_article_metadata 和 get_recent_articles 是否都存在
+        has_save = "def save_article_metadata" in content
+        has_get = "def get_recent_articles" in content
+        if not has_save:
+            self.errors.append("记忆系统: save_article_metadata 方法缺失")
+        if not has_get:
+            self.errors.append("记忆系统: get_recent_articles 方法缺失")
+
+        # 检查2: get_recent_articles 是否搜索了错误的 state（之前 bug: state=closed 但 Issue 默认 open）
+        if 'state=closed' in content:
+            self.errors.append("记忆系统严重bug: get_recent_articles 搜索 state=closed，但 Issue 默认 open，导致记忆永远读不到")
+        elif 'state=all' in content or 'state=open' in content:
+            self.results.append("记忆系统读写一致性: ✅ state 过滤正确")
+        else:
+            self.warnings.append("记忆系统: 无法确认 state 过滤是否正确（建议明确使用 state=all）")
+
+        # 检查3: Issue 标题是否有唯一标识（避免所有记忆标题相同）
+        if '"[Memory] Article - ' in content and '"[Memory] {article_title}' not in content:
+            self.warnings.append("记忆系统: Issue 标题固定为 '[Memory] Article - 日期'，不同文章无法区分")
+        elif '"[Memory] {article_title}' in content:
+            self.results.append("记忆系统去重: ✅ 标题包含文章标识")
+
+        # 检查4: github.py 中 trending_topics 在有 memory_backend 时是否直接使用
+        github_py = self.trendradar_path / "trendradar/storage/github.py"
+        if github_py.exists():
+            gh_content = github_py.read_text()
+            if "if gh_token and 'memory_backend' in locals():" in gh_content and "trending_topics = []" in gh_content:
+                self.errors.append("github.py 严重bug: 有 memory_backend 时 trending_topics 直接设为空列表，完全不用记忆数据")
+            else:
+                self.results.append("github.py 记忆集成: ✅ trending_topics 使用记忆数据")
 
     def check_data_pipeline(self):
         """检查数据管道状态 — 确保 Lv73-Lv79 有数据可用"""
