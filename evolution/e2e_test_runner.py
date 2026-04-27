@@ -43,6 +43,22 @@ def run_data_pipeline_tests() -> Dict:
     return tester.run_all()
 
 
+def run_github_pipeline_tests() -> Dict:
+    """运行 github.py 端到端测试"""
+    from e2e.test_github_pipeline import TestGitHubPipeline
+
+    tester = TestGitHubPipeline()
+    return tester.run_all()
+
+
+def run_exception_monitor_tests() -> Dict:
+    """运行异常监控端到端测试"""
+    from e2e.test_exception_monitor import TestExceptionMonitorConsistency
+
+    tester = TestExceptionMonitorConsistency()
+    return tester.run_all()
+
+
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     """运行所有端到端测试"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
@@ -57,6 +73,8 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
         ("memory_backend", run_memory_tests),
         ("frontmatter_pipeline", run_frontmatter_tests),
         ("data_pipeline", run_data_pipeline_tests),
+        ("github_pipeline", run_github_pipeline_tests),
+        ("exception_monitor", run_exception_monitor_tests),
     ]
 
     for suite_name, suite_func in suites:
