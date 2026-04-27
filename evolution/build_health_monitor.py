@@ -155,6 +155,37 @@ class BuildHealthMonitor:
                     else:
                         result["message"] = f"Cloudflare Pages {env} 状态: {status}"
                     return result
+            except urllib.error.HTTPError as e:
+                # Lv82: 增强 Cloudflare API 403 诊断
+                code = e.code
+                if code == 401:
+                    return {
+                        "healthy": False,
+                        "diagnosis": "cf_token_invalid",
+                        "message": "Cloudflare API 返回 401: Token 无效或已过期",
+                        "fix_suggestion": "1. 登录 Cloudflare Dashboard → My Profile → API Tokens\n2. 检查 Token 是否过期，重新创建或续期\n3. 更新 GitHub Secrets 中的 CF_API_TOKEN",
+                    }
+                elif code == 403:
+                    return {
+                        "healthy": False,
+                        "diagnosis": "cf_permission_denied",
+                        "message": "Cloudflare API 返回 403: 权限不足",
+                        "fix_suggestion": "1. 确认 Token 拥有 'Cloudflare Pages:Read' 权限\n2. 确认 CF_ACCOUNT_ID 正确（当前: {}）\n3. 确认 Pages 项目名称为 'astro'\n4. 尝试使用 Global API Key 替代 Token".format(cf_account),
+                    }
+                elif code == 404:
+                    return {
+                        "healthy": False,
+                        "diagnosis": "cf_project_not_found",
+                        "message": "Cloudflare API 返回 404: Pages 项目不存在",
+                        "fix_suggestion": "1. 确认 Pages 项目名称为 'astro'\n2. 确认 Account ID 正确\n3. 检查项目是否被删除或重命名",
+                    }
+                else:
+                    return {
+                        "healthy": False,
+                        "diagnosis": f"cf_http_{code}",
+                        "message": f"Cloudflare API 返回 HTTP {code}: {e.reason}",
+                        "fix_suggestion": "检查 Cloudflare 服务状态: https://www.cloudflarestatus.com/",
+                    }
             except Exception as e:
                 # Cloudflare API 失败，回退到 GitHub check runs
                 pass
