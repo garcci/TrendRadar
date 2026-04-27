@@ -626,13 +626,18 @@ jobs:
           git config --global user.email "trendradar-auto@github.com"
           git config --global user.name "TrendRadar Auto Evolution"
           
+          # 确保回到主分支（Auto Code Evolution 可能切换到了 auto-evolution/* 分支）
+          ORIGINAL_BRANCH="${{ github.ref_name }}"
+          git checkout "$ORIGINAL_BRANCH" || git checkout master || echo "保持当前分支"
+          git pull origin "$ORIGINAL_BRANCH" || true
+          
           # 添加 jsonl 数据文件（如果有变化）
           if [ -f evolution/data_pipeline/log.jsonl ] || [ -f evolution/data_pipeline/article_quality.jsonl ]; then
             git add evolution/data_pipeline/*.jsonl 2>/dev/null || true
             if ! git diff --cached --quiet; then
               git commit -m "data: 更新数据管道日志 [自动提交]" || true
-              git push origin ${{ github.ref_name }} || echo "推送失败（可能无权限或无变更）"
-              echo "✅ 数据管道已提交"
+              git push origin "$ORIGINAL_BRANCH" || echo "推送失败（可能无权限或无变更）"
+              echo "✅ 数据管道已提交到 $ORIGINAL_BRANCH"
             else
               echo "⏭️ 数据管道无变化，跳过提交"
             fi
