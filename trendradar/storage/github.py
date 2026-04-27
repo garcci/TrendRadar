@@ -2111,7 +2111,33 @@ description: "TrendRadar 自动生成的热点聚合报告"
 
             fixed_lines.append(line)
 
-        fm = '\n'.join(fixed_lines)
+        # 🛡️ 去重：同一 frontmatter 键只保留第一次出现
+        seen_keys = set()
+        deduped_lines = []
+        dup_keys = []
+        for line in fixed_lines:
+            line_stripped = line.strip()
+            if not line_stripped or line_stripped.startswith('#'):
+                deduped_lines.append(line)
+                continue
+            if ':' not in line_stripped:
+                deduped_lines.append(line)
+                continue
+            key = line_stripped.split(':', 1)[0].strip()
+            # 只对顶层标量键去重（tags 是数组，不在此列）
+            if key in ('tags',):
+                deduped_lines.append(line)
+                continue
+            if key in seen_keys:
+                dup_keys.append(key)
+                continue
+            seen_keys.add(key)
+            deduped_lines.append(line)
+        
+        if dup_keys:
+            logger.warning(f"[frontmatter去重] 删除重复键: {set(dup_keys)}")
+        
+        fm = '\n'.join(deduped_lines)
 
         # 确保必要字段存在
         required_fields = {

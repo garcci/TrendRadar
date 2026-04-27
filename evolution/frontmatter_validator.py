@@ -138,6 +138,35 @@ class FrontmatterValidator:
             if not isinstance(tags, list):
                 errors.append(f"tags 必须是数组格式，当前: {type(tags).__name__}")
 
+        # 8. 检查重复键（防止 Astro YAML 解析失败）
+        seen_keys = set()
+        deduped_lines = []
+        dup_found = []
+        for line in fm_raw.split('\n'):
+            stripped = line.strip()
+            if not stripped or stripped.startswith('#'):
+                deduped_lines.append(line)
+                continue
+            if ':' not in stripped:
+                deduped_lines.append(line)
+                continue
+            key = stripped.split(':', 1)[0].strip()
+            # 跳过数组项和特殊键
+            if key in ('tags',) or stripped.startswith('- '):
+                deduped_lines.append(line)
+                continue
+            if key in seen_keys:
+                dup_found.append(key)
+                continue
+            seen_keys.add(key)
+            deduped_lines.append(line)
+        
+        if dup_found:
+            errors.append(f"frontmatter 存在重复键: {set(dup_found)}")
+            fm_raw = '\n'.join(deduped_lines)
+            fixed = f"---\n{fm_raw}\n---\n{body}"
+            errors.append("已自动清理重复键")
+
         # 重新组装（如果做过修改）
         if fixed != content:
             return len([e for e in errors if "已自动修复" not in e]) == 0, errors, fixed
