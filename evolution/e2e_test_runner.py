@@ -185,6 +185,30 @@ def run_article_quality_db_tests() -> Dict:
     return tester.run_all()
 
 
+def run_diversity_engine_tests() -> Dict:
+    """运行文章多样化引擎端到端测试"""
+    from e2e.test_diversity_engine import TestDiversityEngine
+
+    tester = TestDiversityEngine()
+    return tester.run_all()
+
+
+def run_knowledge_graph_tests() -> Dict:
+    """运行知识图谱端到端测试"""
+    from e2e.test_knowledge_graph import TestKnowledgeGraph
+
+    tester = TestKnowledgeGraph()
+    return tester.run_all()
+
+
+def run_cleanup_manager_tests() -> Dict:
+    """运行清理管理器端到端测试"""
+    from e2e.test_cleanup_manager import TestCleanupManager
+
+    tester = TestCleanupManager()
+    return tester.run_all()
+
+
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     """运行所有端到端测试（并行执行优化耗时）"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
@@ -212,6 +236,9 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
         ("frontmatter_validator", run_frontmatter_validator_tests),
         ("health_check", run_health_check_tests),
         ("article_quality_db", run_article_quality_db_tests),
+        ("diversity_engine", run_diversity_engine_tests),
+        ("knowledge_graph", run_knowledge_graph_tests),
+        ("cleanup_manager", run_cleanup_manager_tests),
     ]
 
     all_results = []
@@ -236,7 +263,11 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
             result = future.result()
             all_results.append(result)
             total_passed += result.get("passed", 0)
-            total_failed += result.get("failed", 0)
+            failed_val = result.get("failed", 0)
+            if isinstance(failed_val, list):
+                total_failed += len(failed_val)
+            else:
+                total_failed += failed_val
             if "error" in result and "passed" not in result:
                 total_failed += 1
 

@@ -162,7 +162,7 @@ class ArticleDiversityEngine:
         matching = []
         for template in self.templates:
             score = sum(1 for topic in topics if any(
-                keyword in topic.lower() for keyword in template.suitable_for
+                keyword.lower() in topic.lower() for keyword in template.suitable_for
             ))
             if score > 0:
                 matching.append((template, score))
