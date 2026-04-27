@@ -161,6 +161,30 @@ def run_output_quality_validator_tests() -> Dict:
     return tester.run_all()
 
 
+def run_frontmatter_validator_tests() -> Dict:
+    """运行 frontmatter 预验证端到端测试"""
+    from e2e.test_frontmatter_validator import TestFrontmatterValidator
+
+    tester = TestFrontmatterValidator()
+    return tester.run_all()
+
+
+def run_health_check_tests() -> Dict:
+    """运行系统健康检查端到端测试"""
+    from e2e.test_health_check import TestHealthCheck
+
+    tester = TestHealthCheck()
+    return tester.run_all()
+
+
+def run_article_quality_db_tests() -> Dict:
+    """运行文章质量数据库端到端测试"""
+    from e2e.test_article_quality_db import TestArticleQualityDB
+
+    tester = TestArticleQualityDB()
+    return tester.run_all()
+
+
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     """运行所有端到端测试（并行执行优化耗时）"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
@@ -185,6 +209,9 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
         ("title_optimizer", run_title_optimizer_tests),
         ("regression_guard", run_regression_guard_tests),
         ("output_quality_validator", run_output_quality_validator_tests),
+        ("frontmatter_validator", run_frontmatter_validator_tests),
+        ("health_check", run_health_check_tests),
+        ("article_quality_db", run_article_quality_db_tests),
     ]
 
     all_results = []

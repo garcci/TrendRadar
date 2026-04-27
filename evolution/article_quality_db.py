@@ -161,7 +161,7 @@ def get_quality_trend(days: int = 30) -> Dict[str, Any]:
     articles = query_articles(start_date=start, end_date=end, limit=1000)
 
     if not articles:
-        return {"count": 0, "avg_score": 0, "avg_tech_ratio": 0}
+        return {"count": 0, "avg_score": 0, "avg_tech_ratio": 0, "score_trend": "stable"}
 
     scores = [a["overall_score"] for a in articles]
     tech_ratios = [a["tech_content_ratio"] for a in articles]
