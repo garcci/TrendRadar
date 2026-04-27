@@ -281,6 +281,30 @@ def run_smart_scheduler_tests() -> Dict:
     return tester.run_all()
 
 
+def run_trend_predictor_tests() -> Dict:
+    """运行热点预测端到端测试"""
+    from e2e.test_trend_predictor import TestTrendPredictor
+
+    tester = TestTrendPredictor()
+    return tester.run_all()
+
+
+def run_quota_monitor_tests() -> Dict:
+    """运行额度监控端到端测试"""
+    from e2e.test_quota_monitor import TestQuotaMonitor
+
+    tester = TestQuotaMonitor()
+    return tester.run_all()
+
+
+def run_dynamic_scheduler_tests() -> Dict:
+    """运行动态调度器端到端测试"""
+    from e2e.test_dynamic_scheduler import TestDynamicScheduler
+
+    tester = TestDynamicScheduler()
+    return tester.run_all()
+
+
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     """运行所有端到端测试（并行执行优化耗时）"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
@@ -320,6 +344,9 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
         ("prompt_optimizer", run_prompt_optimizer_tests),
         ("prompt_tracker", run_prompt_tracker_tests),
         ("smart_scheduler", run_smart_scheduler_tests),
+        ("trend_predictor", run_trend_predictor_tests),
+        ("quota_monitor", run_quota_monitor_tests),
+        ("dynamic_scheduler", run_dynamic_scheduler_tests),
     ]
 
     all_results = []
@@ -386,8 +413,17 @@ def generate_report(results: Dict) -> str:
         if "error" in suite and "results" not in suite:
             lines.append(f"- ❌ **执行错误**: {suite['error']}")
         for r in suite.get("results", []):
-            emoji = "✅" if r["passed"] else "❌"
-            lines.append(f"- {emoji} **{r['test']}**: {r['message']}")
+            # 兼容两种格式: {"test":..., "passed":..., "message":...} 和 {"name":..., "status": "PASS"|"FAIL", "error":...}
+            if "test" in r:
+                test_name = r["test"]
+                passed = r["passed"]
+                message = r.get("message", "")
+            else:
+                test_name = r.get("name", "unknown")
+                passed = r.get("status") == "PASS"
+                message = r.get("error", "") if not passed else "通过"
+            emoji = "✅" if passed else "❌"
+            lines.append(f"- {emoji} **{test_name}**: {message}")
         lines.append("")
 
     return "\n".join(lines)
