@@ -240,7 +240,7 @@ class GitHubStorageBackend(StorageBackend):
                     fail_reasons.append(f"内容长度过短 (惩罚={penalties['length']:.1f})")
                 if penalties.get('template', 0) >= 2.0:
                     fail_reasons.append(f"模板痕迹过重 (惩罚={penalties['template']:.1f})")
-                if penalties.get('promo', 0) >= 1.5:
+                if penalties.get('promo', 0) >= 3.0:
                     fail_reasons.append(f"推广内容 detected (惩罚={penalties['promo']:.1f})")
                 
                 if fail_reasons:
