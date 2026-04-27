@@ -111,7 +111,7 @@ class TrendPredictor:
                             d1 = datetime.strptime(recent_dates[i-1], "%Y-%m-%d")
                             d2 = datetime.strptime(recent_dates[i], "%Y-%m-%d")
                             intervals.append((d2 - d1).days)
-                        except:
+                        except Exception:
                             pass
                     
                     if intervals:

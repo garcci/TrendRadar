@@ -952,7 +952,7 @@ def send_to_ntfy(
                 )
                 try:
                     print(f"错误详情：{response.text}")
-                except:
+                except Exception:
                     pass
 
         except requests.exceptions.ConnectTimeout:
@@ -1126,7 +1126,7 @@ def send_to_bark(
                 )
                 try:
                     print(f"错误详情：{response.text}")
-                except:
+                except Exception:
                     pass
 
         except requests.exceptions.ConnectTimeout:

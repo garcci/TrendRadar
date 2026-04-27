@@ -149,7 +149,7 @@ class TrendForecastEngine:
             # 检查是否在预测窗口内
             try:
                 next_date = datetime.strptime(pattern.next_predicted, "%Y-%m")
-            except:
+            except Exception:
                 continue
             
             if now <= next_date <= target_date:
