@@ -1339,6 +1339,28 @@ description: "一句话概括文章核心价值"
 
 你是主编，筛选最有价值的科技话题，提供深度分析。"""
         
+        # 📋 加载外部动态 Prompt 强化要求
+        try:
+            prompt_addon_path = os.path.join(
+                os.path.dirname(__file__), '..', '..', 'evolution', 'prompts', 'article_prompt.md'
+            )
+            if os.path.exists(prompt_addon_path):
+                with open(prompt_addon_path, 'r', encoding='utf-8') as f:
+                    addon_content = f.read()
+                # 提取 <!-- AUTO-PROMPT-SECTION --> 之间的内容
+                import re
+                match = re.search(
+                    r'<!--\s*AUTO-PROMPT-SECTION\s*开始.*?-->(.*?)<!--\s*AUTO-PROMPT-SECTION\s*结束\s*-->',
+                    addon_content, re.DOTALL
+                )
+                if match:
+                    auto_section = match.group(1).strip()
+                    if auto_section:
+                        system_prompt += f"\n\n## 动态强化要求\n{auto_section}\n"
+                        logger.info("[Prompt扩展] 已加载动态强化要求")
+        except Exception as e:
+            logger.warning(f"[Prompt扩展] 加载外部Prompt失败: {e}")
+        
         # 🧬 动态Prompt优化 - 根据历史评分自动调整
         try:
             from evolution.prompt_optimizer import get_optimized_prompt_params

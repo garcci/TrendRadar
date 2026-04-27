@@ -384,9 +384,9 @@ class AutoCodeEvolution:
         """生成科技内容修复"""
         return [CodeChange(
             file_path=prompt_path,
-            change_type="add",
-            original="",
-            replacement="\n### [AUTO-ADDED] 科技内容强化要求\n- 每个分析板块至少解释1个技术原理\n- 使用具体的技术术语而非泛化描述\n- 引用具体的技术参数和数据\n",
+            change_type="replace",
+            original="<!-- AUTO-PROMPT-SECTION 结束 -->",
+            replacement="- 每个分析板块至少解释1个技术原理\n- 使用具体的技术术语而非泛化描述\n- 引用具体的技术参数和数据\n\n<!-- AUTO-PROMPT-SECTION 结束 -->",
             reason="科技内容占比持续偏低，自动强化技术细节要求",
             confidence=0.8,
             requires_approval=False
@@ -396,9 +396,9 @@ class AutoCodeEvolution:
         """生成洞察力修复"""
         return [CodeChange(
             file_path=prompt_path,
-            change_type="add",
-            original="",
-            replacement="\n### [AUTO-ADDED] 洞察力强化要求\n- 每个板块必须包含未来3-6个月的预测\n- 提供至少1个反共识观点\n- 分析'为什么'而不仅是'是什么'\n",
+            change_type="replace",
+            original="<!-- AUTO-PROMPT-SECTION 结束 -->",
+            replacement="- 每个板块必须包含未来3-6个月的预测\n- 提供至少1个反共识观点\n- 分析'为什么'而不仅是'是什么'\n\n<!-- AUTO-PROMPT-SECTION 结束 -->",
             reason="文章洞察力下降，自动强化预测和深度分析要求",
             confidence=0.8,
             requires_approval=False
@@ -408,9 +408,9 @@ class AutoCodeEvolution:
         """生成样式多样性修复"""
         return [CodeChange(
             file_path=prompt_path,
-            change_type="add",
-            original="",
-            replacement="\n### [AUTO-ADDED] 格式多样性强制要求\n- 必须包含至少1个对比表格\n- 必须包含至少2个Admonition引用块\n- 必须包含至少1个代码块或引用块\n",
+            change_type="replace",
+            original="<!-- AUTO-PROMPT-SECTION 结束 -->",
+            replacement="- 必须包含至少1个对比表格\n- 必须包含至少2个Admonition引用块\n- 必须包含至少1个代码块或引用块\n\n<!-- AUTO-PROMPT-SECTION 结束 -->",
             reason="Markdown元素使用减少，自动强制格式多样性",
             confidence=0.8,
             requires_approval=False
@@ -426,14 +426,29 @@ class AutoCodeEvolution:
         """应用单个变更到文件"""
         file_path = os.path.join(self.trendradar_path, change.file_path)
         
+        # 安全检查：禁止向 .py 文件做 add 类型修改（防止损坏 Python 文件）
+        if change.change_type == 'add' and file_path.endswith('.py'):
+            raise ValueError(
+                f"安全拦截：禁止向 Python 文件 ({change.file_path}) 做追加修改。"
+                f"请使用 replace 类型或修改非 .py 文件。"
+            )
+        
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
         
         if change.change_type == 'replace':
+            if change.original not in content:
+                raise ValueError(
+                    f"无法应用变更：在 {change.file_path} 中未找到匹配文本。"
+                )
             content = content.replace(change.original, change.replacement, 1)
         elif change.change_type == 'add':
             content += change.replacement
         elif change.change_type == 'remove':
+            if change.original not in content:
+                raise ValueError(
+                    f"无法应用变更：在 {change.file_path} 中未找到要删除的文本。"
+                )
             content = content.replace(change.original, '', 1)
         
         with open(file_path, 'w', encoding='utf-8') as f:
@@ -550,7 +565,7 @@ def run_auto_evolution(repo_owner: str, repo_name: str, token: str,
     try:
         metrics = health_engine._load_recent_metrics(7) if 'health_engine' in dir() else []
         if metrics:
-            prompt_path = "trendradar/storage/github.py"  # Prompt 所在文件
+            prompt_path = "evolution/prompts/article_prompt.md"  # Prompt 所在文件
             prompt_changes = engine.auto_optimize_prompt(metrics, prompt_path)
             all_changes.extend(prompt_changes)
             print(f"[自动迭代] Prompt优化: {len(prompt_changes)} 个变更")
