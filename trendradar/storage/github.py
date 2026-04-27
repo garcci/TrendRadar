@@ -1821,7 +1821,7 @@ description: "一句话概括文章核心价值"
         """
         import re
         
-        if not content or not content.startswith('---'):
+        if not content or not content.lstrip().startswith('---'):
             return content
         
         parts = content.split('---', 2)
@@ -2021,11 +2021,11 @@ DESCRIPTION: <优化后的描述>"""
         """
         import re
 
-        # 检查是否有 frontmatter
-        has_frontmatter = content.startswith("---")
+        # 检查是否有 frontmatter（允许开头有空行/空白）
+        has_frontmatter = content.lstrip().startswith("---")
 
         if has_frontmatter:
-            m = re.match(r'^---\n(.*?)\n---\n', content, re.DOTALL)
+            m = re.match(r'^\s*---\n(.*?)\n---\n', content, re.DOTALL)
             if not m:
                 # frontmatter 格式异常，重新生成
                 has_frontmatter = False
@@ -2047,7 +2047,7 @@ description: "TrendRadar 自动生成的热点聚合报告"
             return default_fm + content
 
         # 提取并修复 frontmatter
-        m = re.match(r'^---\n(.*?)\n---\n', content, re.DOTALL)
+        m = re.match(r'^\s*---\n(.*?)\n---\n', content, re.DOTALL)
         fm = m.group(1)
         body = content[m.end():]
 
