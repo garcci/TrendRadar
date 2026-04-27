@@ -204,7 +204,8 @@ class SmartScheduler:
         # 只保留最近30天
         cutoff = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
         decisions = [d for d in decisions if d["date"] >= cutoff]
-        
+
+        os.makedirs(os.path.dirname(self.decision_log), exist_ok=True)
         with open(self.decision_log, 'w') as f:
             json.dump(decisions, f, ensure_ascii=False, indent=2)
     

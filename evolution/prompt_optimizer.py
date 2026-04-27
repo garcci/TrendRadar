@@ -73,7 +73,8 @@ class PromptOptimizer:
         history = self._load_optimization_history()
         history.append(optimization)
         history = history[-20:]  # 保留最近20次
-        
+
+        os.makedirs(os.path.dirname(self.optimize_file), exist_ok=True)
         with open(self.optimize_file, 'w') as f:
             json.dump(history, f, ensure_ascii=False, indent=2)
     

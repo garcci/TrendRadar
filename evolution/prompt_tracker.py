@@ -86,6 +86,7 @@ class PromptTracker:
     
     def _save_tracks(self, tracks: List[Dict]):
         """保存追踪记录"""
+        os.makedirs(os.path.dirname(self.track_file), exist_ok=True)
         with open(self.track_file, 'w') as f:
             json.dump(tracks, f, ensure_ascii=False, indent=2)
     

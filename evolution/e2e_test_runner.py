@@ -257,6 +257,30 @@ def run_ab_testing_tests() -> Dict:
     return tester.run_all()
 
 
+def run_prompt_optimizer_tests() -> Dict:
+    """运行 Prompt 优化器端到端测试"""
+    from e2e.test_prompt_optimizer import TestPromptOptimizer
+
+    tester = TestPromptOptimizer()
+    return tester.run_all()
+
+
+def run_prompt_tracker_tests() -> Dict:
+    """运行 Prompt 追踪器端到端测试"""
+    from e2e.test_prompt_tracker import TestPromptTracker
+
+    tester = TestPromptTracker()
+    return tester.run_all()
+
+
+def run_smart_scheduler_tests() -> Dict:
+    """运行智能调度器端到端测试"""
+    from e2e.test_smart_scheduler import TestSmartScheduler
+
+    tester = TestSmartScheduler()
+    return tester.run_all()
+
+
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     """运行所有端到端测试（并行执行优化耗时）"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
@@ -293,6 +317,9 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
         ("data_archiver", run_data_archiver_tests),
         ("reader_behavior_analyzer", run_reader_behavior_analyzer_tests),
         ("ab_testing", run_ab_testing_tests),
+        ("prompt_optimizer", run_prompt_optimizer_tests),
+        ("prompt_tracker", run_prompt_tracker_tests),
+        ("smart_scheduler", run_smart_scheduler_tests),
     ]
 
     all_results = []
