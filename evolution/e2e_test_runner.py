@@ -59,6 +59,22 @@ def run_exception_monitor_tests() -> Dict:
     return tester.run_all()
 
 
+def run_model_router_tests() -> Dict:
+    """运行模型路由端到端测试"""
+    from e2e.test_model_router import TestModelRouter
+
+    tester = TestModelRouter()
+    return tester.run_all()
+
+
+def run_tech_content_guard_tests() -> Dict:
+    """运行科技内容检测端到端测试"""
+    from e2e.test_tech_content_guard import TestTechContentGuard
+
+    tester = TestTechContentGuard()
+    return tester.run_all()
+
+
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     """运行所有端到端测试"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
@@ -75,6 +91,8 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
         ("data_pipeline", run_data_pipeline_tests),
         ("github_pipeline", run_github_pipeline_tests),
         ("exception_monitor", run_exception_monitor_tests),
+        ("model_router", run_model_router_tests),
+        ("tech_content_guard", run_tech_content_guard_tests),
     ]
 
     for suite_name, suite_func in suites:
