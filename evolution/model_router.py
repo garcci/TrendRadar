@@ -359,34 +359,43 @@ class ModelRouter:
         return None
     
     def _save_usage_record(self, record: UsageRecord):
-        """保存使用记录"""
+        """保存使用记录（同时写入 model_usage.json 和统一数据管道 cost.jsonl）"""
+        record_dict = {
+            "timestamp": record.timestamp,
+            "task_type": record.task_type,
+            "model": record.model,
+            "input_tokens": record.input_tokens,
+            "output_tokens": record.output_tokens,
+            "cost": record.cost,
+            "latency": record.latency,
+            "success": record.success
+        }
+        # 写入统一数据管道（低成本、不阻塞）
+        try:
+            from evolution.data_pipeline import write_record
+            write_record("cost", record_dict, trendradar_path=self.trendradar_path)
+        except Exception:
+            pass
+
+        # 写入本地历史文件
         try:
             records = []
             if os.path.exists(self.usage_file):
                 with open(self.usage_file, 'r', encoding='utf-8') as f:
                     records = json.load(f)
-            
-            records.append({
-                "timestamp": record.timestamp,
-                "task_type": record.task_type,
-                "model": record.model,
-                "input_tokens": record.input_tokens,
-                "output_tokens": record.output_tokens,
-                "cost": record.cost,
-                "latency": record.latency,
-                "success": record.success
-            })
-            
+
+            records.append(record_dict)
+
             # 只保留90天
             cutoff = (datetime.now() - timedelta(days=90)).isoformat()
             records = [r for r in records if r["timestamp"] > cutoff]
-            
+
             os.makedirs(os.path.dirname(self.usage_file), exist_ok=True)
             with open(self.usage_file, 'w', encoding='utf-8') as f:
                 json.dump(records, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"[模型路由] 保存使用记录失败: {e}")
-    
+
     def _load_usage_records(self, days: int) -> List[UsageRecord]:
         """加载使用记录"""
         try:

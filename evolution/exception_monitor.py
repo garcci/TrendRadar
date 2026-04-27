@@ -176,9 +176,16 @@ class ExceptionMonitor:
         self.knowledge_base["patterns"][fingerprint]["count"] += 1
         self.knowledge_base["patterns"][fingerprint]["last_seen"] = exception_record["timestamp"]
         
-        # 保存
+        # 写入统一数据管道（低成本、不阻塞）
+        try:
+            from evolution.data_pipeline import write_record
+            write_record("exception", exception_record, trendradar_path=self.trendradar_path)
+        except Exception:
+            pass
+
+        # 保存到本地知识库
         self._save_knowledge_base()
-        
+
         return exception_record
     
     def monitor(self, context: str = "", module: str = "") -> Callable:
