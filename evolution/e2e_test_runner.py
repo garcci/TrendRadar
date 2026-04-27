@@ -81,6 +81,22 @@ def run_tech_content_guard_tests() -> Dict:
     return tester.run_all()
 
 
+def run_free_ai_router_tests() -> Dict:
+    """运行免费 AI 路由端到端测试"""
+    from e2e.test_free_ai_router import TestFreeAIRouter
+
+    tester = TestFreeAIRouter()
+    return tester.run_all()
+
+
+def run_tag_optimizer_tests() -> Dict:
+    """运行标签优化端到端测试"""
+    from e2e.test_tag_optimizer import TestTagOptimizer
+
+    tester = TestTagOptimizer()
+    return tester.run_all()
+
+
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     """运行所有端到端测试（并行执行优化耗时）"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
@@ -95,6 +111,8 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
         ("exception_monitor", run_exception_monitor_tests),
         ("model_router", run_model_router_tests),
         ("tech_content_guard", run_tech_content_guard_tests),
+        ("free_ai_router", run_free_ai_router_tests),
+        ("tag_optimizer", run_tag_optimizer_tests),
     ]
 
     all_results = []

@@ -155,9 +155,17 @@ class FreeAIRouter:
         
         candidates = task_mapping.get(task_type, [ProviderType.DEEPSEEK])
         
-        # 如果需要高质量，优先DeepSeek
+        # 如果需要高质量，强制使用 DeepSeek（不检查免费额度）
         if require_high_quality:
-            candidates = [ProviderType.DEEPSEEK] + [c for c in candidates if c != ProviderType.DEEPSEEK]
+            deepseek_config = self.providers[ProviderType.DEEPSEEK]
+            estimated_cost = (estimated_tokens / 1_000_000) * deepseek_config.cost_per_unit
+            return {
+                "provider": ProviderType.DEEPSEEK.value,
+                "name": deepseek_config.name,
+                "cost": estimated_cost,
+                "remaining_quota": 0,
+                "reason": "高质量要求，强制使用 DeepSeek"
+            }
         
         # 选择有免费额度的Provider
         for provider_type in candidates:
