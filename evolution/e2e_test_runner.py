@@ -12,8 +12,14 @@ Lv29+ 增强：自主测试验证的端到端维度
 - e2e_test_runner: 功能正确性验证（数据读写一致性、逻辑参数正确性）
 """
 
+# 性能优化：阻止 litellm 远程请求模型价格映射（节省 ~4s 导入时间）
+import os
+os.environ.setdefault("LITELLM_LOCAL_MODEL_COST_MAP", "True")
+
 import json
 import sys
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
@@ -76,14 +82,10 @@ def run_tech_content_guard_tests() -> Dict:
 
 
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
-    """运行所有端到端测试"""
+    """运行所有端到端测试（并行执行优化耗时）"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
     if not e2e_dir.exists():
         return {"all_passed": False, "error": "e2e 目录不存在"}
-
-    all_results = []
-    total_passed = 0
-    total_failed = 0
 
     suites = [
         ("memory_backend", run_memory_tests),
@@ -95,15 +97,35 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
         ("tech_content_guard", run_tech_content_guard_tests),
     ]
 
-    for suite_name, suite_func in suites:
+    all_results = []
+    total_passed = 0
+    total_failed = 0
+
+    def run_suite(name_func):
+        name, func = name_func
+        start = time.time()
         try:
-            result = suite_func()
-            all_results.append({"suite": suite_name, **result})
-            total_passed += result["passed"]
-            total_failed += result["failed"]
+            result = func()
+            elapsed = time.time() - start
+            return {"suite": name, **result, "elapsed": round(elapsed, 2)}
         except Exception as e:
-            all_results.append({"suite": suite_name, "all_passed": False, "error": str(e)})
-            total_failed += 1
+            elapsed = time.time() - start
+            return {"suite": name, "all_passed": False, "error": str(e), "elapsed": round(elapsed, 2)}
+
+    # 并行运行（I/O 密集型，线程有效）
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = {executor.submit(run_suite, s): s[0] for s in suites}
+        for future in as_completed(futures):
+            result = future.result()
+            all_results.append(result)
+            total_passed += result.get("passed", 0)
+            total_failed += result.get("failed", 0)
+            if "error" in result and "passed" not in result:
+                total_failed += 1
+
+    # 按原始顺序排序
+    suite_order = {s[0]: i for i, s in enumerate(suites)}
+    all_results.sort(key=lambda x: suite_order.get(x["suite"], 99))
 
     return {
         "all_passed": total_failed == 0,
@@ -130,7 +152,10 @@ def generate_report(results: Dict) -> str:
     lines.append("")
 
     for suite in results.get("suites", []):
-        lines.append(f"## {suite['suite']}")
+        elapsed = suite.get('elapsed', '?')
+        lines.append(f"## {suite['suite']} ({elapsed}s)")
+        if "error" in suite and "results" not in suite:
+            lines.append(f"- ❌ **执行错误**: {suite['error']}")
         for r in suite.get("results", []):
             emoji = "✅" if r["passed"] else "❌"
             lines.append(f"- {emoji} **{r['test']}**: {r['message']}")
