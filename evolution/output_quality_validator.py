@@ -107,7 +107,7 @@ class OutputQualityValidator:
                 })
         
         # 检查Excerpt字段
-        excerpt_match = re.search(r'\*\*Excerpt\*\*:\s*\n(.+?)(?=\n\n|\n---|$)', body, re.DOTALL)
+        excerpt_match = re.search(r'\*\*Excerpt\*\*:[ \t]*\n(.+?)(?=\n\n|\n---|$)', body, re.DOTALL)
         if excerpt_match:
             excerpt = excerpt_match.group(1).strip()
             

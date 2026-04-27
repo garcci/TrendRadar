@@ -137,6 +137,30 @@ def run_smart_summary_tests() -> Dict:
     return tester.run_all()
 
 
+def run_title_optimizer_tests() -> Dict:
+    """运行标题优化端到端测试"""
+    from e2e.test_title_optimizer import TestTitleOptimizer
+
+    tester = TestTitleOptimizer()
+    return tester.run_all()
+
+
+def run_regression_guard_tests() -> Dict:
+    """运行退化检测端到端测试"""
+    from e2e.test_regression_guard import TestRegressionGuard
+
+    tester = TestRegressionGuard()
+    return tester.run_all()
+
+
+def run_output_quality_validator_tests() -> Dict:
+    """运行输出质量验证端到端测试"""
+    from e2e.test_output_quality_validator import TestOutputQualityValidator
+
+    tester = TestOutputQualityValidator()
+    return tester.run_all()
+
+
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     """运行所有端到端测试（并行执行优化耗时）"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
@@ -158,6 +182,9 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
         ("auto_calibration", run_auto_calibration_tests),
         ("self_observer", run_self_observer_tests),
         ("smart_summary", run_smart_summary_tests),
+        ("title_optimizer", run_title_optimizer_tests),
+        ("regression_guard", run_regression_guard_tests),
+        ("output_quality_validator", run_output_quality_validator_tests),
     ]
 
     all_results = []
