@@ -41,4 +41,8 @@
 
 <!-- AUTO-PROMPT-SECTION 开始 —— 以下内容由 auto_optimize_prompt 自动调整 -->
 
+- 每个分析板块至少解释1个技术原理
+- 使用具体的技术术语而非泛化描述
+- 引用具体的技术参数和数据
+
 <!-- AUTO-PROMPT-SECTION 结束 -->
