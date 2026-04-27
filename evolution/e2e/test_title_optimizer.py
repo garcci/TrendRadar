@@ -170,6 +170,65 @@ tags: [科技, AI芯片, 半导体]
         except Exception as e:
             return {"passed": False, "message": str(e)}
 
+    def test_detect_garbage_title_number_secret(self) -> Dict:
+        """检测垃圾标题：无意义数字+背后的秘密"""
+        try:
+            assert self.optimizer.is_title_garbage("AI，4背后的秘密"), "应判定为垃圾标题"
+            assert self.optimizer.is_title_garbage("芯片，12背后的秘密"), "应判定为垃圾标题"
+            assert not self.optimizer.is_title_garbage("AI，2.5折背后的秘密"), "有意义的数字不应判定为垃圾"
+            assert not self.optimizer.is_title_garbage("AI，40%背后的秘密"), "百分比不应判定为垃圾"
+            return {"passed": True, "message": "垃圾标题检测正确"}
+        except Exception as e:
+            return {"passed": False, "message": str(e)}
+
+    def test_detect_garbage_title_version(self) -> Dict:
+        """检测垃圾标题：版本号+背后的秘密"""
+        try:
+            assert self.optimizer.is_title_garbage("DeepSeek，V4背后的秘密"), "版本号应判定为垃圾"
+            assert self.optimizer.is_title_garbage("AI，4.0背后的秘密"), "版本号应判定为垃圾"
+            assert not self.optimizer.is_title_garbage("DeepSeek V4开源：技术趋势观察"), "不含固定模板的版本号标题不应判定为垃圾"
+            return {"passed": True, "message": "版本号垃圾标题检测正确"}
+        except Exception as e:
+            return {"passed": False, "message": str(e)}
+
+    def test_safe_fallback_no_garbage_output(self) -> Dict:
+        """确保 optimize_title 不会输出垃圾标题"""
+        try:
+            # 模拟一个会产生垃圾数字的内容
+            bad_content = """---
+title: "TrendRadar Report"
+tags: [科技, AI]
+---
+
+今天 DeepSeek V4 发布了。
+
+性能提升 4%。
+
+## 分析
+
+**AI** 正在改变一切。
+"""
+            result = self.optimizer.optimize_title(bad_content)
+            assert not self.optimizer.is_title_garbage(result), f"输出不应是垃圾标题: {result}"
+            assert "背后的秘密" not in result or self._has_meaningful_number_context(result), f"不应输出无意义'背后的秘密': {result}"
+            return {"passed": True, "message": f"安全回退生效: '{result[:40]}...'"}
+        except Exception as e:
+            return {"passed": False, "message": str(e)}
+
+    def _has_meaningful_number_context(self, title: str) -> bool:
+        """辅助：检查标题中的数字是否有意义"""
+        return bool(re.search(r'\d+(?:\.\d+)?(?:%|倍|万|亿|折|折起)', title))
+
+    def test_meaningful_number_scoring(self) -> Dict:
+        """有意义数字的标题得分应高于无意义数字"""
+        try:
+            score_meaningful = self.optimizer.score_title("芯片降价2.5折，市场格局重构")
+            score_short_num = self.optimizer.score_title("AI，4背后的秘密")
+            assert score_meaningful > score_short_num, f"有意义数字标题分数应更高: 有意义={score_meaningful}, 短数字={score_short_num}"
+            return {"passed": True, "message": f"有意义={score_meaningful}, 短数字={score_short_num}"}
+        except Exception as e:
+            return {"passed": False, "message": str(e)}
+
     def run_all(self) -> Dict:
         """运行全部测试"""
         tests = [
@@ -184,6 +243,10 @@ tags: [科技, AI芯片, 半导体]
             self.test_replace_title_with_double_quotes,
             self.test_replace_title_no_frontmatter,
             self.test_convenience_optimize_article_title,
+            self.test_detect_garbage_title_number_secret,
+            self.test_detect_garbage_title_version,
+            self.test_safe_fallback_no_garbage_output,
+            self.test_meaningful_number_scoring,
         ]
         results = []
         passed = failed = 0

@@ -76,6 +76,19 @@ class TitleOptimizer:
         "emotional_balance": 0.15,  # 情感平衡
         "uniqueness": 0.10   # 独特性
     }
+
+    # 垃圾标题模式：这些模式表示标题质量极低
+    GARBAGE_PATTERNS = [
+        # "AI，4背后的秘密" — 主话题+无意义短数字+固定模板
+        r'^.+，\d{1,3}(?!%|倍|万|亿|折|折起|个点|分钟?)背后的秘密$',
+        # "AI，V4背后的秘密" — 版本号+固定模板
+        r'^.+，V?\d+(?:\.\d+)?背后的秘密$',
+        # 纯数字开头或结尾的无意义标题
+        r'^\d+[^\u4e00-\u9fa5]{0,2}$',
+    ]
+
+    # 有意义的数字单位：数字必须搭配这些单位才有业务含义
+    MEANINGFUL_NUMBER_UNITS = ['%', '倍', '万', '亿', '折', '折起', '个点', '分钟', '小时', '天', '年', '款', '项', '家', '人']
     
     def __init__(self, trendradar_path: str = "."):
         self.trendradar_path = trendradar_path
@@ -139,6 +152,21 @@ class TitleOptimizer:
         filtered = [t for t in topics if len(t) >= 2 and len(t) <= 20]
         return filtered[:10]
     
+    def _has_meaningful_number(self, text: str) -> bool:
+        """检查文本中的数字是否有有意义的业务单位"""
+        # 提取数字+单位的组合
+        number_units = re.findall(r'\d+(?:\.\d+)?(%|倍|万|亿|折|折起|个点|分钟|小时|天|年|款|项|家|人)', text)
+        return len(number_units) > 0
+
+    def is_title_garbage(self, title: str) -> bool:
+        """检测标题是否为垃圾标题"""
+        if not title or len(title) < 5:
+            return True
+        for pattern in self.GARBAGE_PATTERNS:
+            if re.match(pattern, title):
+                return True
+        return False
+
     def generate_candidate_titles(self, content: str, date_str: str = "") -> List[str]:
         """
         生成候选标题
@@ -150,17 +178,26 @@ class TitleOptimizer:
         
         candidates = []
         
-        # 候选1: 洞察型
-        insight_words = ['深度解析', '真相', '背后', '趋势', '观察']
+        # 候选1: 洞察型（安全，不依赖数字提取）
+        insight_words = ['深度解析', '真相', '趋势', '观察']
         candidates.append(f"{main_topic}：{random.choice(insight_words)}")
         
-        # 候选2: 数据型（过滤掉版本号、年份等不相关数字）
-        numbers = re.findall(r'\d+(?:\.\d+)?(?:%|倍|万|亿|折|折起)', content)
-        # 排除明显是版本号/年份的数字（如 V4, 2024, 2025）
-        valid_numbers = [n for n in numbers if not re.match(r'^(202\d|V?\d{1,2})$', n, re.I)]
-        if valid_numbers:
-            candidates.append(f"{main_topic}，{valid_numbers[0]}背后的秘密")
+        # 候选2: 数据型（严格过滤：只使用带明确业务单位的数字）
+        numbers = re.findall(r'\d+(?:\.\d+)?(?:%|倍|万|亿|折|折起|个点|分钟|小时|天|年|款|项|家|人)', content)
+        # 排除版本号/年份，且要求数字+单位整体至少3个字符
+        meaningful_numbers = [
+            n for n in numbers
+            if len(n) >= 3 and not re.match(r'^(202\d|V?\d{1,2})$', re.sub(r'(?:%|倍|万|亿|折|折起|个点|分钟|小时|天|年|款|项|家|人)$', '', n), re.I)
+        ]
+        if meaningful_numbers:
+            num = meaningful_numbers[0]
+            # 如果数字太短（如"4%"），不使用"背后的秘密"模板，改用更安全的表达
+            if len(num) >= 4:
+                candidates.append(f"{main_topic}，{num}背后的秘密")
+            else:
+                candidates.append(f"{main_topic}：{num}意味着什么？")
         else:
+            # 无有意义数字时，使用安全模板
             candidates.append(f"{main_topic}：3个关键变化")
         
         # 候选3: 疑问型
@@ -171,6 +208,9 @@ class TitleOptimizer:
         if len(topics) >= 2:
             candidates.append(f"从{topics[0]}到{topics[1]}：技术趋势观察")
         
+        # 过滤垃圾标题
+        candidates = [c for c in candidates if not self.is_title_garbage(c)]
+        
         # 去重并返回前3个
         seen = set()
         unique = []
@@ -179,7 +219,7 @@ class TitleOptimizer:
                 seen.add(c)
                 unique.append(c)
         
-        return unique[:3]
+        return unique[:3] if unique else [f"{main_topic}：技术趋势观察"]
     
     def score_title(self, title: str, content: str = "") -> float:
         """
@@ -198,9 +238,16 @@ class TitleOptimizer:
         else:
             score += 5
         
-        # 2. 是否包含数字 (0-15)
-        if re.search(r'\d', title):
+        # 2. 是否包含有意义的数字 (0-15)
+        # 不是只要有数字就加分，数字必须搭配有意义的单位
+        if self._has_meaningful_number(title):
             score += 15
+        elif re.search(r'\d{3,}', title):
+            # 至少3位数字（如日期、大金额）给部分分
+            score += 8
+        elif re.search(r'\d', title):
+            # 纯短数字（如"4"、"V4"）不给分或给最低分
+            score += 2
         
         # 3. 是否疑问句式 (0-15)
         if '？' in title or '吗' in title or '什么' in title or '为什么' in title:
@@ -244,7 +291,14 @@ class TitleOptimizer:
         
         返回: (最佳标题, 分数)
         """
-        scored = [(title, self.score_title(title, content)) for title in candidates]
+        # 过滤垃圾标题
+        valid_candidates = [t for t in candidates if not self.is_title_garbage(t)]
+        if not valid_candidates:
+            # 所有候选都是垃圾，使用第一个非空候选或安全回退
+            safe = candidates[0] if candidates else "技术趋势观察"
+            return safe, 30.0
+        
+        scored = [(title, self.score_title(title, content)) for title in valid_candidates]
         scored.sort(key=lambda x: -x[1])
         
         return scored[0]
@@ -260,10 +314,18 @@ class TitleOptimizer:
         
         # 如果当前标题不是默认的日期标题，也加入候选
         if current_title and "TrendRadar Report" not in current_title:
-            candidates.append(current_title)
+            if not self.is_title_garbage(current_title):
+                candidates.append(current_title)
         
         # 选择最佳标题
         best_title, score = self.select_best_title(candidates, content)
+        
+        # 最终校验：如果最佳标题仍是垃圾，使用安全回退
+        if self.is_title_garbage(best_title):
+            topics = self.extract_topics_from_content(content)
+            main_topic = topics[0] if topics else "科技"
+            best_title = f"{main_topic}：深度趋势观察"
+            score = 50.0
         
         print(f"\n{'='*50}")
         print(f"📝 标题优化")
@@ -271,8 +333,9 @@ class TitleOptimizer:
         print(f"候选标题:")
         for i, title in enumerate(candidates, 1):
             s = self.score_title(title, content)
+            garbage_mark = " [垃圾]" if self.is_title_garbage(title) else ""
             marker = " ✅" if title == best_title else ""
-            print(f"  {i}. {title} (评分: {s}){marker}")
+            print(f"  {i}. {title} (评分: {s}){marker}{garbage_mark}")
         print(f"\n最佳标题: {best_title} (评分: {score})")
         print(f"{'='*50}\n")
         
