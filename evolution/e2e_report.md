@@ -4,13 +4,13 @@
 **通过**: 339 项
 **失败**: 0 项
 
-## memory_backend (2.58s)
+## memory_backend (3.75s)
 - ✅ **读写一致性**: 保存后成功读取，数据一致（1 条记录）
 - ✅ **state过滤参数**: state 过滤参数正确（all/open）
 - ✅ **标题唯一性**: 标题包含文章标识，可区分不同记忆
 - ✅ **记忆数据集成**: trending_topics 从记忆数据提取
 
-## frontmatter_pipeline (0.09s)
+## frontmatter_pipeline (0.2s)
 - ✅ **正常 frontmatter**: 验证通过
 - ✅ **引号嵌套修复**: 检测到引号嵌套并自动修复为单引号包裹
 - ✅ **缺少字段补全**: 检测到缺少字段并自动补全默认值
@@ -18,14 +18,14 @@
 - ✅ **重复 image 键**: 检测到重复 image 键并清理为 1 个
 - ✅ **YAML 语法错误**: 未检测到 YAML 错误，验证器未崩溃
 
-## data_pipeline (0.05s)
+## data_pipeline (0.11s)
 - ✅ **写入读取一致性**: 写入后成功读取，id=test-001
 - ✅ **必填字段校验**: 缺少必填字段时 write() 通过（未崩溃）
 - ✅ **多次写入读取**: 写入 3 条记录，读出 3 条
 - ✅ **JSONL 格式合法**: 所有 jsonl 文件格式正确
 - ✅ **数据类型初始化**: 6 种数据类型文件全部初始化
 
-## github_pipeline (2.57s)
+## github_pipeline (3.74s)
 - ✅ **引号嵌套修复**: 双引号嵌套已修复为单引号包裹
 - ✅ **重复键去重**: 重复 image 键已清理为 1 个
 - ✅ **缺少 frontmatter**: 缺少 frontmatter 时已自动添加默认
@@ -34,14 +34,14 @@
 - ✅ **缺少字段检测**: 缺少必要字段时验证正确失败
 - ✅ **title 强制引号**: 未用引号包裹的 title 已强制加引号
 
-## exception_monitor (0.06s)
+## exception_monitor (0.17s)
 - ✅ **记录读取一致性**: 异常已记录，指纹=1f954f7f...
 - ✅ **异常分类**: 网络/超时/逻辑异常分类正确
 - ✅ **指纹计数**: 相同异常指纹计数正确递增
 - ✅ **装饰器捕获**: monitor 装饰器正确捕获并记录异常
 - ✅ **异常统计**: 统计功能正常返回数据
 
-## model_router (0.03s)
+## model_router (0.05s)
 - ✅ **文章生成路由**: 选择推理模型: deepseek/deepseek-reasoner
 - ✅ **RSS分析路由**: 选择轻量模型: deepseek/deepseek-chat
 - ✅ **降级链配置**: 降级模型: ['deepseek/deepseek-chat']
@@ -49,7 +49,7 @@
 - ✅ **翻译任务成本**: 选择低价模型: deepseek/deepseek-chat (¥1.0/M)
 - ✅ **使用记录报告**: 成本报告生成成功，总成本: ¥0.0000
 
-## tech_content_guard (0.03s)
+## tech_content_guard (0.01s)
 - ✅ **高科技内容通过**: 科技占比 80%，深度 6/10
 - ✅ **低科技内容拦截**: 正确拦截，占比 10%
 - ✅ **非科技检测**: 检测到非科技内容，占比 100%
@@ -58,12 +58,12 @@
 - ✅ **强制 Prompt**: 低质量内容正确生成强化 Prompt
 - ✅ **空内容处理**: 空内容正确标记为不通过
 
-## free_ai_router (0.01s)
+## free_ai_router (0.04s)
 - ✅ **轻量任务免费**: 选择 Cloudflare Workers AI，成本 ¥0
 - ✅ **高质量兜底**: 高质量任务选择 DeepSeek
 - ✅ **额度耗尽降级**: Cloudflare 耗尽后选择 Google Gemini
 - ✅ **额度状态**: Cloudflare 剩余 10000 
-- ✅ **成本报告**: 总成本 ¥0.3050, 节省 ¥-0.3047
+- ✅ **成本报告**: 总成本 ¥0.6300, 节省 ¥-0.6294
 - ✅ **翻译任务路由**: 翻译任务选择 Google Gemini（免费）
 
 ## tag_optimizer (0.02s)
@@ -76,17 +76,17 @@
 - ✅ **生成建议**: 生成 2 条建议
 - ✅ **报告生成**: 报告生成成功
 
-## trend_forecast (0.02s)
+## trend_forecast (0.03s)
 - ✅ **已知模式**: 加载了 7 个模式: Apple发布会周期, Google I/O, CES消费电子展...
 - ✅ **未来事件预测**: 预测到 6 个事件
 - ✅ **预测结构**: topic=Google I/O (2026-05), confidence=1.0
 - ✅ **季节性预测**: 6月=1, 9月=1, 12月=1
-- ✅ **新兴趋势**: 检测到新趋势: ['Claude 4', 'GPT-5', '量子计算突破']
+- ✅ **新兴趋势**: 检测到新趋势: ['GPT-5', 'Claude 4', '量子计算突破']
 - ✅ **无新趋势**: 相同话题正确返回空
 - ✅ **内容建议**: 生成 1 条建议
 - ✅ **置信度排序**: 置信度降序: [1.0, 0.95, 0.95]
 
-## semantic_deduplicator (0.64s)
+## semantic_deduplicator (0.76s)
 - ✅ **高相似度**: 相似度 0.78
 - ✅ **低相似度**: 相似度 0.00
 - ✅ **空文本**: 空文本相似度为0
@@ -95,7 +95,7 @@
 - ✅ **阈值判断**: 相似度 0.89 >= 0.65，判定重复
 - ✅ **建议分级**: 无历史文章: 无历史文章，可以生成
 
-## auto_calibration (0.54s)
+## auto_calibration (0.6s)
 - ✅ **test_record_quality_and_persist**: 质量记录与持久化一致
 - ✅ **test_overall_score_calculation**: 综合分数计算权重正确
 - ✅ **test_optimal_params_recommendation**: 参数推荐系统工作正常
@@ -103,7 +103,7 @@
 - ✅ **test_quality_records_limit**: 记录上限100条正确
 - ✅ **test_calibration_report_format**: 校准报告格式正确
 
-## self_observer (0.13s)
+## self_observer (0.17s)
 - ✅ **test_diagnosis_report_structure**: 诊断报告结构完整
 - ✅ **test_content_quality_analysis**: 内容质量分析正确 (score=7.0, trend=declining)
 - ✅ **test_system_stability_analysis**: 系统稳定性分析正确
@@ -131,17 +131,17 @@
 - ✅ **test_score_title_with_number**: 含数字=47, 不含=45
 - ✅ **test_score_title_question**: 疑问句=45, 陈述句=25
 - ✅ **test_select_best_title**: 最佳标题: '3个数据揭示AI芯片真相' (评分: 47)
-- ✅ **test_optimize_title**: 优化后标题: 'Intel为什么重要？...'
+- ✅ **test_optimize_title**: 优化后标题: 'Intel你看懂了吗？...'
 - ✅ **test_replace_title_simple**: 简单标题替换正确
 - ✅ **test_replace_title_with_double_quotes**: 双引号标题安全替换正确
 - ✅ **test_replace_title_no_frontmatter**: 无frontmatter处理正确
-- ✅ **test_convenience_optimize_article_title**: 便捷函数返回: 'Intel：深度解析...'
+- ✅ **test_convenience_optimize_article_title**: 便捷函数返回: 'Intel意味着什么？...'
 - ✅ **test_detect_garbage_title_number_secret**: 垃圾标题检测正确
 - ✅ **test_detect_garbage_title_version**: 版本号垃圾标题检测正确
 - ✅ **test_safe_fallback_no_garbage_output**: 安全回退生效: 'DeepSeek：真相...'
 - ✅ **test_meaningful_number_scoring**: 有意义=50, 短数字=42
 
-## regression_guard (0.5s)
+## regression_guard (0.55s)
 - ✅ **test_article_quality_regression_detected**: 检测到退化: severity=critical, drop=0.38
 - ✅ **test_article_quality_stable**: 质量稳定，未检测到退化
 - ✅ **test_insufficient_data**: 数据不足处理正确
@@ -152,7 +152,7 @@
 - ✅ **test_run_full_check_healthy**: 文章质量健康, full_check结构正确 (status=critical)
 - ✅ **test_run_full_check_critical**: 严重退化检测正确: 2项退化, 1项干预
 
-## output_quality_validator (0.31s)
+## output_quality_validator (0.33s)
 - ✅ **test_validate_issue_frontmatter_leak**: 检测到4个frontmatter泄漏
 - ✅ **test_validate_issue_truncation_marker**: 截断标记检测正确
 - ✅ **test_validate_issue_empty_excerpt**: 空excerpt检测正确
@@ -166,7 +166,7 @@
 - ✅ **test_check_issue_quality_convenience**: 便捷函数工作正常
 - ✅ **test_body_too_long**: body过长检测正确
 
-## frontmatter_validator (0.02s)
+## frontmatter_validator (0.01s)
 - ✅ **test_validate_complete_frontmatter**: 完整 frontmatter 验证通过
 - ✅ **test_validate_missing_frontmatter**: 缺少 frontmatter 自动添加正确
 - ✅ **test_validate_title_quote_nesting**: title 引号嵌套检测和修复正确
@@ -180,7 +180,7 @@
 - ✅ **test_convenience_validate_article**: 便捷函数工作正常
 - ✅ **test_batch_validate_files**: 批量验证正确
 
-## health_check (0.45s)
+## health_check (0.52s)
 - ✅ **test_check_decorator_pass**: _check 通过情况正确
 - ✅ **test_check_decorator_fail**: _check 失败情况正确
 - ✅ **test_warn**: _warn 记录警告正确
@@ -191,7 +191,7 @@
 - ✅ **test_generate_health_report**: 健康报告格式正确
 - ✅ **test_convenience_run_health_check**: 便捷函数返回结构正确
 
-## article_quality_db (0.11s)
+## article_quality_db (0.06s)
 - ✅ **test_record_and_query**: 记录查询一致: 3 条
 - ✅ **test_query_by_date_range**: 日期范围查询正确
 - ✅ **test_query_by_score**: 评分查询正确: 2 条
@@ -229,7 +229,7 @@
 - ✅ **test_get_entity_history**: 通过
 - ✅ **test_get_knowledge_graph_insight**: 通过
 
-## cleanup_manager (0.11s)
+## cleanup_manager (0.14s)
 - ✅ **test_init_creates_trash**: 通过
 - ✅ **test_is_protected_py**: 通过
 - ✅ **test_is_protected_config**: 通过
@@ -255,7 +255,7 @@
 - ✅ **test_generate_insight**: 通过
 - ✅ **test_convenience_analyze_emotion**: 通过
 
-## unified_logger (0.04s)
+## unified_logger (0.05s)
 - ✅ **test_set_get_article_id**: 通过
 - ✅ **test_log_info_writes_file**: 通过
 - ✅ **test_log_warn_level**: 通过
@@ -278,7 +278,7 @@
 - ✅ **test_assess_module**: 通过
 - ✅ **test_generate_report**: 通过
 
-## data_archiver (0.05s)
+## data_archiver (0.04s)
 - ✅ **test_compress_file**: 通过
 - ✅ **test_compress_file_not_found**: 通过
 - ✅ **test_archive_json_by_age**: 通过
@@ -290,7 +290,7 @@
 - ✅ **test_generate_archive_report_empty**: 通过
 - ✅ **test_run_auto_archive_skips_missing**: 通过
 
-## reader_behavior_analyzer (0.03s)
+## reader_behavior_analyzer (0.02s)
 - ✅ **test_analyze_tag_popularity**: 通过
 - ✅ **test_analyze_tag_popularity_empty**: 通过
 - ✅ **test_analyze_quality_trends**: 通过
@@ -305,7 +305,7 @@
 - ✅ **test_extract_keywords**: 通过
 - ✅ **test_extract_keywords_empty**: 通过
 
-## ab_testing (0.11s)
+## ab_testing (0.13s)
 - ✅ **test_create_test**: 通过
 - ✅ **test_assign_variant**: 通过
 - ✅ **test_assign_variant_inactive**: 通过
@@ -318,7 +318,7 @@
 - ✅ **test_run_ab_test_decision**: 通过
 - ✅ **test_run_ab_test_decision_invalid_dimension**: 通过
 
-## prompt_optimizer (0.01s)
+## prompt_optimizer (0.02s)
 - ✅ **test_calculate_weights_high_effect**: 通过
 - ✅ **test_calculate_weights_low_effect**: 通过
 - ✅ **test_generate_plan_boost**: 通过
@@ -331,7 +331,7 @@
 - ✅ **test_empty_fragment_data**: 通过
 - ✅ **test_reorder_sorted_by_weight**: 通过
 
-## prompt_tracker (0.05s)
+## prompt_tracker (0.04s)
 - ✅ **test_record_usage**: 通过
 - ✅ **test_analyze_effectiveness**: 通过
 - ✅ **test_assess_effect_significant**: 通过
@@ -343,7 +343,7 @@
 - ✅ **test_single_track_insufficient**: 通过
 - ✅ **test_save_load_tracks**: 通过
 
-## smart_scheduler (0.04s)
+## smart_scheduler (0.06s)
 - ✅ **test_evaluate_high_quality**: 通过
 - ✅ **test_evaluate_low_quality**: 通过
 - ✅ **test_make_decision_publish**: 通过
@@ -356,7 +356,7 @@
 - ✅ **test_log_decision_retention**: 通过
 - ✅ **test_metrics_in_decision**: 通过
 
-## trend_predictor (0.02s)
+## trend_predictor (0.03s)
 - ✅ **test_analyze_topic_frequency**: 通过
 - ✅ **test_analyze_topic_frequency_empty**: 通过
 - ✅ **test_generate_prompt_insight**: 通过
@@ -368,7 +368,7 @@
 - ✅ **test_predict_trends_empty**: 通过
 - ✅ **test_recurring_topics**: 通过
 
-## quota_monitor (0.02s)
+## quota_monitor (0.04s)
 - ✅ **test_check_alerts**: 通过
 - ✅ **test_check_alerts_normal**: 通过
 - ✅ **test_generate_report**: 通过
@@ -393,7 +393,7 @@
 - ✅ **test_load_jsonl_empty**: 通过
 - ✅ **test_load_jsonl_invalid**: 通过
 
-## repo_size_monitor (0.15s)
+## repo_size_monitor (0.11s)
 - ✅ **test_get_total_size**: 总大小: 3000 字节 (2.9 KB)
 - ✅ **test_get_total_size_empty**: 空目录大小: 0 字节
 - ✅ **test_scan_big_files**: 发现 1 个大文件
@@ -405,7 +405,7 @@
 - ✅ **test_big_file_info_fields**: 字段完整: path, size_kb, size_mb, type, extension
 - ✅ **test_distribution_percentage_calculation**: 百分比计算正确
 
-## system_final_check (30.17s)
+## system_final_check (30.24s)
 - ✅ **test_init_paths**: 路径初始化正确
 - ✅ **test_check_module_imports**: 模块导入: 76/76 成功
 - ✅ **test_check_critical_files**: 关键文件: 7/7 存在

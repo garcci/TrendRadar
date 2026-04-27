@@ -1947,11 +1947,12 @@ DESCRIPTION: <优化后的描述>"""
         # Step 2: GitHub Models — 提取 tags（结构化输出）
         # ═══════════════════════════════════════════════════════════
         try:
-            tags_prompt = f"""从以下科技文章中提取3-6个中文标签。
+            tags_prompt = f"""从以下科技文章中提取3个核心中文标签。
 
 要求:
 - 必须是中文标签
 - 至少50%是科技类标签（如: AI, 芯片, 开源, 云计算, 大模型, 自动驾驶等）
+- 必须是文章最核心的3个标签，避免泛滥
 - 输出格式严格为: ["标签1", "标签2", "标签3"]
 - 只输出标签数组，不要任何解释
 
@@ -1978,7 +1979,7 @@ DESCRIPTION: <优化后的描述>"""
                     if any('\u4e00' <= c <= '\u9fff' for c in t) and len(t) >= 1 and len(t) <= 12:
                         valid_tags.append(t)
                 if len(valid_tags) >= 3:
-                    new_tags = ', '.join(f'"{t}"' for t in valid_tags[:6])
+                    new_tags = ', '.join(f'"{t}"' for t in valid_tags[:3])
                     logger.info(f"[多模型增强] GitHub Models优化标签: [{current_tags}] → [{new_tags}]")
                     
         except Exception as e:
@@ -2042,13 +2043,16 @@ DESCRIPTION: <优化后的描述>"""
         if not has_frontmatter:
             # 缺少 frontmatter，添加默认的
             safe_title = fallback_title.replace('"', '\\"')
+            # 使用标题 hash 作为确定性 seed，避免同一文章每次生成不同封面
+            import hashlib
+            title_hash = hashlib.md5(fallback_title.encode()).hexdigest()[:8]
             default_fm = f"""---
 title: "{safe_title}"
 published: {date_str}T08:00:00+08:00
 tags: [新闻, 热点]
 category: news
 draft: false
-image: https://picsum.photos/seed/trendradar-{int(datetime.now().timestamp())}/1600/900
+image: https://picsum.photos/seed/trendradar-{title_hash}/1600/900
 description: "TrendRadar 自动生成的热点聚合报告"
 ---
 
