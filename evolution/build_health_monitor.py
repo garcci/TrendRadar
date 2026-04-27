@@ -15,6 +15,7 @@ Astro 博客构建健康监控 — 跨仓库部署状态检查
 - 尝试自动诊断根因
 """
 
+import base64
 import json
 import os
 import re
@@ -367,18 +368,31 @@ class BuildHealthMonitor:
                 if "posts/news/" not in filename:
                     continue
                 
-                raw_url = f"https://raw.githubusercontent.com/{self.owner}/{self.repo}/master/{filename}"
+                # 使用 GitHub API contents 接口获取文件内容（比 raw.githubusercontent.com 更可靠）
+                api_url = f"https://api.github.com/repos/{self.owner}/{self.repo}/contents/{filename}"
                 try:
-                    req = urllib.request.Request(raw_url, headers={"User-Agent": "TrendRadar-HealthCheck/1.0"})
+                    req = urllib.request.Request(api_url, headers=self.headers)
                     with urllib.request.urlopen(req, timeout=15) as resp:
-                        content = resp.read().decode('utf-8', errors='ignore')
-                    
+                        file_data = json.loads(resp.read().decode())
+
+                    content_b64 = file_data.get("content", "")
+                    if content_b64:
+                        content = base64.b64decode(content_b64).decode('utf-8', errors='ignore')
+                    else:
+                        issues.append({"file": filename, "errors": ["GitHub API 返回空内容"]})
+                        continue
+
                     valid, errors, fixed = validate_article(content, filename)
                     if not valid:
                         issues.append({
                             "file": filename,
                             "errors": errors
                         })
+                except urllib.error.HTTPError as e:
+                    if e.code == 404:
+                        issues.append({"file": filename, "errors": ["文件在仓库中不存在（可能尚未推送）"]})
+                    else:
+                        issues.append({"file": filename, "errors": [f"GitHub API HTTP {e.code}: {e.reason}"]})
                 except Exception as e:
                     issues.append({"file": filename, "errors": [f"无法获取文件: {e}"]})
 

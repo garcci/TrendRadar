@@ -260,4 +260,3 @@ def generate_quality_report(days: int = 7) -> str:
     if trend.get("worst_article"):
         lines.append(f"最差文章: {trend['worst_article']['title']} ({trend['worst_article']['score']}分)")
     return "\n".join(lines)
-    return "\n".join(lines)
