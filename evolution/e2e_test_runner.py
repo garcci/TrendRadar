@@ -209,6 +209,30 @@ def run_cleanup_manager_tests() -> Dict:
     return tester.run_all()
 
 
+def run_emotion_analyzer_tests() -> Dict:
+    """运行情感分析端到端测试"""
+    from e2e.test_emotion_analyzer import TestEmotionAnalyzer
+
+    tester = TestEmotionAnalyzer()
+    return tester.run_all()
+
+
+def run_unified_logger_tests() -> Dict:
+    """运行统一日志端到端测试"""
+    from e2e.test_unified_logger import TestUnifiedLogger
+
+    tester = TestUnifiedLogger()
+    return tester.run_all()
+
+
+def run_module_value_assessor_tests() -> Dict:
+    """运行模块价值评估端到端测试"""
+    from e2e.test_module_value_assessor import TestModuleValueAssessor
+
+    tester = TestModuleValueAssessor()
+    return tester.run_all()
+
+
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     """运行所有端到端测试（并行执行优化耗时）"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
@@ -239,6 +263,9 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
         ("diversity_engine", run_diversity_engine_tests),
         ("knowledge_graph", run_knowledge_graph_tests),
         ("cleanup_manager", run_cleanup_manager_tests),
+        ("emotion_analyzer", run_emotion_analyzer_tests),
+        ("unified_logger", run_unified_logger_tests),
+        ("module_value_assessor", run_module_value_assessor_tests),
     ]
 
     all_results = []

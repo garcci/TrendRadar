@@ -122,13 +122,20 @@ class TestDiversityEngine:
             self.test_perspective_rotator_format,
             self.test_get_diversity_instructions,
         ]
-        passed = 0
-        failed = []
-        for test in tests:
+        results = []
+        passed = failed = 0
+        for t in tests:
             try:
-                test()
+                t()
+                results.append({"test": t.__name__, "passed": True, "message": "通过"})
                 passed += 1
             except Exception as e:
-                failed.append((test.__name__, str(e)))
+                results.append({"test": t.__name__, "passed": False, "message": str(e)})
+                failed += 1
         self._teardown()
-        return {"passed": passed, "failed": failed, "total": len(tests)}
+        return {
+            "all_passed": failed == 0,
+            "passed": passed,
+            "failed": failed,
+            "results": results
+        }
