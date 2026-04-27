@@ -97,6 +97,22 @@ def run_tag_optimizer_tests() -> Dict:
     return tester.run_all()
 
 
+def run_trend_forecast_tests() -> Dict:
+    """运行热点预测端到端测试"""
+    from e2e.test_trend_forecast import TestTrendForecast
+
+    tester = TestTrendForecast()
+    return tester.run_all()
+
+
+def run_semantic_deduplicator_tests() -> Dict:
+    """运行语义去重端到端测试"""
+    from e2e.test_semantic_deduplicator import TestSemanticDeduplicator
+
+    tester = TestSemanticDeduplicator()
+    return tester.run_all()
+
+
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     """运行所有端到端测试（并行执行优化耗时）"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
@@ -113,6 +129,8 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
         ("tech_content_guard", run_tech_content_guard_tests),
         ("free_ai_router", run_free_ai_router_tests),
         ("tag_optimizer", run_tag_optimizer_tests),
+        ("trend_forecast", run_trend_forecast_tests),
+        ("semantic_deduplicator", run_semantic_deduplicator_tests),
     ]
 
     all_results = []
