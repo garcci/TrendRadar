@@ -36,8 +36,8 @@ class FrontmatterValidator:
         errors = []
         fixed = content
 
-        # 1. 检查 frontmatter 是否存在
-        fm_match = re.match(r'^---\n(.*?)\n---\n', fixed, re.DOTALL)
+        # 1. 检查 frontmatter 是否存在（允许开头有空行）
+        fm_match = re.match(r'^\s*---\n(.*?)\n---\n', fixed, re.DOTALL)
         if not fm_match:
             errors.append("缺少 frontmatter（必须以 --- 开头）")
             # 尝试补全默认 frontmatter

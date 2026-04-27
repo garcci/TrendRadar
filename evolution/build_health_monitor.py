@@ -378,6 +378,8 @@ class BuildHealthMonitor:
                     content_b64 = file_data.get("content", "")
                     if content_b64:
                         content = base64.b64decode(content_b64).decode('utf-8', errors='ignore')
+                        # 规范化换行符（GitHub 可能返回 \r\n，而 frontmatter_validator 期望 \n）
+                        content = content.replace('\r\n', '\n')
                     else:
                         issues.append({"file": filename, "errors": ["GitHub API 返回空内容"]})
                         continue
