@@ -167,9 +167,7 @@ class AutoImageGenerator:
         # 如果是 picsum.photos 的随机图片，需要替换
         if "picsum.photos" in image_url:
             return True
-        # 如果已经是 Pollinations.ai 的图片，不需要替换
-        if "pollinations.ai" in image_url:
-            return False
+        # 其他情况不需要替换
         return False
 
     def update_article_image(self, path: str, sha: str, content: str, new_image_url: str) -> bool:
