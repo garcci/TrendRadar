@@ -1,2 +1,40 @@
 {"timestamp": "2026-04-27T11:37:35.690195", "level": "INFO", "module": "test", "message": "测试日志写入", "article_id": "test-123"}
 {"timestamp": "2026-04-27T11:43:18.732971", "level": "INFO", "module": "verify", "message": "路径修复验证", "article_id": "verify-123"}
+{"timestamp": "2026-04-27T09:05:16.740454", "level": "INFO", "module": "github", "message": "save_news_data 开始执行", "article_id": "2026-04-27-1777280716", "has_unified_logger": true}
+{"timestamp": "2026-04-27T09:05:16.740736", "level": "INFO", "module": "github", "message": "data.items 有 93 条数据", "article_id": "2026-04-27-1777280716", "total_items": 93}
+{"timestamp": "2026-04-27T09:05:16.772695", "level": "INFO", "module": "smart_scheduler", "message": "开始: 调度决策", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:05:16.773347", "level": "INFO", "module": "smart_scheduler", "message": "决策=DRAFT 评分=6/10", "article_id": "2026-04-27-1777280716", "reason": "数据质量一般 (6/10)，建议保存草稿"}
+{"timestamp": "2026-04-27T09:05:16.773509", "level": "INFO", "module": "smart_scheduler", "message": "完成: 调度决策", "article_id": "2026-04-27-1777280716", "step": "调度决策", "elapsed_ms": 0.81, "status": "success"}
+{"timestamp": "2026-04-27T09:05:17.951464", "level": "INFO", "module": "quality_gate", "message": "开始 3 次尝试生成文章...", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:05:17.951733", "level": "INFO", "module": "ai_generate", "message": "开始: AI文章生成-第1次", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:05:47.712182", "level": "INFO", "module": "ai_generate", "message": "AI生成成功（第1次）", "article_id": "2026-04-27-1777280716", "content_length": 3137}
+{"timestamp": "2026-04-27T09:05:47.712707", "level": "INFO", "module": "ai_generate", "message": "完成: AI文章生成-第1次", "article_id": "2026-04-27-1777280716", "step": "AI文章生成-第1次", "elapsed_ms": 29760.97, "status": "success"}
+{"timestamp": "2026-04-27T09:05:47.713903", "level": "INFO", "module": "quality_score", "message": "开始: 质量评分-第1次", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:05:47.718041", "level": "INFO", "module": "quality_score", "message": "评分完成", "article_id": "2026-04-27-1777280716", "overall": 6.9, "tech": 5.4, "total_penalty": 0.0}
+{"timestamp": "2026-04-27T09:05:47.718230", "level": "INFO", "module": "quality_gate", "message": "✅ 通过（overall=6.9）", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:05:47.718655", "level": "INFO", "module": "quality_score", "message": "完成: 质量评分-第1次", "article_id": "2026-04-27-1777280716", "step": "质量评分-第1次", "elapsed_ms": 4.75, "status": "success"}
+{"timestamp": "2026-04-27T09:05:47.719416", "level": "INFO", "module": "smart_summary", "message": "开始: 智能摘要生成", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:05:47.724511", "level": "INFO", "module": "smart_summary", "message": "已自动生成文章摘要块", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:05:47.724693", "level": "INFO", "module": "smart_summary", "message": "完成: 智能摘要生成", "article_id": "2026-04-27-1777280716", "step": "智能摘要生成", "elapsed_ms": 5.27, "status": "success"}
+{"timestamp": "2026-04-27T09:05:47.724831", "level": "INFO", "module": "title_optimizer", "message": "开始: 标题优化", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:05:47.730559", "level": "INFO", "module": "title_optimizer", "message": "已优化标题为: DeepSeek，2.5折背后的秘密", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:05:47.730739", "level": "INFO", "module": "title_optimizer", "message": "完成: 标题优化", "article_id": "2026-04-27-1777280716", "step": "标题优化", "elapsed_ms": 5.91, "status": "success"}
+{"timestamp": "2026-04-27T09:05:47.730876", "level": "INFO", "module": "multi_model", "message": "开始: 多模型 frontmatter 优化", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:07:04.290745", "level": "INFO", "module": "multi_model", "message": "✅ frontmatter 已被多模型优化", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:07:04.290956", "level": "INFO", "module": "multi_model", "message": "完成: 多模型 frontmatter 优化", "article_id": "2026-04-27-1777280716", "step": "多模型 frontmatter 优化", "elapsed_ms": 76560.07, "status": "success"}
+{"timestamp": "2026-04-27T09:07:04.291097", "level": "INFO", "module": "sanitize", "message": "开始: Frontmatter 清理", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:07:04.291534", "level": "INFO", "module": "sanitize", "message": "✅ sanitize 完成", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:07:04.291681", "level": "INFO", "module": "sanitize", "message": "完成: Frontmatter 清理", "article_id": "2026-04-27-1777280716", "step": "Frontmatter 清理", "elapsed_ms": 0.58, "status": "success"}
+{"timestamp": "2026-04-27T09:07:04.292127", "level": "INFO", "module": "frontmatter_validator", "message": "开始: Frontmatter 预验证", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:07:04.295654", "level": "INFO", "module": "frontmatter_validator", "message": "✅ 通过", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:07:04.295824", "level": "INFO", "module": "frontmatter_validator", "message": "完成: Frontmatter 预验证", "article_id": "2026-04-27-1777280716", "step": "Frontmatter 预验证", "elapsed_ms": 3.69, "status": "success"}
+{"timestamp": "2026-04-27T09:07:04.295962", "level": "INFO", "module": "astro_preflight", "message": "开始: Astro 构建预检", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:07:04.300025", "level": "INFO", "module": "astro_preflight", "message": "✅ 通过", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:07:04.300198", "level": "INFO", "module": "astro_preflight", "message": "完成: Astro 构建预检", "article_id": "2026-04-27-1777280716", "step": "Astro 构建预检", "elapsed_ms": 4.23, "status": "success"}
+{"timestamp": "2026-04-27T09:07:04.300356", "level": "INFO", "module": "github_push", "message": "开始: GitHub 文章推送", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:07:05.952567", "level": "INFO", "module": "github_push", "message": "✅ 成功推送文章到 GitHub: src/content/posts/news/2026-04-27-trendradar-1777280716.md", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:07:05.953355", "level": "INFO", "module": "deploy_verify", "message": "开始: 部署后验证", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:07:06.267772", "level": "INFO", "module": "deploy_verify", "message": "完成: 部署后验证", "article_id": "2026-04-27-1777280716", "step": "部署后验证", "elapsed_ms": 314.41, "status": "success"}
+{"timestamp": "2026-04-27T09:07:06.268111", "level": "INFO", "module": "data_pipeline", "message": "文章记录已写入", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:07:06.271698", "level": "INFO", "module": "article_quality_db", "message": "文章质量已记录到回溯库", "article_id": "2026-04-27-1777280716"}
+{"timestamp": "2026-04-27T09:07:06.271844", "level": "INFO", "module": "github_push", "message": "完成: GitHub 文章推送", "article_id": "2026-04-27-1777280716", "step": "GitHub 文章推送", "elapsed_ms": 1971.48, "status": "success"}
