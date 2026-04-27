@@ -114,6 +114,10 @@ class BuildHealthMonitor:
 
             return result
 
+        except urllib.error.HTTPError as e:
+            if e.code == 404 and not self.token:
+                return {"healthy": False, "message": "检查 GitHub Actions 失败: HTTP 404 (仓库可能为私有，未配置 GH_MEMORY_TOKEN)"}
+            return {"healthy": False, "message": f"检查 GitHub Actions 失败: HTTP {e.code}"}
         except Exception as e:
             return {"healthy": False, "message": f"检查 GitHub Actions 失败: {e}"}
 
@@ -225,6 +229,10 @@ class BuildHealthMonitor:
 
             return result
 
+        except urllib.error.HTTPError as e:
+            if e.code == 404 and not self.token:
+                return {"healthy": False, "message": "检查 Cloudflare Pages 失败: HTTP 404 (GitHub check-runs 需要认证，未配置 GH_MEMORY_TOKEN)"}
+            return {"healthy": False, "message": f"检查 Cloudflare Pages 失败: HTTP {e.code}"}
         except Exception as e:
             return {"healthy": False, "message": f"检查 Cloudflare Pages 失败: {e}"}
 
@@ -410,6 +418,10 @@ class BuildHealthMonitor:
                     "message": f"检查了 {len(md_files)} 个 Markdown 文件，frontmatter 格式正常"
                 }
 
+        except urllib.error.HTTPError as e:
+            if e.code == 404 and not self.token:
+                return {"healthy": False, "message": "检查 frontmatter 健康度失败: HTTP 404 (仓库可能为私有，未配置 GH_MEMORY_TOKEN)"}
+            return {"healthy": False, "message": f"检查 frontmatter 健康度失败: HTTP {e.code}"}
         except Exception as e:
             return {"healthy": False, "message": f"检查 frontmatter 健康度失败: {e}"}
 
