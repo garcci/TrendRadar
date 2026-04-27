@@ -2391,3 +2391,8 @@ description: "TrendRadar 自动生成的热点聚合报告"
         except Exception as e:
             logger.warning(f"Failed to detect new titles from local storage: {e}")
             return {}
+
+### [AUTO-ADDED] 科技内容强化要求
+- 每个分析板块至少解释1个技术原理
+- 使用具体的技术术语而非泛化描述
+- 引用具体的技术参数和数据
