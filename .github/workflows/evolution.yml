@@ -316,118 +316,30 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
-      # 🔭 跨项目学习 - Lv42
+      # 🧬 系统自动优化 - Lv61
       # ═══════════════════════════════════════════════════════════
-      - name: Cross-Project Learning
+      - name: Auto Optimization
         continue-on-error: true
         run: |
-          echo "🔭 启动跨项目学习..."
+          echo "🧬 启动系统自动优化..."
           uv run python -c "
           import sys
           sys.path.insert(0, '.')
           
           print('='*60)
-          print('🔭 跨项目学习系统 v1.0')
+          print('🧬 系统自动优化器 v1.0')
           print('='*60)
           
           try:
-              from evolution.cross_project_learner import CrossProjectLearner
-              learner = CrossProjectLearner('.')
-              trends = learner.learn()
-              
-              analysis = trends.get('analysis', {})
-              print(f'📊 GitHub热门项目: {analysis.get(\"total_projects\", 0)}个')
-              print(f'📊 HN热门话题: {analysis.get(\"total_hn_topics\", 0)}个')
-              
-              insights = analysis.get('insights', [])
-              for i, insight in enumerate(insights[:5], 1):
-                  print(f'  {i}. {insight}')
-              
-              print('[跨项目学习] Lv42 学习完成')
+              from evolution.auto_optimizer import run_auto_optimization
+              report = run_auto_optimization('.')
+              print(report)
+              print('[系统优化] Lv61 完成')
           except Exception as e:
-              print(f'[跨项目学习] Lv42 失败: {e}')
+              print(f'[系统优化] Lv61 失败: {e}')
           
           print('='*60)
-          print('🔭 跨项目学习完成')
-          print('='*60)
-          "
-
-      # ═══════════════════════════════════════════════════════════
-      # 📤 内容分发 - Lv43
-      # ═══════════════════════════════════════════════════════════
-      - name: Content Distribution
-        continue-on-error: true
-        run: |
-          echo "📤 准备内容分发..."
-          uv run python -c "
-          import sys
-          sys.path.insert(0, '.')
-          
-          print('='*60)
-          print('📤 内容分发系统 v1.0')
-          print('='*60)
-          
-          try:
-              from evolution.content_distributor import ContentDistributor
-              distributor = ContentDistributor('.')
-              
-              test_package = distributor.generate_distribution_package(
-                  title='今日科技热点速览',
-                  summary='AI技术持续突破，开源社区活跃',
-                  tags=['AI', '科技', '开源'],
-                  article_url='https://example.com/article'
-              )
-              
-              platforms = test_package.get('platforms', {})
-              for platform, content in platforms.items():
-                  print(f'  📱 {platform}: OK')
-              
-              print(f'[内容分发] Lv43 生成{len(platforms)}个平台内容')
-          except Exception as e:
-              print(f'[内容分发] Lv43 失败: {e}')
-          
-          print('='*60)
-          print('📤 内容分发准备完成')
-          print('='*60)
-          "
-
-      # ═══════════════════════════════════════════════════════════
-      # 🤖 深度自主编码 - Lv44
-      # ═══════════════════════════════════════════════════════════
-      - name: Deep Self Coding
-        continue-on-error: true
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          echo "🤖 启动深度自主编码..."
-          uv run python -c "
-          import sys
-          sys.path.insert(0, '.')
-          
-          print('='*60)
-          print('🤖 深度自主编码系统 v1.0')
-          print('='*60)
-          
-          try:
-              from evolution.deep_self_coder import generate_simple_module
-              
-              result = generate_simple_module(
-                  name='DataVisualizer',
-                  purpose='可视化数据分析结果',
-                  methods=['load data', 'create chart', 'export report']
-              )
-              
-              print(f'  模块: {result.get(\"module_name\", \"unknown\")}')
-              print(f'  有效: {result.get(\"valid\", False)}')
-              print(f'  代码长度: {len(result.get(\"code\", \"\"))}字符')
-              
-              print('[深度编码] Lv44 测试完成')
-          except Exception as e:
-              print(f'[深度编码] Lv44 失败: {e}')
-          
-          print('='*60)
-          print('🤖 深度自主编码完成')
+          print('🧬 系统优化完成')
           print('='*60)
           "
 
@@ -643,98 +555,6 @@ jobs:
           "
 
       # ═══════════════════════════════════════════════════════════
-      # ⏰ 智能发布时间优化 - Lv51 数据驱动优化
-      # ═══════════════════════════════════════════════════════════
-      - name: Publish Time Optimizer
-        continue-on-error: true
-        env:
-          GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
-          ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
-          ASTRO_REPO_NAME: ${{ secrets.ASTRO_REPO_NAME }}
-        run: |
-          echo "⏰ 启动发布时间优化分析..."
-          uv run python -c "
-          import sys
-          import os
-          sys.path.insert(0, '.')
-          
-          print('='*60)
-          print('⏰ 智能发布时间优化器 v1.0')
-          print('='*60)
-          
-          try:
-              from evolution.publish_time_optimizer import optimize_publish_time
-              
-              token = os.environ.get('GH_MEMORY_TOKEN')
-              owner = os.environ.get('ASTRO_REPO_OWNER', 'garcci')
-              repo = os.environ.get('ASTRO_REPO_NAME', 'Astro')
-              
-              optimize_publish_time(owner, repo, token)
-              print('[时间优化] Lv51 分析完成')
-          except Exception as e:
-              print(f'[时间优化] Lv51 失败: {e}')
-          
-          print('='*60)
-          print('⏰ 发布时间优化完成')
-          print('='*60)
-          "
-
-      - name: Auto Image Generation
-        continue-on-error: true
-        env:
-          GH_MEMORY_TOKEN: ${{ secrets.GH_MEMORY_TOKEN }}
-          ASTRO_REPO_OWNER: ${{ secrets.ASTRO_REPO_OWNER }}
-          ASTRO_REPO_NAME: ${{ secrets.ASTRO_REPO_NAME }}
-        run: |
-          echo "🎨 启动自动配图生成..."
-          uv run python -c "
-          import sys
-          import os
-          sys.path.insert(0, '.')
-          
-          print('='*60)
-          print('🎨 自动配图生成器 v1.0')
-          print('='*60)
-          
-          try:
-              from evolution.auto_image_generator import run_auto_image_generation
-              
-              token = os.environ.get('GH_MEMORY_TOKEN')
-              owner = os.environ.get('ASTRO_REPO_OWNER', 'garcci')
-              repo = os.environ.get('ASTRO_REPO_NAME', 'Astro')
-              
-              updated = run_auto_image_generation(token, owner, repo, max_articles=2)
-              if updated:
-                  print(f'[配图] Lv53 成功更新 {len(updated)} 篇文章配图')
-              else:
-                  print('[配图] Lv53 暂无需要更新的文章')
-          except Exception as e:
-              print(f'[配图] Lv53 失败: {e}')
-          
-          print('='*60)
-          print('🎨 自动配图生成完成')
-          print('='*60)
-          "
-
-          sys.path.insert(0, '.')
-          
-          print('='*60)
-          print('🏷️ 自动标签优化器 v1.0')
-          print('='*60)
-          
-          try:
-              from evolution.tag_optimizer import run_tag_optimizer
-              run_tag_optimizer('.')
-              print('[标签优化] Lv57 完成')
-          except Exception as e:
-              print(f'[标签优化] Lv57 失败: {e}')
-          
-          print('='*60)
-          print('🏷️ 标签优化完成')
-          print('='*60)
-          "
-
-      # ═══════════════════════════════════════════════════════════
       # 🧬 系统自动优化 - Lv61
       # ═══════════════════════════════════════════════════════════
       - name: Auto Optimization
@@ -759,42 +579,6 @@ jobs:
           
           print('='*60)
           print('🧬 系统优化完成')
-          print('='*60)
-          "
-
-          print('='*60)
-          print('🧠 模型路由成本优化 v1.0')
-          print('='*60)
-          
-          try:
-              from evolution.model_router import ModelRouter
-              router = ModelRouter('.')
-              
-              # 获取成本报告
-              report = router.get_cost_report(days=7)
-              print(f\"周成本: ¥{report['total_cost']:.2f}\")
-              print(f\"总请求: {report['total_requests']} 次\")
-              print(f\"平均延迟: {report['avg_latency']:.1f}s\")
-              print(f\"成功率: {report['success_rate']*100:.0f}%\")
-              
-              # 按任务分类
-              if report.get('by_task'):
-                  print('\\n📊 按任务分类:')
-                  for task, data in report['by_task'].items():
-                      print(f\"  - {task}: ¥{data['cost']:.2f} ({data['count']}次)\")
-              
-              # 优化建议
-              suggestions = router.get_optimization_suggestions()
-              print('\\n💡 优化建议:')
-              for s in suggestions[:5]:
-                  print(f'  - {s}')
-              
-              print('[模型路由] Lv69 完成')
-          except Exception as e:
-              print(f'[模型路由] Lv69 失败: {e}')
-          
-          print('='*60)
-          print('🧠 模型路由优化完成')
           print('='*60)
           "
 

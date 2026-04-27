@@ -6,6 +6,7 @@ Pushes articles directly to Astro repository via GitHub API
 import os
 import json
 import logging
+import time
 from datetime import datetime, timezone
 from typing import Optional, Dict, List
 from pathlib import Path
@@ -13,6 +14,22 @@ from pathlib import Path
 from .base import StorageBackend, NewsData
 
 logger = logging.getLogger(__name__)
+
+# Lv73: 统一日志收集器
+try:
+    from evolution.unified_logger import StepTimer, log_info, log_warn, log_error, set_article_id
+    HAS_UNIFIED_LOGGER = True
+except ImportError:
+    HAS_UNIFIED_LOGGER = False
+    # 降级：创建空壳
+    class StepTimer:
+        def __init__(self, module, step): pass
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+    def log_info(m, msg, **kw): print(f"[{m}] {msg}")
+    def log_warn(m, msg, **kw): print(f"[{m}] ⚠️ {msg}")
+    def log_error(m, msg, **kw): print(f"[{m}] ❌ {msg}")
+    def set_article_id(aid): pass
 
 
 class GitHubStorageBackend(StorageBackend):
@@ -88,12 +105,18 @@ class GitHubStorageBackend(StorageBackend):
         Returns:
             True if successfully pushed to GitHub
         """
-        print("[DEBUG] save_news_data 开始执行")
+        # Lv73: 设置文章追踪ID
+        timestamp = int(datetime.now(timezone.utc).timestamp())
+        date_str = data.date or datetime.now().strftime("%Y-%m-%d")
+        article_id = f"{date_str}-{timestamp}"
+        set_article_id(article_id)
+        log_info("github", f"save_news_data 开始执行", article_id=article_id)
+        
         if not data.items:
-            print("[DEBUG] data.items 为空，返回 False")
-            logger.warning("No news items to save")
+            log_warn("github", "data.items 为空，返回 False")
             return False
-        print(f"[DEBUG] data.items 有 {sum(len(items) for items in data.items.values())} 条数据")
+        total_items = sum(len(items) for items in data.items.values())
+        log_info("github", f"data.items 有 {total_items} 条数据", total_items=total_items)
         
         # First, save to local SQLite for TrendRadar's analysis
         try:
@@ -110,55 +133,40 @@ class GitHubStorageBackend(StorageBackend):
         # ═══════════════════════════════════════════════════════════
         # 🧠 智能调度决策 - Lv17 进化
         # ═══════════════════════════════════════════════════════════
-        try:
-            from evolution.smart_scheduler import SmartScheduler
-            
-            # 统计热点数据
-            total_items = sum(len(items) for items in data.items.values())
-            
-            # 简单统计科技热点（基于标题关键词）
-            tech_keywords = ['AI', '人工智能', '芯片', '开源', 'GitHub', '模型', '训练', '算法', 
-                           '框架', '云', '数据', '安全', '区块链', '量子', '机器人', '自动驾驶',
-                           '半导体', 'GPU', '大模型', 'LLM', 'Transformer', '神经网络']
-            tech_count = 0
-            for items in data.items.values():
-                for item in items:
-                    title = getattr(item, 'title', '') or ''
-                    if any(kw in title for kw in tech_keywords):
-                        tech_count += 1
-            
-            scheduler = SmartScheduler()
-            decision = scheduler.make_decision(
-                news_items_count=total_items,
-                tech_items_count=tech_count,
-                rss_success_rate=0.8
-            )
-            
-            print(f"[智能调度] 决策={decision['action'].upper()} 评分={decision['score']}/10 原因={decision['reason']}")
-            if decision['issues']:
-                print(f"[智能调度] 问题: {'; '.join(decision['issues'])}")
-            
-            if decision['action'] == 'skip':
-                print(f"[智能调度] 调度建议SKIP，降级为草稿模式（保留内容用于分析）")
-                is_draft = True
-                # 记录调度降级决策
-                try:
-                    from evolution.data_pipeline import record_step_metric
-                    record_step_metric('smart_scheduler', 'skip_downgraded_to_draft', 1)
-                except Exception:
-                    pass
-            elif decision['action'] == 'draft':
-                print(f"[智能调度] 生成草稿模式: {decision['reason']}")
-                is_draft = True
-            else:
-                print(f"[智能调度] 正常发布模式")
-                is_draft = False
+        with StepTimer("smart_scheduler", "调度决策"):
+            try:
+                from evolution.smart_scheduler import SmartScheduler
                 
-        except Exception as e:
-            print(f"[智能调度] 决策失败，使用默认策略: {e}")
-            import traceback
-            traceback.print_exc()
-            is_draft = False
+                # 简单统计科技热点（基于标题关键词）
+                tech_keywords = ['AI', '人工智能', '芯片', '开源', 'GitHub', '模型', '训练', '算法', 
+                               '框架', '云', '数据', '安全', '区块链', '量子', '机器人', '自动驾驶',
+                               '半导体', 'GPU', '大模型', 'LLM', 'Transformer', '神经网络']
+                tech_count = 0
+                for items in data.items.values():
+                    for item in items:
+                        title = getattr(item, 'title', '') or ''
+                        if any(kw in title for kw in tech_keywords):
+                            tech_count += 1
+                
+                scheduler = SmartScheduler()
+                decision = scheduler.make_decision(
+                    news_items_count=total_items,
+                    tech_items_count=tech_count,
+                    rss_success_rate=0.8
+                )
+                
+                log_info("smart_scheduler", f"决策={decision['action'].upper()} 评分={decision['score']}/10", reason=decision['reason'])
+                
+                if decision['action'] == 'skip':
+                    is_draft = True
+                elif decision['action'] == 'draft':
+                    is_draft = True
+                else:
+                    is_draft = False
+                    
+            except Exception as e:
+                log_error("smart_scheduler", f"决策失败: {e}")
+                is_draft = False
         
         # 🔍 语义去重检查 — Lv60 进化
         try:
@@ -206,105 +214,69 @@ class GitHubStorageBackend(StorageBackend):
         
         markdown_content = None
         last_quality_reason = ""
+        final_scores = None
         
-        print(f"[质量门槛] 开始 {MAX_QUALITY_RETRIES} 次尝试生成文章...")
+        log_info("quality_gate", f"开始 {MAX_QUALITY_RETRIES} 次尝试生成文章...")
         for attempt in range(1, MAX_QUALITY_RETRIES + 1):
-            print(f"[质量门槛] 第 {attempt}/{MAX_QUALITY_RETRIES} 次尝试...")
-            
             # Generate Markdown content using AI
-            try:
-                print(f"[质量门槛] 调用 _generate_ai_article...")
-                markdown_content = self._generate_ai_article(data, article_title)
-                print(f"[质量门槛] AI生成成功（第{attempt}次），内容长度={len(markdown_content) if markdown_content else 0}")
-            except Exception as e:
-                print(f"[质量门槛] AI生成失败: {e}")
-                logger.warning(f"[质量门槛] AI生成失败: {e}")
-                last_quality_reason = f"AI生成异常: {e}"
-                continue  # 尝试下一次
+            with StepTimer("ai_generate", f"AI文章生成-第{attempt}次"):
+                try:
+                    markdown_content = self._generate_ai_article(data, article_title)
+                    log_info("ai_generate", f"AI生成成功（第{attempt}次）", content_length=len(markdown_content) if markdown_content else 0)
+                except Exception as e:
+                    log_error("ai_generate", f"AI生成失败: {e}", attempt=attempt)
+                    last_quality_reason = f"AI生成异常: {e}"
+                    continue
             
             # 立即质量评分
-            try:
-                scores = self._auto_score_article(markdown_content, article_title)
-                print(f"[质量门槛] 评分: overall={scores['overall_score']:.1f}, tech={scores['tech_content_ratio']:.1f}, dup={scores['penalties']['duplicate']:.1f}, total_penalty={scores['penalties']['total']:.1f}")
-                
-                # 硬性门槛检查
-                fail_reasons = []
-                penalties = scores['penalties']
-                
-                if scores['overall_score'] < QUALITY_MIN_OVERALL:
-                    fail_reasons.append(f"综合评分过低 ({scores['overall_score']:.1f} < {QUALITY_MIN_OVERALL})")
-                if scores['tech_content_ratio'] < QUALITY_MIN_TECH:
-                    fail_reasons.append(f"科技含量过低 ({scores['tech_content_ratio']:.1f} < {QUALITY_MIN_TECH})")
-                if penalties['duplicate'] >= QUALITY_MAX_DUPLICATE_PENALTY:
-                    fail_reasons.append(f"重复内容过多 (惩罚={penalties['duplicate']:.1f})")
-                
-                # 新增惩罚项门槛检查
-                if penalties.get('total', 0) >= 8.0:
-                    fail_reasons.append(f"总惩罚过高 ({penalties['total']:.1f} >= 8.0)")
-                if penalties.get('length', 0) >= 2.0:
-                    fail_reasons.append(f"内容长度过短 (惩罚={penalties['length']:.1f})")
-                if penalties.get('template', 0) >= 2.0:
-                    fail_reasons.append(f"模板痕迹过重 (惩罚={penalties['template']:.1f})")
-                if penalties.get('promo', 0) >= 2.0:
-                    fail_reasons.append(f"推广内容 detected (惩罚={penalties['promo']:.1f})")
-                
-                if fail_reasons:
-                    last_quality_reason = "; ".join(fail_reasons)
-                    print(f"[质量门槛] ❌ 第{attempt}次未通过: {last_quality_reason}")
+            with StepTimer("quality_score", f"质量评分-第{attempt}次"):
+                try:
+                    scores = self._auto_score_article(markdown_content, article_title)
+                    final_scores = scores
+                    log_info("quality_score", f"评分完成", overall=scores['overall_score'], tech=scores['tech_content_ratio'], total_penalty=scores['penalties']['total'])
                     
-                    # 记录到异常知识库
-                    try:
-                        from evolution.exception_monitor import ExceptionMonitor
-                        monitor = ExceptionMonitor('.')
-                        monitor.record_exception(
-                            'QualityGateRejection',
-                            f'文章质量未通过门槛: {last_quality_reason}',
-                            f'标题: {article_title}\n评分: {scores}',
-                            context=f'attempt:{attempt},file:{filepath}',
-                            module='github.py'
+                    # 硬性门槛检查
+                    fail_reasons = []
+                    penalties = scores['penalties']
+                    
+                    if scores['overall_score'] < QUALITY_MIN_OVERALL:
+                        fail_reasons.append(f"综合评分过低 ({scores['overall_score']:.1f} < {QUALITY_MIN_OVERALL})")
+                    if scores['tech_content_ratio'] < QUALITY_MIN_TECH:
+                        fail_reasons.append(f"科技含量过低 ({scores['tech_content_ratio']:.1f} < {QUALITY_MIN_TECH})")
+                    if penalties['duplicate'] >= QUALITY_MAX_DUPLICATE_PENALTY:
+                        fail_reasons.append(f"重复内容过多 (惩罚={penalties['duplicate']:.1f})")
+                    
+                    if penalties.get('total', 0) >= 8.0:
+                        fail_reasons.append(f"总惩罚过高 ({penalties['total']:.1f} >= 8.0)")
+                    if penalties.get('length', 0) >= 2.0:
+                        fail_reasons.append(f"内容长度过短 (惩罚={penalties['length']:.1f})")
+                    if penalties.get('template', 0) >= 2.0:
+                        fail_reasons.append(f"模板痕迹过重 (惩罚={penalties['template']:.1f})")
+                    if penalties.get('promo', 0) >= 2.0:
+                        fail_reasons.append(f"推广内容 detected (惩罚={penalties['promo']:.1f})")
+                    
+                    if fail_reasons:
+                        last_quality_reason = "; ".join(fail_reasons)
+                        log_warn("quality_gate", f"第{attempt}次未通过: {last_quality_reason}", overall=scores['overall_score'])
+                        markdown_content = None
+                        continue
+                    else:
+                        log_info("quality_gate", f"✅ 通过（overall={scores['overall_score']:.1f}）")
+                        self._save_article_metrics(
+                            date=data.date if isinstance(data.date, str) else (data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') and data.date else ''),
+                            title=article_title,
+                            scores=scores
                         )
-                        monitor._save_knowledge_base()
-                    except Exception as e:
-                        logger.debug(f"[异常监控] 保存失败: {e}")
-                    
-                    # 记录质量数据到数据管道（即使被拦截也记录，用于趋势分析）
-                    try:
-                        from evolution.data_pipeline import write_record
-                        write_record("metric", {
-                            "name": "quality_gate_rejection",
-                            "value": 1,
-                            "unit": "count",
-                            "module": "quality_gate",
-                            "context": last_quality_reason,
-                        })
-                    except Exception:
-                        pass
-                    
-                    # 清除内容，准备下一次重试
+                        break
+                except Exception as e:
+                    log_error("quality_score", f"评分失败: {e}", attempt=attempt)
+                    last_quality_reason = f"评分异常: {e}"
                     markdown_content = None
                     continue
-                else:
-                    print(f"[质量门槛] ✅ 通过，准备后续处理（overall={scores['overall_score']:.1f}）")
-                    # 同时保存评分结果，避免后续重复计算
-                    self._save_article_metrics(
-                        date=data.date if isinstance(data.date, str) else (data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') and data.date else ''),
-                        title=article_title,
-                        scores=scores
-                    )
-                    break  # 质量合格，跳出循环
-            except Exception as e:
-                print(f"[质量门槛] 评分失败: {e}")
-                import traceback
-                traceback.print_exc()
-                logger.warning(f"[质量门槛] 评分失败: {e}")
-                last_quality_reason = f"评分异常: {e}"
-                markdown_content = None
-                continue
         
         # 循环结束后检查是否成功
         if markdown_content is None:
-            print(f"[质量门槛] ❌ {MAX_QUALITY_RETRIES}次尝试均失败，当天不发布。最后原因: {last_quality_reason}")
-            # 创建 Issue 通知（如果配置允许）
+            log_error("quality_gate", f"{MAX_QUALITY_RETRIES}次尝试均失败，当天不发布", last_reason=last_quality_reason)
             try:
                 self._create_quality_alert_issue(date_str, last_quality_reason)
             except Exception:
@@ -366,49 +338,47 @@ class GitHubStorageBackend(StorageBackend):
                         logger.info("[智能调度] 文章已标记为草稿 (draft: true)")
         
         # 📝 智能摘要 - 自动生成TL;DR（Lv19进化）
-        try:
-            from evolution.smart_summary import add_smart_summary
-            original_length = len(markdown_content)
-            markdown_content = add_smart_summary(markdown_content)
-            if len(markdown_content) > original_length:
-                logger.info("[智能摘要] 已自动生成文章摘要块")
-        except Exception as e:
-            logger.warning(f"[智能摘要] 生成失败: {e}")
+        with StepTimer("smart_summary", "智能摘要生成"):
+            try:
+                from evolution.smart_summary import add_smart_summary
+                original_length = len(markdown_content)
+                markdown_content = add_smart_summary(markdown_content)
+                if len(markdown_content) > original_length:
+                    log_info("smart_summary", "已自动生成文章摘要块")
+            except Exception as e:
+                log_warn("smart_summary", f"生成失败: {e}")
         
         # 📝 标题优化 - 自动生成最佳标题（Lv22进化）
-        try:
-            from evolution.title_optimizer import optimize_article_title, replace_article_title
-            new_title = optimize_article_title(markdown_content)
-            if new_title and "TrendRadar Report" not in new_title:
-                markdown_content = replace_article_title(markdown_content, new_title)
-                logger.info(f"[标题优化] 已优化标题为: {new_title}")
-        except Exception as e:
-            logger.warning(f"[标题优化] 失败: {e}")
+        with StepTimer("title_optimizer", "标题优化"):
+            try:
+                from evolution.title_optimizer import optimize_article_title, replace_article_title
+                new_title = optimize_article_title(markdown_content)
+                if new_title and "TrendRadar Report" not in new_title:
+                    markdown_content = replace_article_title(markdown_content, new_title)
+                    log_info("title_optimizer", f"已优化标题为: {new_title}")
+            except Exception as e:
+                log_warn("title_optimizer", f"失败: {e}")
         
-        # 🚀 多模型协作优化 frontmatter — 让每个模型做它百分百擅长的事
-        print("[多模型增强] 开始执行多模型 frontmatter 优化...")
-        try:
-            original_fm = markdown_content.split('---', 2)[1] if markdown_content.startswith('---') else ""
-            markdown_content = self._enhance_frontmatter_multi_model(markdown_content)
-            new_fm = markdown_content.split('---', 2)[1] if markdown_content.startswith('---') else ""
-            if original_fm != new_fm:
-                print("[多模型增强] ✅ frontmatter 已被多模型优化")
-            else:
-                print("[多模型增强] ℹ️ frontmatter 未发生变化（可能API未返回优化建议）")
-        except Exception as e:
-            print(f"[多模型增强] ❌ 优化失败，保留原 frontmatter: {e}")
-            import traceback
-            traceback.print_exc()
+        # 🚀 多模型协作优化 frontmatter
+        with StepTimer("multi_model", "多模型 frontmatter 优化"):
+            try:
+                original_fm = markdown_content.split('---', 2)[1] if markdown_content.startswith('---') else ""
+                markdown_content = self._enhance_frontmatter_multi_model(markdown_content)
+                new_fm = markdown_content.split('---', 2)[1] if markdown_content.startswith('---') else ""
+                if original_fm != new_fm:
+                    log_info("multi_model", "✅ frontmatter 已被多模型优化")
+                else:
+                    log_info("multi_model", "ℹ️ frontmatter 未发生变化")
+            except Exception as e:
+                log_error("multi_model", f"优化失败: {e}")
         
-        # 🧹 Frontmatter 清理 - 修复 YAML 引号嵌套等问题
-        print("[文章处理] 开始 sanitize frontmatter...")
-        try:
-            markdown_content = self._sanitize_frontmatter(markdown_content, data.date, article_title)
-            print("[文章处理] ✅ sanitize 完成")
-        except Exception as e:
-            print(f"[文章处理] ❌ sanitize 失败: {e}，跳过继续")
-            import traceback
-            traceback.print_exc()
+        # 🧹 Frontmatter 清理
+        with StepTimer("sanitize", "Frontmatter 清理"):
+            try:
+                markdown_content = self._sanitize_frontmatter(markdown_content, data.date, article_title)
+                log_info("sanitize", "✅ sanitize 完成")
+            except Exception as e:
+                log_error("sanitize", f"sanitize 失败: {e}，跳过继续")
         
         # 🧹 清理重复的快速阅读区（AI有时会输出两次）
         print("[文章处理] 检查重复快速阅读区...")
@@ -450,125 +420,117 @@ class GitHubStorageBackend(StorageBackend):
         except Exception as e:
             print(f"[文章处理] ⚠️ 核心观点编号格式修复失败: {e}，跳过继续")
         
-        # ✅ Frontmatter 预验证 — 防止格式错误导致 Astro 构建失败
-        try:
-            from evolution.frontmatter_validator import validate_article
-            valid, errors, fixed_content = validate_article(markdown_content, filepath)
-            if not valid:
-                logger.warning(f"[Frontmatter验证] 发现 {len(errors)} 个问题:")
-                for err in errors:
-                    logger.warning(f"  - {err}")
-                # 使用修复后的内容
-                if fixed_content != markdown_content:
-                    markdown_content = fixed_content
-                    logger.info("[Frontmatter验证] 已自动修复问题")
-                    # 再次验证
-                    valid2, errors2, _ = validate_article(markdown_content, filepath)
-                    if not valid2:
-                        logger.error(f"[Frontmatter验证] 自动修复后仍有 {len(errors2)} 个问题:")
-                        for err in errors2:
-                            logger.error(f"  - {err}")
-                        # 记录到异常知识库
-                        try:
-                            from evolution.exception_monitor import ExceptionMonitor
-                            monitor = ExceptionMonitor('.')
-                            monitor.record_exception(
-                                'FrontmatterValidationError',
-                                f'Frontmatter 验证失败: {"; ".join(errors2)}',
-                                '',
-                                context=f'file:{filepath}',
-                                module='github.py'
-                            )
-                            monitor._save_knowledge_base()
-                        except Exception as e:
-                            logger.debug(f"[异常监控] 保存失败: {e}")
-                        # 阻止推送，避免破坏 Astro 构建
-                        logger.error("[Frontmatter验证] 阻止推送：frontmatter 格式严重错误")
+        # ✅ Frontmatter 预验证
+        with StepTimer("frontmatter_validator", "Frontmatter 预验证"):
+            try:
+                from evolution.frontmatter_validator import validate_article
+                valid, errors, fixed_content = validate_article(markdown_content, filepath)
+                if not valid:
+                    log_warn("frontmatter_validator", f"发现 {len(errors)} 个问题", errors=errors)
+                    if fixed_content != markdown_content:
+                        markdown_content = fixed_content
+                        log_info("frontmatter_validator", "已自动修复问题")
+                        valid2, errors2, _ = validate_article(markdown_content, filepath)
+                        if not valid2:
+                            log_error("frontmatter_validator", f"自动修复后仍有 {len(errors2)} 个问题，阻止推送", errors=errors2)
+                            return False
+                    else:
+                        log_error("frontmatter_validator", "无法自动修复，阻止推送")
                         return False
                 else:
-                    logger.error("[Frontmatter验证] 无法自动修复，阻止推送")
-                    return False
-            else:
-                print("[Frontmatter验证] ✅ 通过")
-        except Exception as e:
-            print(f"[Frontmatter验证] 验证过程出错: {e}，跳过验证继续推送")
+                    log_info("frontmatter_validator", "✅ 通过")
+            except Exception as e:
+                log_warn("frontmatter_validator", f"验证过程出错: {e}，跳过验证继续推送")
         
-        # 🛡️ Astro 构建预检 — 推送前模拟验证
-        try:
-            from evolution.astro_preflight import preflight_check
-            passed, report = preflight_check(markdown_content, filepath)
-            if not passed:
-                logger.error(f"[构建预检] ❌ 未通过:\n{report}")
-                # 记录到异常知识库
-                try:
-                    from evolution.exception_monitor import ExceptionMonitor
-                    monitor = ExceptionMonitor('.')
-                    monitor.record_exception(
-                        'AstroPreflightError',
-                        f'构建预检失败: {filepath}',
-                        report,
-                        context=f'file:{filepath}',
-                        module='github.py'
-                    )
-                    monitor._save_knowledge_base()
-                except Exception as e:
-                    logger.debug(f"[异常监控] 保存失败: {e}")
-                return False
-            print("[构建预检] ✅ 通过")
-        except Exception as e:
-            print(f"[构建预检] 检查过程出错: {e}，跳过继续推送")
+        # 🛡️ Astro 构建预检
+        with StepTimer("astro_preflight", "Astro 构建预检"):
+            try:
+                from evolution.astro_preflight import preflight_check
+                passed, report = preflight_check(markdown_content, filepath)
+                if not passed:
+                    log_error("astro_preflight", f"❌ 未通过", report=report[:200])
+                    return False
+                log_info("astro_preflight", "✅ 通过")
+            except Exception as e:
+                log_warn("astro_preflight", f"检查过程出错: {e}，跳过继续推送")
         
         # Push to GitHub
-        print(f"[文章推送] 开始推送到 GitHub: {filepath}")
-        try:
-            self._push_to_github(filepath, markdown_content, f"feat: add TrendRadar report - {article_title}")
-            print(f"[文章推送] ✅ 成功推送文章到 GitHub: {filepath}")
-            
-            # 🚀 部署后验证 — 确保文章成功上线
+        with StepTimer("github_push", "GitHub 文章推送"):
             try:
-                from trendradar.storage.deploy_verifier import verify_after_push
-                import os
+                self._push_to_github(filepath, markdown_content, f"feat: add TrendRadar report - {article_title}")
+                log_info("github_push", f"✅ 成功推送文章到 GitHub: {filepath}")
                 
-                slug = os.path.basename(filepath).replace('.md', '')
-                date_str = data.date if isinstance(data.date, str) else (data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') and data.date else '')
+                # 🚀 部署后验证
+                with StepTimer("deploy_verify", "部署后验证"):
+                    try:
+                        from trendradar.storage.deploy_verifier import verify_after_push
+                        import os
+                        
+                        slug = os.path.basename(filepath).replace('.md', '')
+                        date_str = data.date if isinstance(data.date, str) else (data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') and data.date else '')
+                        
+                        verify_after_push(
+                            slug, date_str, logger,
+                            filepath=filepath,
+                            github_token=self.token,
+                            github_owner=self.owner,
+                            github_repo=self.repo,
+                            github_branch=self.branch,
+                            rollback_on_failure=False,
+                        )
+                    except Exception as e:
+                        log_warn("deploy_verify", f"验证过程出错: {e}")
                 
-                # 验证并支持自动回滚（Lv58）
-                # rollback_on_failure 默认 False：Cloudflare API 403 时需手动确认 Token 权限
-                verify_after_push(
-                    slug, date_str, logger,
-                    filepath=filepath,
-                    github_token=self.token,
-                    github_owner=self.owner,
-                    github_repo=self.repo,
-                    github_branch=self.branch,
-                    rollback_on_failure=False,
-                )
+                # 📦 记录文章数据到统一管道
+                try:
+                    from evolution.data_pipeline import write_record
+                    write_record("article", {
+                        "id": filepath.split('/')[-1].replace('.md', ''),
+                        "title": article_title,
+                        "date": data.date if isinstance(data.date, str) else (data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') and data.date else ''),
+                        "source_count": len(data.items),
+                        "total_items": sum(len(items) for items in data.items.values()),
+                        "length": len(markdown_content),
+                        "is_draft": is_draft,
+                    })
+                    log_info("data_pipeline", "文章记录已写入")
+                except Exception as e:
+                    log_warn("data_pipeline", f"写入失败: {e}")
+                
+                # 📦 Lv75: 记录文章质量到回溯库
+                try:
+                    from evolution.article_quality_db import record_article_quality
+                    # 从 frontmatter 提取标签
+                    tags = []
+                    try:
+                        fm_match = markdown_content.split('---', 2)
+                        if len(fm_match) >= 2:
+                            import yaml
+                            fm = yaml.safe_load(fm_match[1])
+                            tags = fm.get('tags', []) if fm else []
+                    except Exception:
+                        pass
+                    
+                    record_article_quality(
+                        article_id=filepath.split('/')[-1].replace('.md', ''),
+                        title=article_title,
+                        date=data.date if isinstance(data.date, str) else (data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') and data.date else ''),
+                        tags=tags,
+                        scores=final_scores,
+                        is_draft=is_draft,
+                        source_count=len(data.items),
+                        total_items=sum(len(items) for items in data.items.values()),
+                        content_length=len(markdown_content),
+                        modules_used=["smart_scheduler", "ai_generate", "quality_gate", "multi_model", "sanitize", "frontmatter_validator", "astro_preflight"],
+                    )
+                    log_info("article_quality_db", "文章质量已记录到回溯库")
+                except Exception as e:
+                    log_warn("article_quality_db", f"记录失败: {e}")
+                
+                return True
             except Exception as e:
-                logger.warning(f"[部署验证] 验证过程出错: {e}")
-            
-            # 📦 记录文章数据到统一管道 — Round 2 数据流调优
-            try:
-                from evolution.data_pipeline import write_record
-                write_record("article", {
-                    "id": filepath.split('/')[-1].replace('.md', ''),
-                    "title": article_title,
-                    "date": data.date if isinstance(data.date, str) else (data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') and data.date else ''),
-                    "source_count": len(data.items),
-                    "total_items": sum(len(items) for items in data.items.values()),
-                    "length": len(markdown_content),
-                    "is_draft": is_draft,
-                })
-                logger.info("[数据管道] 文章记录已写入")
-            except Exception as e:
-                logger.warning(f"[数据管道] 写入失败: {e}")
-            
-            # ⭐ 质量评分已在质量门槛拦截阶段完成，此处不再重复评分
-            # 如需查看评分，请检查日志中的 [质量门槛] 输出
-            
-            return True
-        except Exception as e:
-            logger.error(f"Failed to push to GitHub: {e}")
-            return False
+                log_error("github_push", f"推送失败: {e}")
+                return False
     
     def _auto_score_article(self, content: str, title: str) -> dict:
         """
