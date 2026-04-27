@@ -437,12 +437,16 @@ class GitHubStorageBackend(StorageBackend):
             return section
         
         # 只修复快速阅读区内的核心观点部分
-        markdown_content = re.sub(
-            r'(\*\*核心观点\*\*[:：]\s*\n)(.*?)(\n\n\*\*关键词)',
-            lambda m: m.group(1) + fix_bullet_numbers(m.group(2)) + m.group(3),
-            markdown_content,
-            flags=re.DOTALL
-        )
+        try:
+            markdown_content = re.sub(
+                r'(\*\*核心观点\*\*[:：]\s*\n)(.*?)(\n\n\*\*关键词)',
+                lambda m: m.group(1) + fix_bullet_numbers(m.group(2)) + m.group(3),
+                markdown_content,
+                flags=re.DOTALL
+            )
+            print("[文章处理] ✅ 核心观点编号格式修复完成")
+        except Exception as e:
+            print(f"[文章处理] ⚠️ 核心观点编号格式修复失败: {e}，跳过继续")
         
         # ✅ Frontmatter 预验证 — 防止格式错误导致 Astro 构建失败
         try:
