@@ -531,6 +531,7 @@ class GitHubStorageBackend(StorageBackend):
                 date_str = data.date if isinstance(data.date, str) else (data.date.strftime('%Y-%m-%d') if hasattr(data, 'date') and data.date else '')
                 
                 # 验证并支持自动回滚（Lv58）
+                # 临时禁用回滚：Cloudflare API 403 问题待修复
                 verify_after_push(
                     slug, date_str, logger,
                     filepath=filepath,
@@ -538,7 +539,7 @@ class GitHubStorageBackend(StorageBackend):
                     github_owner=self.owner,
                     github_repo=self.repo,
                     github_branch=self.branch,
-                    rollback_on_failure=True,
+                    rollback_on_failure=False,
                 )
             except Exception as e:
                 logger.warning(f"[部署验证] 验证过程出错: {e}")
