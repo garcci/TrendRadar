@@ -22,6 +22,7 @@ A/B测试框架 - 数据驱动的进化决策
 """
 
 import json
+import os
 import random
 import hashlib
 from datetime import datetime, timedelta
@@ -368,11 +369,17 @@ class ABTestingFramework:
         try:
             if not os.path.exists(self.tests_file):
                 return []
-            
+
             with open(self.tests_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            
-            return [ABTest(**t) for t in data]
+
+            result = []
+            for t in data:
+                t = dict(t)
+                if isinstance(t.get("dimension"), str):
+                    t["dimension"] = TestDimension(t["dimension"])
+                result.append(ABTest(**t))
+            return result
         except Exception:
             return []
     
@@ -383,7 +390,7 @@ class ABTestingFramework:
             with open(self.tests_file, 'w', encoding='utf-8') as f:
                 json.dump([{
                     "test_id": t.test_id,
-                    "dimension": t.dimension.value,
+                    "dimension": t.dimension.value if isinstance(t.dimension, TestDimension) else t.dimension,
                     "variant_a": t.variant_a,
                     "variant_b": t.variant_b,
                     "start_date": t.start_date,

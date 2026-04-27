@@ -233,6 +233,30 @@ def run_module_value_assessor_tests() -> Dict:
     return tester.run_all()
 
 
+def run_data_archiver_tests() -> Dict:
+    """运行数据归档端到端测试"""
+    from e2e.test_data_archiver import TestDataArchiver
+
+    tester = TestDataArchiver()
+    return tester.run_all()
+
+
+def run_reader_behavior_analyzer_tests() -> Dict:
+    """运行读者行为分析端到端测试"""
+    from e2e.test_reader_behavior_analyzer import TestReaderBehaviorAnalyzer
+
+    tester = TestReaderBehaviorAnalyzer()
+    return tester.run_all()
+
+
+def run_ab_testing_tests() -> Dict:
+    """运行 A/B 测试端到端测试"""
+    from e2e.test_ab_testing import TestABTesting
+
+    tester = TestABTesting()
+    return tester.run_all()
+
+
 def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
     """运行所有端到端测试（并行执行优化耗时）"""
     e2e_dir = Path(trendradar_path) / "evolution" / "e2e"
@@ -266,6 +290,9 @@ def run_all_e2e_tests(trendradar_path: str = ".") -> Dict:
         ("emotion_analyzer", run_emotion_analyzer_tests),
         ("unified_logger", run_unified_logger_tests),
         ("module_value_assessor", run_module_value_assessor_tests),
+        ("data_archiver", run_data_archiver_tests),
+        ("reader_behavior_analyzer", run_reader_behavior_analyzer_tests),
+        ("ab_testing", run_ab_testing_tests),
     ]
 
     all_results = []
